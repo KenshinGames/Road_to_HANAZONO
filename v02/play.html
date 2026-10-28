@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Road to HANAZONO v0.4</title>
-<meta name="description" content="高校ラグビー育成ゲーム v0.4。監督として世代を超えて花園を目指す。">
+<title>Road to HANAZONO v0.5</title>
+<meta name="description" content="高校ラグビー育成ゲーム v0.5。監督として世代を超えて花園を目指す。">
 <meta name="theme-color" content="#f4f7f2" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#101410" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -128,6 +128,23 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
 .cand p { margin: 6px 0; }
 .cand.sel { outline: 3px solid var(--brand); outline-offset: -2px; }
 .badge { display: inline-block; padding: 1px 9px; border-radius: 99px; background: #f2762e; color: #fff; font-size: 12px; font-weight: 700; }
+/* v0.5: 立ち絵・カットイン・会話劇 */
+.portrait { border-radius: 12px; overflow: hidden; line-height: 0; flex: none; background: var(--brand-soft); }
+.portrait svg { width: 100%; height: 100%; display: block; }
+.portrait.detail-p { width: 104px; height: 125px; }
+.portrait.cand-p { width: 52px; height: 62px; border-radius: 9px; }
+.portrait.cutin-p { width: 62px; height: 74px; border-radius: 9px; }
+.portrait.dlg-p { width: 52px; height: 62px; border-radius: 9px; }
+.pmini { width: 25px; height: 30px; display: inline-block; vertical-align: middle; margin-right: 5px; border-radius: 5px; overflow: hidden; line-height: 0; }
+.pmini svg { width: 100%; height: 100%; display: block; }
+.detail-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 6px; }
+.cand-head { display: flex; gap: 10px; align-items: center; }
+.cutin {
+  display: flex; gap: 12px; align-items: center;
+  background: var(--warn-soft); border: 1px solid var(--line); border-radius: 16px; padding: 8px 12px;
+}
+.cutin-line { font-weight: 700; margin-top: 2px; }
+.dlg { display: flex; gap: 12px; align-items: center; }
 
 /* ===== 固定レイアウト（横画面・広い画面）: ページはスクロールしない ===== */
 @media (min-width: 760px) and (orientation: landscape) {
@@ -163,9 +180,10 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
 <body>
 <div id="app" aria-live="polite"></div>
 <script>
-/* Road to HANAZONO v0.4 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.5 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
  * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示
- * v0.4: 新入生3層の完成(スカウト＋特別枠) + OB連携 */
+ * v0.4: 新入生3層の完成(スカウト＋特別枠) + OB連携
+ * v0.5: 立ち絵表現(パーツ組み合わせ式の自動生成) + 試合カットイン + 会話劇 + 季節感 */
 (function () {
   'use strict';
   var STORE_KEY = 'hanazono.v02';
@@ -447,7 +465,7 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
   function resolveCell(t) {
     var b = G.board;
     if (t === 'pS' || t === 'pB') return applyPractice(t === 'pB');
-    if (t === 'ev') { var e = rollEvent(); b.log.push('🎲 ' + (e ? e.t : '穏やかな日々。特に何もなかった')); return; }
+    if (t === 'ev') { var e = rollEvent(); b.log.push('🎲 ' + (e ? e.t : '穏やかな日々。特に何もなかった')); if (e && e.dlg) b.dlg = e.dlg; return; }
     if (t === 'rec') {
       G.players.forEach(function (p) { p.fatigue = Math.max(0, p.fatigue - 25); });
       var inj = G.players.filter(function (p) { return p.injured; })[0];
@@ -493,16 +511,21 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
     var r = Math.random();
     if (r < 0.28) return null;
     var healthy = G.players.filter(function (p) { return !p.injured; });
-    if (r < 0.40) { G.nextBonus = Math.min(8, G.nextBonus + 3); return { t: 'OBの先輩が練習に顔を出し、差し入れと熱いアドバイス。士気が上がった（次の試合 +3）' }; }
+    if (r < 0.40) {
+      G.nextBonus = Math.min(8, G.nextBonus + 3);
+      var seniors = G.players.filter(function (p) { return p.year === 3; });
+      var spk = seniors.length ? pick(seniors) : pick(G.players);
+      return { t: 'OBの先輩が練習に顔を出し、差し入れと熱いアドバイス。士気が上がった（次の試合 +3）', dlg: spk ? { pid: spk.id, text: dlgLine(spk, 'ob') } : null };
+    }
     if (r < 0.52) { G.rep += 5; return { t: '地域の小学生向けラグビー体験会を開催。部の評判が上がった（評判 +5）' }; }
     if (r < 0.64) { G.players.forEach(function (p) { p.injured = 0; }); return { t: 'マネージャーが入部！ ケアが行き届き、怪我人が全員復帰した' }; }
     if (r < 0.76) { G.nextBonus = Math.min(8, G.nextBonus + 4); return { t: 'ライバル校の試合映像を入手。弱点が見えた（次の試合 +4）' }; }
-    if (r < 0.88 && healthy.length) { var v = pick(healthy); v.injured = 1; return { t: v.name + ' が体調を崩した。次の試合は欠場する', bad: true }; }
+    if (r < 0.88 && healthy.length) { var v = pick(healthy); v.injured = 1; return { t: v.name + ' が体調を崩した。次の試合は欠場する', bad: true, dlg: { pid: v.id, text: dlgLine(v, 'sick') } }; }
     if (r < 0.94 && G.players.length) {
       var q = pick(G.players);
-      if (q.person === '自由人' || q.person === 'マイペース') { q.fatigue = Math.max(0, q.fatigue - 18); return { t: q.name + '（' + q.person + '）は休日にしっかり気分転換。本人の疲労が抜けた' }; }
-      if (q.person === 'リーダー気質' || q.person === '熱血') { G.nextBonus = Math.min(8, G.nextBonus + 3); return { t: q.name + '（' + q.person + '）が自主練に皆を誘い、チームの士気が上がった（次の試合 +3）' }; }
-      q.trust = clamp((q.trust || 50) + 4, 0, 99); return { t: q.name + '（' + q.person + '）とじっくり面談。監督への信頼が深まった' };
+      if (q.person === '自由人' || q.person === 'マイペース') { q.fatigue = Math.max(0, q.fatigue - 18); return { t: q.name + '（' + q.person + '）は休日にしっかり気分転換。本人の疲労が抜けた', dlg: { pid: q.id, text: dlgLine(q, 'rest') } }; }
+      if (q.person === 'リーダー気質' || q.person === '熱血') { G.nextBonus = Math.min(8, G.nextBonus + 3); return { t: q.name + '（' + q.person + '）が自主練に皆を誘い、チームの士気が上がった（次の試合 +3）', dlg: { pid: q.id, text: dlgLine(q, 'cheer') } }; }
+      q.trust = clamp((q.trust || 50) + 4, 0, 99); return { t: q.name + '（' + q.person + '）とじっくり面談。監督への信頼が深まった', dlg: { pid: q.id, text: dlgLine(q, 'talk') } };
     }
     var s = pick(G.players);
     s.stats.sta = Math.max(20, s.stats.sta - 2);
@@ -964,6 +987,134 @@ function finishRecruit() {
   screen = 'inst'; save(); render();
 }
 
+  /* ---------------- 立ち絵(v0.5): パーツ組み合わせ式SVG生成 ----------------
+   * 選手IDをシードに決定的に生成する（同じ選手はいつも同じ顔になる）。
+   * レイヤー: 背景 → ユニフォーム姿(体重で肩幅) → 首・耳・顔 → 髪 → 眉・目・鼻・口(性格で変化) */
+  function rng32(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function hairPath(style, rx, top, c) {
+    var L = 50 - rx, Rr = 50 + rx;
+    var crown = 2 * top - 46; /* 外側カーブの制御点（頭頂が顔の上端に合うよう調整） */
+    var open = '<path fill="' + c + '" d="';
+    var HL = top + 8.5; /* 前髪の基準位置 */
+    var fringe = ' L ' + (50 + rx * 0.5) + ' ' + (HL + 2) + ' L 50 ' + HL + ' L ' + (50 - rx * 0.5) + ' ' + (HL + 2);
+    if (style === 0) { /* 坊主: 浅いカーブの生え際 */
+      return open + 'M ' + L + ' 45 Q 50 ' + crown + ' ' + Rr + ' 45 Q 50 ' + (2 * (top + 4.5) - 45) + ' ' + L + ' 45 Z"/>';
+    }
+    if (style === 2) { /* ツンツン */
+      var pts = [[L, 47], [L + 1, top + 4], [L + 5, top + 7], [L + 9, top + 1], [45, top + 6], [50, top], [55, top + 6], [Rr - 9, top + 1], [Rr - 5, top + 7], [Rr - 1, top + 4], [Rr, 47]];
+      return open + 'M ' + pts.map(function (q) { return q[0] + ' ' + q[1]; }).join(' L ') + fringe + ' L ' + L + ' 47 Z"/>';
+    }
+    if (style === 3) { /* ウェーブ前髪 */
+      return open + 'M ' + L + ' 48 Q 50 ' + crown + ' ' + Rr + ' 48'
+        + ' L ' + (50 + rx * 0.55) + ' ' + (HL + 3) + ' L ' + (50 + rx * 0.18) + ' ' + (HL + 0.5)
+        + ' L ' + (50 - rx * 0.18) + ' ' + (HL + 3) + ' L ' + (50 - rx * 0.55) + ' ' + (HL + 0.5)
+        + ' L ' + L + ' 48 Z"/>';
+    }
+    if (style === 4) { /* サイドパート: 斜めに流れる前髪 */
+      return open + 'M ' + L + ' 47 Q 50 ' + crown + ' ' + Rr + ' 47'
+        + ' L ' + (50 + rx * 0.35) + ' ' + (HL + 0.5) + ' L ' + (50 - rx * 0.45) + ' ' + (HL + 3.5)
+        + ' L ' + L + ' 47 Z"/>';
+    }
+    if (style === 5) { /* 長め（サイドが耳にかかる） */
+      return open + 'M ' + L + ' 48 Q 50 ' + crown + ' ' + Rr + ' 48' + fringe + ' L ' + L + ' 48 Z"/>'
+        + '<rect x="' + (L - 1) + '" y="37" width="4" height="20" rx="2" fill="' + c + '"/>'
+        + '<rect x="' + (Rr - 3) + '" y="37" width="4" height="20" rx="2" fill="' + c + '"/>';
+    }
+    /* 短髪 */
+    return open + 'M ' + L + ' 48 Q 50 ' + crown + ' ' + Rr + ' 48' + fringe + ' L ' + L + ' 48 Z"/>';
+  }
+  function eyesSVG(style) {
+    var cy = 51.5, dx = 6.7;
+    function eye(cx) {
+      if (style === 2) return '<path d="M ' + (cx - 3.4) + ' ' + cy + ' Q ' + cx + ' ' + (cy - 2.8) + ' ' + (cx + 3.4) + ' ' + cy + '" stroke="#33261d" stroke-width="1.7" fill="none" stroke-linecap="round"/>';
+      if (style === 1) return '<path d="M ' + (cx - 3.4) + ' ' + (cy + 0.6) + ' L ' + cx + ' ' + (cy - 2.2) + ' L ' + (cx + 3.4) + ' ' + (cy + 0.6) + '" stroke="#33261d" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="' + cx + '" cy="' + (cy + 0.2) + '" r="1.3" fill="#33261d"/>';
+      return '<ellipse cx="' + cx + '" cy="' + cy + '" rx="3.3" ry="2.5" fill="#ffffff"/><circle cx="' + cx + '" cy="' + (cy + 0.3) + '" r="1.55" fill="#33261d"/><circle cx="' + (cx + 0.6) + '" cy="' + (cy - 0.5) + '" r="0.55" fill="#ffffff"/>';
+    }
+    return eye(50 - dx) + eye(50 + dx);
+  }
+  function mouthSVG(person) {
+    var st = 'stroke="#8a5a44" stroke-width="1.7" fill="none" stroke-linecap="round"';
+    if (person === '熱血') return '<ellipse cx="50" cy="60.5" rx="3.4" ry="2.2" fill="#8a4a3c"/>';
+    if (person === '頑張り屋' || person === 'リーダー気質') return '<path d="M 44.5 59.8 Q 50 64 55.5 59.8" ' + st + '/>';
+    if (person === '真面目') return '<path d="M 46.2 60.2 Q 50 62.8 53.8 60.2" ' + st + '/>';
+    if (person === '自由人') return '<path d="M 45 60.4 Q 51 63.4 55.8 58.8" ' + st + '/>';
+    return '<path d="M 45.6 60.8 L 54.4 60.8" ' + st + '/>'; /* クール・マイペース */
+  }
+  function portraitSVG(p) {
+    var R = rng32((p.id * 2654435761) ^ 0x9e3779b9);
+    function pk(arr) { return arr[Math.floor(R() * arr.length)]; }
+    function rr(a, b) { return a + Math.floor(R() * (b - a + 1)); }
+    var pos = POSITIONS[p.posIdx] || POSITIONS[0];
+    var skin = pk(['#f6cfae', '#eebd93', '#e2aa7c', '#cb9264']);
+    var hairC = pk(['#262019', '#3a2a1e', '#54382a', '#6e4b2a', '#191921']);
+    var hairStyle = rr(0, 5), faceShape = rr(0, 2), eyeStyle = rr(0, 2), browThick = R() < 0.4;
+    var bw = clamp((p.w - 62) / 50, 0, 1);
+    var sh = 26 + bw * 10;
+    var rx = [16, 14.5, 15][faceShape], ry = [15, 17, 16][faceShape];
+    var top = 47 - ry;
+    var s = '';
+    s += '<rect width="100" height="120" fill="' + (pos.g === 'FW' ? '#e4f0e5' : '#e3ebf5') + '"/>';
+    s += '<circle cx="50" cy="50" r="33" fill="#ffffff" opacity="0.45"/>';
+    /* 桜丘ユニフォーム: 緑 × 白のV襟 × 桜色の帯。背番号つき */
+    s += '<path d="M ' + (50 - sh) + ' 120 L ' + (50 - sh + 3) + ' 85 Q 50 74 ' + (50 + sh - 3) + ' 85 L ' + (50 + sh) + ' 120 Z" fill="#166534"/>';
+    s += '<path d="M ' + (50 - sh + 1) + ' 104 L ' + (50 + sh - 1) + ' 104 L ' + (50 + sh) + ' 111 L ' + (50 - sh) + ' 111 Z" fill="#f2a7bb"/>';
+    s += '<path d="M 41.5 85 L 50 95 L 58.5 85 L 58.5 89.5 L 50 99.5 L 41.5 89.5 Z" fill="#f7f3e6"/>';
+    s += '<text x="62.5" y="99" font-size="8.5" font-weight="700" fill="#ffffff" opacity="0.92" font-family="sans-serif">' + pos.no + '</text>';
+    s += '<rect x="44.5" y="62" width="11" height="16" rx="3" fill="' + skin + '"/>';
+    s += '<rect x="44.5" y="62" width="11" height="5" fill="#000000" opacity="0.08"/>';
+    s += '<ellipse cx="' + (50 - rx) + '" cy="52" rx="2.3" ry="3.6" fill="' + skin + '"/>';
+    s += '<ellipse cx="' + (50 + rx) + '" cy="52" rx="2.3" ry="3.6" fill="' + skin + '"/>';
+    if (faceShape === 2) s += '<rect x="' + (50 - rx) + '" y="' + top + '" width="' + (rx * 2) + '" height="' + (ry * 2) + '" rx="8" fill="' + skin + '"/>';
+    else s += '<ellipse cx="50" cy="47" rx="' + rx + '" ry="' + ry + '" fill="' + skin + '"/>';
+    s += hairPath(hairStyle, rx, top, hairC);
+    s += '<g stroke="' + hairC + '" stroke-width="' + (browThick ? 2.6 : 1.8) + '" stroke-linecap="round" fill="none">'
+      + '<path d="M ' + (50 - rx + 4) + ' 46 L ' + (50 - 3) + ' ' + (eyeStyle === 1 ? 47 : 45.3) + '"/>'
+      + '<path d="M ' + (50 + 3) + ' ' + (eyeStyle === 1 ? 47 : 45.3) + ' L ' + (50 + rx - 4) + ' 46"/></g>';
+    s += eyesSVG(eyeStyle);
+    s += '<path d="M 50 53.5 Q 51.6 56.8 49.9 58.2" stroke="#b9804f" stroke-width="1.3" fill="none" opacity="0.65" stroke-linecap="round"/>';
+    s += mouthSVG(p.person);
+    return '<svg viewBox="0 0 100 120" width="100%" role="img" aria-label="' + p.name + '" preserveAspectRatio="xMidYMid meet">' + s + '</svg>';
+  }
+  function portraitEl(p, cls) {
+    var d = h('div', { class: 'portrait ' + (cls || '') });
+    d.innerHTML = portraitSVG(p);
+    return d;
+  }
+  /* 試合カットインのひとこと（性格で口調が変わる） */
+  function cutinLine(p, kind) {
+    var L = {
+      setpiece: ['任せてください、押し込みます！', 'ここは俺たちが取る！', '落ち着いて、確実にいこう'],
+      goal: ['絶対に決める！', 'スペースは見えている…！', '行くぞ、ついてこい！'],
+      penalty: ['確実に決めます', '狙いは定めた。あとは蹴るだけ', '冷静に、正確にいきます'],
+      late: ['最後まで走り切る！', 'まだ終わっていない…！', 'みんな、気持ちで負けるな！'],
+      halftime: ['後半、必ず取り返します！', '形を確認して、立て直そう', '気持ちは切れていない！']
+    };
+    var arr = L[kind] || L.goal;
+    if (p.person === '熱血' || p.person === '頑張り屋' || p.person === 'リーダー気質') return arr[0];
+    if (p.person === 'クール' || p.person === 'マイペース') return arr[2 % arr.length];
+    return arr[Math.abs(p.id) % arr.length];
+  }
+  /* 会話劇のセリフ（性格で口調が変わる） */
+  function dlgLine(p, kind) {
+    var T = {
+      sick: { '熱血': 'くそ…よりによって今…。すぐ治して戻ります！', 'クール': '…無理はしない。次の試合に合わせる', 'default': 'すみません、体調を崩しました…' },
+      talk: { '熱血': '監督、もっと強くなりたいです。付き合ってください！', 'リーダー気質': 'チームのこと、少し相談してもいいですか', '真面目': 'やるべきことが、はっきりしました', 'default': '監督と話せて、気持ちが固まりました' },
+      cheer: { '熱血': 'みんな、もう1セットいこう！ 声出していけ！', 'リーダー気質': '全員で声を掛け合おう。それが桜丘の強さだ', 'default': 'みんな、もう1セットいこう！' },
+      rest: { '自由人': '休むのも練習のうち、ってやつですよ', 'マイペース': 'しっかり寝ました。もう大丈夫です', 'default': 'いい気分転換になりました' },
+      ob: { 'default': '先輩、ありがとうございます！ 次の試合、絶対に勝ちます' }
+    };
+    var m = T[kind] || {};
+    return m[p.person] || m['default'] || '';
+  }
+
     /* ---------------- シーン背景(SVG) ---------------- */
   function postsSVG(x, y, s, color) {
     return '<g transform="translate(' + x + ',' + y + ') scale(' + s + ')" stroke="' + color + '" stroke-width="5" fill="none" stroke-linecap="round">'
@@ -979,7 +1130,22 @@ function finishRecruit() {
     return '<g fill="' + color + '" opacity="0.9"><ellipse cx="90" cy="30" rx="34" ry="11"/><ellipse cx="118" cy="24" rx="24" ry="9"/>'
       + '<ellipse cx="430" cy="22" rx="30" ry="10"/><ellipse cx="456" cy="17" rx="20" ry="8"/></g>';
   }
-  function sceneSVG(kind) {
+  /* 季節の重ね描き（v0.5）: 月インデックスでシーンに季節感を足す。
+   * バナーは slice で大きく切り取られる（縦長バナーでは可視域が x≒205〜355 まで狭まる）ため、
+   * 要素は中央の可視域に集める */
+  function seasonSVG(mi) {
+    if (mi === 0) { /* 4月: 桜の花びら */
+      return '<g fill="#ffb7cd" opacity="0.9"><circle cx="225" cy="18" r="4"/><circle cx="255" cy="40" r="3"/><circle cx="285" cy="14" r="3.4"/><circle cx="315" cy="30" r="3"/><circle cx="245" cy="48" r="2.6"/><circle cx="300" cy="46" r="2.6"/><circle cx="270" cy="24" r="2.4"/><circle cx="332" cy="20" r="3"/></g>';
+    }
+    if (mi === 3 || mi === 4) { /* 7・8月: 入道雲と強い日差し */
+      return '<circle cx="326" cy="16" r="11" fill="#ffdf5c"/><g fill="#ffffff" opacity="0.96"><ellipse cx="252" cy="28" rx="42" ry="12"/><ellipse cx="272" cy="20" rx="27" ry="10"/></g>';
+    }
+    if (mi != null && mi >= 7) { /* 11月〜1月: 淡い冬の光と粉雪 */
+      return '<rect width="560" height="150" fill="#dfe9f2" opacity="0.22"/><g fill="#ffffff" opacity="0.85"><circle cx="225" cy="22" r="2"/><circle cx="255" cy="44" r="1.6"/><circle cx="285" cy="18" r="2"/><circle cx="320" cy="38" r="1.6"/><circle cx="340" cy="24" r="2"/><circle cx="265" cy="58" r="1.4"/><circle cx="330" cy="62" r="1.4"/></g>';
+    }
+    return '';
+  }
+  function sceneSVG(kind, mi) {
     var open = '<svg viewBox="0 0 560 150" width="100%" role="img" aria-hidden="true" preserveAspectRatio="xMidYMid slice">';
     if (kind === 'home') return open
       + '<defs><linearGradient id="sk1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fd0ff"/><stop offset="1" stop-color="#e8f8ff"/></linearGradient>'
@@ -990,7 +1156,7 @@ function finishRecruit() {
       + '<g fill="#7fb2d9"><rect x="56" y="74" width="22" height="16"/><rect x="92" y="74" width="22" height="16"/><rect x="128" y="74" width="22" height="16"/><rect x="164" y="74" width="22" height="16"/><rect x="56" y="96" width="22" height="14"/><rect x="164" y="96" width="22" height="14"/></g>'
       + '<rect x="112" y="94" width="18" height="22" fill="#8a5a3b"/>'
       + '<rect y="116" width="560" height="34" fill="url(#gr1)"/><rect y="130" width="560" height="3" fill="#ffffff" opacity="0.75"/>'
-      + postsSVG(452, 128, 0.9, '#ffffff') + ballSVG(320, 132, 0.9) + '</svg>';
+      + postsSVG(452, 128, 0.9, '#ffffff') + ballSVG(320, 132, 0.9) + seasonSVG(mi) + '</svg>';
     if (kind === 'train') return open
       + '<defs><linearGradient id="sk2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a5dcff"/><stop offset="1" stop-color="#eafaff"/></linearGradient>'
       + '<linearGradient id="gr2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#63bd74"/><stop offset="1" stop-color="#2f8550"/></linearGradient></defs>'
@@ -999,7 +1165,7 @@ function finishRecruit() {
       + '<g stroke="#ffffff" opacity="0.8"><path d="M0 84 H560" stroke-width="3"/><path d="M0 122 H560" stroke-width="4"/><path d="M120 46 L70 150 M440 46 L490 150" stroke-width="2.5"/></g>'
       + postsSVG(90, 108, 1.05, '#ffffff')
       + '<g fill="#f2762e"><polygon points="300,138 312,118 324,138"/><polygon points="356,142 366,126 376,142"/><polygon points="410,138 420,122 430,138"/></g>'
-      + ballSVG(255, 128, 1.15) + '</svg>';
+      + ballSVG(255, 128, 1.15) + seasonSVG(mi) + '</svg>';
     if (kind === 'match') return open
       + '<defs><linearGradient id="sk3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#131f3a"/><stop offset="1" stop-color="#2a4470"/></linearGradient>'
       + '<linearGradient id="gr3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4da562"/><stop offset="1" stop-color="#256b3d"/></linearGradient></defs>'
@@ -1037,9 +1203,9 @@ function finishRecruit() {
       + '<rect y="112" width="560" height="38" fill="#5f4048"/>'
       + postsSVG(280, 140, 1.25, '#402b33') + ballSVG(150, 138, 0.9) + '</svg>';
   }
-  function banner(kind, cls) {
+  function banner(kind, cls, mi) {
     var d = h('div', { class: 'banner' + (cls ? ' ' + cls : '') });
-    d.innerHTML = sceneSVG(kind).replace('<svg ', '<svg preserveAspectRatio="xMidYMid slice" ');
+    d.innerHTML = sceneSVG(kind, mi).replace('<svg ', '<svg preserveAspectRatio="xMidYMid slice" ');
     return d;
   }
 
@@ -1093,8 +1259,8 @@ function finishRecruit() {
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.4'])]),
-      banner('home'),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.5'])]),
+      banner('home', null, 0),
       h('div', { class: 'card center' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
         h('button', { class: 'btn primary', onclick: function () { newGame(); screen = 'inst'; render(); } }, ['監督に就任する'])
@@ -1104,7 +1270,7 @@ function finishRecruit() {
   }
   function instScreen() {
     var mo = MONTHS[G.monthIdx];
-    var left = [banner('train', 'grow')];
+    var left = [banner('train', 'grow', G.monthIdx)];
     if (G.monthLog && G.monthLog.length) {
       left.push(h('div', { class: 'card grow scroll' }, [h('div', { class: 'sub' }, ['最近の出来事'])].concat(G.monthLog.map(function (l) { return h('div', null, [l]); }))));
     }
@@ -1161,7 +1327,21 @@ function finishRecruit() {
     info.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['怪我人']), h('span', null, [String(G.players.filter(function (p) { return p.injured; }).length) + '人'])]));
     var log = h('div', { class: 'log grow' });
     (b.log.length ? b.log : ['月が始まった。進行カードを選ぼう']).forEach(function (ln) { log.appendChild(h('div', null, [ln])); });
-    wrap([hud(), h('div', { class: 'lay2' }, [col([boardCard]), col([handCard, info, log])])]);
+    var rightKids = [handCard, info];
+    if (b.dlg) {
+      var dp = G.players.filter(function (p) { return p.id === b.dlg.pid; })[0];
+      if (dp) {
+        var dg = h('div', { class: 'card dlg' });
+        dg.appendChild(portraitEl(dp, 'dlg-p'));
+        dg.appendChild(h('div', null, [
+          h('div', null, [h('b', null, [dp.name]), h('span', { class: 'sub' }, ['（' + dp.person + '）'])]),
+          h('div', null, ['「' + b.dlg.text + '」'])
+        ]));
+        rightKids.push(dg);
+      }
+    }
+    rightKids.push(log);
+    wrap([hud(), h('div', { class: 'lay2' }, [col([boardCard]), col(rightKids)])]);
     var lg = document.querySelector('.log'); if (lg) lg.scrollTop = lg.scrollHeight;
   }
   function squadScreen() {
@@ -1169,8 +1349,16 @@ function finishRecruit() {
     var table = h('table', { class: 'squad' });
     table.appendChild(h('tr', null, ['No', '名前', '年', 'Pos', '身長', '体重'].concat(STATS.map(function (s) { return s.n.slice(0, 2); })).concat(['疲労', '信頼']).map(function (x) { return h('th', null, [x]); })));
     G.players.forEach(function (p) {
-      var cells = [String(POSITIONS[p.posIdx].no), p.name + (p.injured ? ' 🚑' : ''), String(p.year), POSITIONS[p.posIdx].p, String(p.h), String(p.w)].map(function (x, i) {
-        return h('td', i === 1 ? { class: 'name' } : null, [x]);
+      var cells = [String(POSITIONS[p.posIdx].no), null, String(p.year), POSITIONS[p.posIdx].p, String(p.h), String(p.w)].map(function (x, i) {
+        if (i === 1) {
+          var td = h('td', { class: 'name' });
+          var pm = h('span', { class: 'pmini' });
+          pm.innerHTML = portraitSVG(p);
+          td.appendChild(pm);
+          td.appendChild(document.createTextNode(p.name + (p.injured ? ' 🚑' : '')));
+          return td;
+        }
+        return h('td', null, [x]);
       });
       STATS.forEach(function (s) { cells.push(h('td', null, [String(p.stats[s.k])])); });
       cells.push(h('td', null, [String(p.fatigue)]));
@@ -1182,9 +1370,14 @@ function finishRecruit() {
     var detail = h('div', { class: 'card grow scroll' });
     if (sel) {
       var per = personOf(sel);
-      detail.appendChild(h('div', { class: 'sec' }, [POSITIONS[sel.posIdx].no + ' ' + sel.name + (sel.injured ? ' 🚑負傷中' : '')]));
-      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['学年／ポジション']), h('span', null, [sel.year + '年・' + POSITIONS[sel.posIdx].p + '（' + POSITIONS[sel.posIdx].g + '）'])]));
-      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['体格']), h('span', null, [sel.h + 'cm ／ ' + sel.w + 'kg'])]));
+      var head = h('div', { class: 'detail-head' });
+      head.appendChild(portraitEl(sel, 'detail-p'));
+      var hinfo = h('div', { style: 'flex:1;min-width:0' });
+      hinfo.appendChild(h('div', { class: 'sec' }, [POSITIONS[sel.posIdx].no + ' ' + sel.name + (sel.injured ? ' 🚑負傷中' : '')]));
+      hinfo.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['学年／ポジション']), h('span', null, [sel.year + '年・' + POSITIONS[sel.posIdx].p + '（' + POSITIONS[sel.posIdx].g + '）'])]));
+      hinfo.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['体格']), h('span', null, [sel.h + 'cm ／ ' + sel.w + 'kg'])]));
+      head.appendChild(hinfo);
+      detail.appendChild(head);
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['性格']), h('span', null, [sel.person])]));
       detail.appendChild(h('div', { class: 'sub' }, [per.d]));
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['個性']), h('span', null, [sel.trait.n])]));
@@ -1267,7 +1460,19 @@ function finishRecruit() {
     M.log.forEach(function (ln) {
       log.appendChild(h('div', ln.indexOf('勝負どころ') >= 0 ? { class: 'hl' } : (ln.indexOf('トライ') >= 0 || ln.indexOf('勝利') >= 0 ? { class: 'score-line' } : null), [ln]));
     });
-    wrap([sb, h('div', { class: 'lay2' }, [log, col([ctrl])])]);
+    var leftKids = [];
+    if (M.phase === 'scene' && M.pending && M.pending.key) {
+      var kp = M.pending.key;
+      var cut = h('div', { class: 'cutin' });
+      cut.appendChild(portraitEl(kp, 'cutin-p'));
+      cut.appendChild(h('div', null, [
+        h('div', null, [h('b', null, [kp.name]), h('span', { class: 'sub' }, ['（' + POSITIONS[kp.posIdx].p + (skillNames(kp).length ? '・' + skillNames(kp).join('／') : '') + '）'])]),
+        h('div', { class: 'cutin-line' }, ['「' + cutinLine(kp, M.pending.kind) + '」'])
+      ]));
+      leftKids.push(cut);
+    }
+    leftKids.push(log);
+    wrap([sb, h('div', { class: 'lay2' }, [col(leftKids), col([ctrl])])]);
     var lg = document.querySelector('.log'); if (lg) lg.scrollTop = lg.scrollHeight;
   }
   function summaryScreen() {
@@ -1284,15 +1489,20 @@ function finishRecruit() {
     s.grads.forEach(function (x) { g.appendChild(h('div', { class: 'rowline' }, [h('span', null, [x.name]), h('span', { class: 'sub' }, [x.pos + '・総合 ' + x.avg])])); });
     g.appendChild(h('div', { class: 'sub' }, ['彼らはOBとして記録に残る。お疲れさま']));
     wrap([hud(), h('div', { class: 'lay2' }, [
-      col([banner(G.qualified ? 'hanazono' : 'sunset', 'grow'), result]),
+      col([banner(G.qualified ? 'hanazono' : 'sunset', 'grow', G.monthIdx), result]),
       col([g, h('button', { class: 'btn primary', onclick: function () { startRecruit(); } }, ['新年度へ（新入生を迎える）'])])
     ])]);
   }
   function candHead(p) {
-    return h('div', { class: 'rowline' }, [
-      h('span', { class: 'big' }, [p.name]),
-      h('span', { class: 'sub' }, [POSITIONS[p.posIdx].p + ' ・ ' + p.year + '年 ・ ' + p.h + 'cm／' + p.w + 'kg'])
-    ]);
+    var d = h('div', { class: 'cand-head' });
+    d.appendChild(portraitEl(p, 'cand-p'));
+    d.appendChild(h('div', { style: 'flex:1;min-width:0' }, [
+      h('div', { class: 'rowline' }, [
+        h('span', { class: 'big' }, [p.name]),
+        h('span', { class: 'sub' }, [POSITIONS[p.posIdx].p + ' ・ ' + p.year + '年 ・ ' + p.h + 'cm／' + p.w + 'kg'])
+      ])
+    ]));
+    return d;
   }
   function recruitScreen() {
     var R = G.recruit;
