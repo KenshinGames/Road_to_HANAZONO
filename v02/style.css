@@ -132,6 +132,8 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
 /* v0.6: スカウティング欄 */
 .scout { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; text-align: left; }
 .scout .sec { margin-bottom: 4px; }
+/* v0.7: 伸びしろバー */
+.capmeter { margin: 2px 0 7px; height: 6px; }
 
 /* ===== 固定レイアウト（横画面・広い画面）: ページはスクロールしない ===== */
 @media (min-width: 760px) and (orientation: landscape) {
