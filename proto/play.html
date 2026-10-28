@@ -81,6 +81,8 @@ table.squad td.name { text-align: left; font-weight: 700; white-space: nowrap; }
 .event { background: var(--warn-soft); border-radius: 16px; padding: 14px; }
 .gain { color: var(--ok); font-weight: 700; }
 .center { text-align: center; }
+.banner { border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); line-height: 0; }
+.banner svg { width: 100%; height: auto; display: block; }
 
 </style>
 </head>
@@ -415,6 +417,85 @@ G.turn++; G.trainedThisTurn = false;
 screen = 'home'; save(); render();
 }
 
+  /* ---------------- シーン背景(SVG) ---------------- */
+  function postsSVG(x, y, s, color) {
+    return '<g transform="translate(' + x + ',' + y + ') scale(' + s + ')" stroke="' + color + '" stroke-width="5" fill="none" stroke-linecap="round">'
+      + '<path d="M-16 0 V-64 M16 0 V-64 M-16 -38 H16"/></g>';
+  }
+  function ballSVG(x, y, s) {
+    return '<g transform="translate(' + x + ',' + y + ') rotate(-24) scale(' + s + ')">'
+      + '<ellipse rx="17" ry="11" fill="#8a4b2a"/>'
+      + '<path d="M-17 0 H17" stroke="#f5e9dc" stroke-width="2.5"/>'
+      + '<path d="M-4 -3 V3 M0 -3.5 V3.5 M4 -3 V3" stroke="#f5e9dc" stroke-width="1.6"/></g>';
+  }
+  function cloudsSVG(color) {
+    return '<g fill="' + color + '" opacity="0.9"><ellipse cx="90" cy="30" rx="34" ry="11"/><ellipse cx="118" cy="24" rx="24" ry="9"/>'
+      + '<ellipse cx="430" cy="22" rx="30" ry="10"/><ellipse cx="456" cy="17" rx="20" ry="8"/></g>';
+  }
+  function sceneSVG(kind) {
+    var open = '<svg viewBox="0 0 560 150" width="100%" role="img" aria-hidden="true" preserveAspectRatio="xMidYMid slice">';
+    if (kind === 'home') return open
+      + '<defs><linearGradient id="sk1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fd0ff"/><stop offset="1" stop-color="#e8f8ff"/></linearGradient>'
+      + '<linearGradient id="gr1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#57b26a"/><stop offset="1" stop-color="#2e7d46"/></linearGradient></defs>'
+      + '<rect width="560" height="150" fill="url(#sk1)"/><circle cx="500" cy="28" r="17" fill="#ffd94d"/>'
+      + cloudsSVG('#ffffff')
+      + '<rect x="36" y="58" width="190" height="58" rx="3" fill="#f7f1e1"/><polygon points="28,60 131,30 234,60" fill="#b0593f"/>'
+      + '<g fill="#7fb2d9"><rect x="56" y="74" width="22" height="16"/><rect x="92" y="74" width="22" height="16"/><rect x="128" y="74" width="22" height="16"/><rect x="164" y="74" width="22" height="16"/><rect x="56" y="96" width="22" height="14"/><rect x="164" y="96" width="22" height="14"/></g>'
+      + '<rect x="112" y="94" width="18" height="22" fill="#8a5a3b"/>'
+      + '<rect y="116" width="560" height="34" fill="url(#gr1)"/><rect y="130" width="560" height="3" fill="#ffffff" opacity="0.75"/>'
+      + postsSVG(452, 128, 0.9, '#ffffff') + ballSVG(320, 132, 0.9) + '</svg>';
+    if (kind === 'train') return open
+      + '<defs><linearGradient id="sk2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a5dcff"/><stop offset="1" stop-color="#eafaff"/></linearGradient>'
+      + '<linearGradient id="gr2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#63bd74"/><stop offset="1" stop-color="#2f8550"/></linearGradient></defs>'
+      + '<rect width="560" height="46" fill="url(#sk2)"/>' + cloudsSVG('#ffffff')
+      + '<rect y="46" width="560" height="104" fill="url(#gr2)"/>'
+      + '<g stroke="#ffffff" opacity="0.8"><path d="M0 84 H560" stroke-width="3"/><path d="M0 122 H560" stroke-width="4"/><path d="M120 46 L70 150 M440 46 L490 150" stroke-width="2.5"/></g>'
+      + postsSVG(90, 108, 1.05, '#ffffff')
+      + '<g fill="#f2762e"><polygon points="300,138 312,118 324,138"/><polygon points="356,142 366,126 376,142"/><polygon points="410,138 420,122 430,138"/></g>'
+      + ballSVG(255, 128, 1.15) + '</svg>';
+    if (kind === 'match') return open
+      + '<defs><linearGradient id="sk3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#131f3a"/><stop offset="1" stop-color="#2a4470"/></linearGradient>'
+      + '<linearGradient id="gr3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4da562"/><stop offset="1" stop-color="#256b3d"/></linearGradient></defs>'
+      + '<rect width="560" height="150" fill="url(#sk3)"/>'
+      + '<g fill="#ffffff"><circle cx="70" cy="18" r="1.6"/><circle cx="150" cy="30" r="1.2"/><circle cx="250" cy="14" r="1.5"/><circle cx="360" cy="26" r="1.2"/><circle cx="470" cy="12" r="1.6"/><circle cx="520" cy="34" r="1.2"/></g>'
+      + '<rect y="52" width="560" height="42" fill="#31456e"/>'
+      + '<g><circle cx="30" cy="64" r="3" fill="#ffd166"/><circle cx="58" cy="72" r="3" fill="#f4f1de"/><circle cx="86" cy="62" r="3" fill="#e07a5f"/><circle cx="114" cy="74" r="3" fill="#ffd166"/><circle cx="142" cy="64" r="3" fill="#f4f1de"/><circle cx="170" cy="72" r="3" fill="#81b29a"/><circle cx="198" cy="62" r="3" fill="#ffd166"/><circle cx="226" cy="74" r="3" fill="#f4f1de"/><circle cx="254" cy="64" r="3" fill="#e07a5f"/><circle cx="282" cy="72" r="3" fill="#ffd166"/><circle cx="310" cy="62" r="3" fill="#f4f1de"/><circle cx="338" cy="74" r="3" fill="#81b29a"/><circle cx="366" cy="64" r="3" fill="#ffd166"/><circle cx="394" cy="72" r="3" fill="#f4f1de"/><circle cx="422" cy="62" r="3" fill="#e07a5f"/><circle cx="450" cy="74" r="3" fill="#ffd166"/><circle cx="478" cy="64" r="3" fill="#f4f1de"/><circle cx="506" cy="72" r="3" fill="#81b29a"/><circle cx="534" cy="64" r="3" fill="#ffd166"/></g>'
+      + '<g stroke="#9fb6d9" stroke-width="4"><path d="M36 52 V16 M524 52 V16"/></g><g fill="#fff6bf"><rect x="14" y="8" width="44" height="12" rx="3"/><rect x="502" y="8" width="44" height="12" rx="3"/></g>'
+      + '<rect y="94" width="560" height="56" fill="url(#gr3)"/><rect y="118" width="560" height="3.5" fill="#ffffff" opacity="0.8"/>'
+      + postsSVG(280, 128, 1.0, '#ffffff') + '</svg>';
+    if (kind === 'room') return open
+      + '<rect width="560" height="112" fill="#f1e6cf"/><rect y="112" width="560" height="38" fill="#bd9260"/>'
+      + '<rect y="108" width="560" height="5" fill="#a67c4e"/>'
+      + '<rect x="30" y="22" width="215" height="76" rx="4" fill="#ffffff" stroke="#9aa5a1" stroke-width="3"/>'
+      + '<g stroke-width="2.5" fill="none"><circle cx="80" cy="52" r="13" stroke="#c62f3b"/><circle cx="130" cy="66" r="13" stroke="#166534"/><circle cx="185" cy="48" r="13" stroke="#c62f3b"/>'
+      + '<path d="M93 56 C 110 70, 105 78, 117 68" stroke="#166534"/><path d="M143 62 C 160 52, 165 58, 172 50" stroke="#c62f3b"/><path d="M60 86 H215" stroke="#9aa5a1" stroke-width="1.5"/></g>'
+      + '<g fill="#74889e"><rect x="300" y="18" width="52" height="94" rx="3"/><rect x="360" y="18" width="52" height="94" rx="3"/><rect x="420" y="18" width="52" height="94" rx="3"/><rect x="480" y="18" width="52" height="94" rx="3"/></g>'
+      + '<g stroke="#5b7186" stroke-width="2"><path d="M312 34 h28 M312 44 h28 M372 34 h28 M372 44 h28 M432 34 h28 M432 44 h28 M492 34 h28 M492 44 h28"/></g>'
+      + '<g fill="#43586c"><circle cx="346" cy="70" r="3"/><circle cx="406" cy="70" r="3"/><circle cx="466" cy="70" r="3"/><circle cx="526" cy="70" r="3"/></g>'
+      + '<rect x="286" y="120" width="262" height="9" rx="3" fill="#8a5a3b"/>' + ballSVG(120, 128, 1.0) + '</svg>';
+    if (kind === 'hanazono') return open
+      + '<defs><linearGradient id="sk4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fd0ff"/><stop offset="1" stop-color="#eafaff"/></linearGradient>'
+      + '<linearGradient id="gr4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#57b26a"/><stop offset="1" stop-color="#2e7d46"/></linearGradient></defs>'
+      + '<rect width="560" height="150" fill="url(#sk4)"/><circle cx="496" cy="26" r="16" fill="#ffd94d"/>'
+      + '<rect y="48" width="560" height="40" fill="#5b7ba6"/>'
+      + '<g><circle cx="40" cy="60" r="3" fill="#ffd166"/><circle cx="80" cy="70" r="3" fill="#f4f1de"/><circle cx="120" cy="60" r="3" fill="#ffd166"/><circle cx="160" cy="70" r="3" fill="#f4f1de"/><circle cx="200" cy="60" r="3" fill="#e07a5f"/><circle cx="240" cy="70" r="3" fill="#ffd166"/><circle cx="280" cy="60" r="3" fill="#f4f1de"/><circle cx="320" cy="70" r="3" fill="#ffd166"/><circle cx="360" cy="60" r="3" fill="#f4f1de"/><circle cx="400" cy="70" r="3" fill="#e07a5f"/><circle cx="440" cy="60" r="3" fill="#ffd166"/><circle cx="480" cy="70" r="3" fill="#f4f1de"/><circle cx="520" cy="60" r="3" fill="#ffd166"/></g>'
+      + '<rect y="88" width="560" height="62" fill="url(#gr4)"/><rect y="116" width="560" height="3.5" fill="#ffffff" opacity="0.8"/>'
+      + postsSVG(280, 132, 1.15, '#ffffff')
+      + '<g fill="#ffb7cd"><circle cx="52" cy="26" r="6"/><circle cx="72" cy="18" r="5"/><circle cx="36" cy="14" r="5"/><circle cx="90" cy="30" r="4"/><circle cx="150" cy="40" r="3.4"/><circle cx="330" cy="30" r="3.2"/><circle cx="430" cy="44" r="3.6"/><circle cx="500" cy="66" r="3.2"/><circle cx="210" cy="22" r="3"/></g>'
+      + ballSVG(180, 134, 1.0) + '</svg>';
+    return open
+      + '<defs><linearGradient id="sk5" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8f5c"/><stop offset="1" stop-color="#ffe0ae"/></linearGradient></defs>'
+      + '<rect width="560" height="150" fill="url(#sk5)"/><circle cx="280" cy="104" r="30" fill="#ffdf8e"/>'
+      + '<g fill="#7a4a56" opacity="0.55"><ellipse cx="110" cy="34" rx="42" ry="9"/><ellipse cx="440" cy="26" rx="48" ry="10"/></g>'
+      + '<rect y="112" width="560" height="38" fill="#5f4048"/>'
+      + postsSVG(280, 140, 1.25, '#402b33') + ballSVG(150, 138, 0.9) + '</svg>';
+  }
+  function banner(kind) {
+    var d = h('div', { class: 'banner' });
+    d.innerHTML = sceneSVG(kind);
+    return d;
+  }
+
   /* ---------------- 画面 ---------------- */
   function h(tag, attrs, children) {
     var el = document.createElement(tag);
@@ -473,6 +554,7 @@ screen = 'home'; save(); render();
     var t = TURNS[G.turn];
     var w = h('div', { class: 'stack' });
     w.appendChild(header());
+    w.appendChild(banner('home'));
     w.appendChild(teamCard());
     if (!G.trainedThisTurn) {
       w.appendChild(h('button', { class: 'btn primary', onclick: function () { screen = 'train'; render(); } }, ['今月の練習をする']));
@@ -495,6 +577,7 @@ screen = 'home'; save(); render();
     var t = TURNS[G.turn];
     var w = h('div', { class: 'stack' });
     w.appendChild(header());
+    w.appendChild(banner('train'));
     w.appendChild(h('div', { class: 'sec' }, [t.m + 'の練習' + (t.camp ? '（合宿：成長アップ！）' : '')]));
     var lab1 = h('label', { class: 'lab' }, ['練習方針']);
     var sel1 = h('select', { id: 'tr-sel' }, TRAININGS.map(function (tr) {
@@ -516,6 +599,7 @@ screen = 'home'; save(); render();
   function trainResultScreen() {
     var w = h('div', { class: 'stack' });
     w.appendChild(header());
+    w.appendChild(banner('train'));
     w.appendChild(h('div', { class: 'sec' }, ['練習の成果']));
     var card = h('div', { class: 'card' });
     if (lastGains && lastGains.length) {
@@ -535,6 +619,7 @@ screen = 'home'; save(); render();
   function squadScreen() {
     var w = h('div', { class: 'stack' });
     w.appendChild(header());
+    w.appendChild(banner('room'));
     w.appendChild(h('div', { class: 'sec' }, ['選手一覧']));
     var table = h('table', { class: 'squad' });
     var head = h('tr', null, ['No', '名前', '年', 'Pos'].concat(STATS.map(function (s) { return s.n.slice(0, 2); })).map(function (x) { return h('th', null, [x]); }));
@@ -555,6 +640,7 @@ screen = 'home'; save(); render();
     var t = TURNS[G.turn], opp = OPPONENTS[t.match];
     var w = h('div', { class: 'stack' });
     w.appendChild(header());
+    w.appendChild(banner('match'));
     w.appendChild(h('div', { class: 'card center' }, [
       h('div', { class: 'big' }, ['vs ' + opp.name]),
       h('div', { class: 'sub' }, [opp.note]),
@@ -575,6 +661,7 @@ screen = 'home'; save(); render();
   }
   function matchScreen() {
     var w = h('div', { class: 'stack' });
+    w.appendChild(banner('match'));
     var sb = h('div', { class: 'card score' }, [
       h('div', { class: 'team' }, [h('div', null, ['桜丘高校']), h('div', { class: 'pts' }, [String(M.my)])]),
       h('div', { class: 'vs' }, [M.done ? '試合終了' : Math.min(80, M.block * 8) + '分']),
@@ -606,6 +693,7 @@ screen = 'home'; save(); render();
   function endingScreen() {
     var w = h('div', { class: 'stack' });
     w.appendChild(h('div', { class: 'hero' }, [h('h1', null, [G.champion ? '🌸 花園出場決定！' : 'シーズン終了'])]));
+    w.appendChild(banner(G.champion ? 'hanazono' : 'sunset'));
     w.appendChild(h('div', { class: 'card center' }, [
       h('p', null, [G.champion
         ? '決勝を制し、桜丘高校は初の花園出場を決めた。年末、花園ラグビー場のピッチに立つ。ここからが本当の物語だ。'

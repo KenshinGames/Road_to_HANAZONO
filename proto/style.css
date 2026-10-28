@@ -71,3 +71,5 @@ table.squad td.name { text-align: left; font-weight: 700; white-space: nowrap; }
 .event { background: var(--warn-soft); border-radius: 16px; padding: 14px; }
 .gain { color: var(--ok); font-weight: 700; }
 .center { text-align: center; }
+.banner { border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); line-height: 0; }
+.banner svg { width: 100%; height: auto; display: block; }
