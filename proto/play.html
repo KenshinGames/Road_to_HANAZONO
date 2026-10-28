@@ -397,7 +397,7 @@ function growFromMatch() {
 starters().forEach(function (p) {
 if (Math.random() < 0.6) {
 var s = pick(STATS).k;
-p.stats[s] = Math.min(99, p.stats[s.k] + 1);
+p.stats[s] = Math.min(99, p.stats[s] + 1);
 }
 });
 }
@@ -427,7 +427,16 @@ screen = 'home'; save(); render();
     return el;
   }
   function mount(node) { var a = document.getElementById('app'); a.innerHTML = ''; a.appendChild(node); }
+  function sanitizeStats() {
+    /* 壊れたセーブ(NaNやnullの能力値)を読み込み時に修復する */
+    G.players.forEach(function (p) {
+      STATS.forEach(function (s) {
+        if (typeof p.stats[s.k] !== 'number' || !isFinite(p.stats[s.k])) p.stats[s.k] = 45;
+      });
+    });
+  }
   function render() {
+    if (G && G.players) sanitizeStats();
     if (!G) return newGameScreen();
     if (screen === 'match') return matchScreen();
     if (screen === 'squad') return squadScreen();
