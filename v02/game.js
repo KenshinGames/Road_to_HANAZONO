@@ -1,10 +1,11 @@
-/* Road to HANAZONO v0.8 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.9 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
  * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示
  * v0.4: 新入生3層の完成(スカウト＋特別枠) + OB連携
  * v0.5: 立ち絵表現(パーツ組み合わせ式の自動生成) + 試合カットイン + 会話劇 + 季節感
  * v0.6: 花園トーナメント化(初戦→決勝) + 相手校の個性(戦術傾向・エース) + スカウティング + 時短スキップ + 個人スタッツ
  * v0.7: キャプテン任命と校風 + 選手イベント拡充(性格×信頼度・進路) + ケガの段階化(軽症/重症・欠場期間) + 成長のソフトキャップ化
- * v0.8: メンバー編成(スタメン15名を試合前に編成) + 選手交代(停止点で交代・負傷交代) + 調子(コンディション5段階) */
+ * v0.8: メンバー編成(スタメン15名を試合前に編成) + 選手交代(停止点で交代・負傷交代) + 調子(コンディション5段階)
+ * v0.9: シーズン目標 + ライバル校の物語(帝都のエース代替わり) + 記録室拡張(通算スタッツ・歴代チーム) + 難易度選択 + 設備解放 */
 (function () {
   'use strict';
   var STORE_KEY = 'hanazono.v02';
@@ -81,6 +82,20 @@
   ];
   function formOf(p) { return FORMS.filter(function (x) { return x.v === (p.form || 0); })[0] || FORMS[2]; }
   function rollForm() { var r = Math.random(); return r < 0.12 ? -1 : (r < 0.24 ? 1 : 0); }
+  /* v0.9: シーズン目標（年初に1つ選ぶ。rank が達成判定の物差し） */
+  var GOALS = [
+    { k: 'win1', n: '予選でまず1勝', rank: 1, d: '花園予選の初戦を突破する' },
+    { k: 'final', n: '県決勝に進出', rank: 2, d: '予選準決勝を勝ち、花園まであと1勝に迫る' },
+    { k: 'hana', n: '花園出場', rank: 3, d: '県予選を制して全国大会へ' },
+    { k: 'hanawin', n: '花園で1勝', rank: 4, d: '全国の舞台でまず1勝を挙げる' },
+    { k: 'title', n: '花園優勝', rank: 5, d: '全国制覇。監督としての最高到達点' }
+  ];
+  /* v0.9: 設備解放（部の格のマイルストーンで解放。お金の概念は入れない） */
+  var FACILITIES = [
+    { k: 'weights', n: 'ウェイト場', gi: 2, d: '部の格「中堅」で解放。パワー練習の伸びが上がる' },
+    { k: 'video', n: 'ビデオ分析室', gi: 3, d: '部の格「強豪」で解放。準備ボーナスの上限と作戦会議の実りが増える' },
+    { k: 'dorm', n: '寮・専用グラウンド', gi: 4, d: '部の格「名門」で解放。ケアと休養で疲労が抜けやすくなる' }
+  ];
   var UNIT_STAT = { FW: 'pow', BK: 'pas', SP: 'kik' };
   var UNIT_NAME = { FW: 'FW（フィジカル）', BK: 'BK（スキル）', SP: 'セットピース' };
   /* 相手校: 戦術傾向(style)とエース(ace)で個性を持たせる。ace.skill は SKILLS の key */
@@ -181,7 +196,7 @@
       h: sz.h, w: sz.w, person: opts.person || pick(PERSONS).n,
       skills: opts.skills ? opts.skills.slice() : rollSkills(pos),
       trust: typeof opts.trust === 'number' ? opts.trust : (year >= 2 ? ri(35, 60) : ri(22, 45)),
-      srec: { tries: 0, plays: 0 }
+      srec: { tries: 0, plays: 0 }, crec: { tries: 0, plays: 0 }
     };
     STATS.forEach(function (s) {
       var v = base + ri(-6, 6) + (s.k === pos.main ? 8 : 0) + (s.k === 'sta' ? 3 : 0)
@@ -208,18 +223,35 @@
     /* v0.8: 調子（-2..2） */
     if (typeof p.form !== 'number' || !isFinite(p.form)) p.form = ri(-1, 1);
     p.form = clamp(Math.round(p.form), -2, 2);
+    /* v0.9: キャリア通算スタッツ */
+    if (!p.crec || typeof p.crec !== 'object') p.crec = { tries: 0, plays: 0 };
+    if (typeof p.crec.tries !== 'number' || !isFinite(p.crec.tries)) p.crec.tries = 0;
+    if (typeof p.crec.plays !== 'number' || !isFinite(p.crec.plays)) p.crec.plays = 0;
+  }
+  /* v0.9: 個人スタッツは今季（srec）とキャリア通算（crec）の両方に積む */
+  function addStat(p, kind) {
+    if (!p) return;
+    if (!p.srec) p.srec = { tries: 0, plays: 0 };
+    if (!p.crec) p.crec = { tries: 0, plays: 0 };
+    p.srec[kind]++; p.crec[kind]++;
   }
   function overall(p) { return STATS.reduce(function (a, s) { return a + p.stats[s.k]; }, 0) / 6; }
-  function newGame() {
+  function newGame(diff) {
     namePool = {};
     G = {
       year: 1, monthIdx: 0, players: [], obs: [], rep: 30, nextId: 1,
       career: { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0 },
-      season: { wins: 0, losses: 0, result: '予選敗退' },
+      season: { wins: 0, losses: 0, result: '予選敗退', bestWin: 0, hanaWins: 0, hanaTitle: false },
       inst: { team: 'sta', unit: 'FW', focus: 1, level: 0 },
       captainId: null, ethos: 'discipline', lineup: null,
       board: null, qualified: false, tactic: 'fw', nextBonus: 0,
-      monthLog: [], summary: null
+      monthLog: [], summary: null,
+      /* v0.9: 難易度・シーズン目標・ライバル・歴代チーム・設備 */
+      difficulty: diff === 'challenge' ? 'challenge' : 'normal',
+      goal: null, goalSet: false,
+      rival: { name: '白鳥 圭', pos: 'SO', skill: 'big', grade: 2 },
+      rivalW: 0, rivalL: 0, rivalLast: null, rivalNews: null,
+      history: [], facSeen: []
     };
     for (var i = 0; i < 15; i++) {
       var yr = i < 5 ? 3 : (i < 10 ? 2 : 1);
@@ -230,6 +262,7 @@
     var capBest = null;
     G.players.forEach(function (p) { if (!capBest || p.trust > capBest.trust) capBest = p; });
     G.captainId = capBest ? capBest.id : null;
+    G.goal = recommendedGoal().k; /* v0.9: 目標の初期値は部の格のおすすめ（目標画面で変更できる） */
     M = null;
     save();
   }
@@ -272,6 +305,35 @@
         G.lineup.every(function (id) { return G.players.some(function (p) { return p.id === id; }); }) &&
         G.lineup.filter(function (id, i) { return G.lineup.indexOf(id) === i; }).length === 15;
       if (!lok) G.lineup = null;
+    }
+    /* v0.9: シーズンの到達度トラッキング */
+    if (!G.season || typeof G.season !== 'object') G.season = { wins: 0, losses: 0, result: '予選敗退' };
+    ['wins', 'losses', 'bestWin', 'hanaWins'].forEach(function (k) {
+      if (typeof G.season[k] !== 'number' || !isFinite(G.season[k])) G.season[k] = 0;
+    });
+    if (typeof G.season.hanaTitle !== 'boolean') G.season.hanaTitle = !!G.season.hanaTitle;
+    /* v0.9: 難易度（旧セーブは ふつう） */
+    if (G.difficulty !== 'challenge') G.difficulty = 'normal';
+    /* v0.9: 目標。旧セーブはおすすめ目標を自動で入れて確定扱いにする（画面は挟まない） */
+    if (typeof G.goalSet !== 'boolean') G.goalSet = true;
+    if (!GOALS.some(function (x) { return x.k === G.goal; })) G.goal = recommendedGoal().k;
+    /* v0.9: ライバル（帝都学園のエース） */
+    if (!G.rival || typeof G.rival !== 'object' || typeof G.rival.name !== 'string' || !G.rival.name) {
+      G.rival = { name: '白鳥 圭', pos: 'SO', skill: 'big', grade: 2 };
+    }
+    if (['PR', 'HO', 'LO', 'FL', 'No8', 'SH', 'SO', 'CTB', 'WTB', 'FB'].indexOf(G.rival.pos) < 0) G.rival.pos = 'SO';
+    if (!SKILLS.some(function (s) { return s.key === G.rival.skill; })) G.rival.skill = 'big';
+    if (typeof G.rival.grade !== 'number' || !isFinite(G.rival.grade)) G.rival.grade = 2;
+    G.rival.grade = clamp(Math.round(G.rival.grade), 1, 3);
+    if (typeof G.rivalW !== 'number' || !isFinite(G.rivalW)) G.rivalW = 0;
+    if (typeof G.rivalL !== 'number' || !isFinite(G.rivalL)) G.rivalL = 0;
+    if (G.rivalLast !== 'win' && G.rivalLast !== 'lose') G.rivalLast = null;
+    if (typeof G.rivalNews !== 'string') G.rivalNews = null;
+    /* v0.9: 歴代チームと設備の解放済み記録 */
+    if (!Array.isArray(G.history)) G.history = [];
+    G.history = G.history.filter(function (hh) { return hh && typeof hh.year === 'number' && typeof hh.power === 'number'; });
+    if (!Array.isArray(G.facSeen)) {
+      G.facSeen = FACILITIES.filter(function (f) { return gradeIdx() >= f.gi; }).map(function (f) { return f.k; });
     }
     if (!G.players.some(function (p) { return p.id === G.captainId; })) {
       var cb = null;
@@ -383,6 +445,38 @@
     });
     return recovered;
   }
+  /* v0.9: 目標のおすすめ（部の格に応じる）と達成ランク */
+  function recommendedGoal() { return GOALS[gradeIdx()] || GOALS[0]; }
+  function goalOf() { return GOALS.filter(function (x) { return x.k === G.goal; })[0] || recommendedGoal(); }
+  function achievedRank() {
+    var s = G.season || {};
+    if (s.hanaTitle) return 5;
+    if ((s.hanaWins || 0) > 0) return 4;
+    if (G.qualified) return 3;
+    if ((s.bestWin || 0) >= 2) return 2;
+    if ((s.bestWin || 0) >= 1) return 1;
+    return 0;
+  }
+  /* v0.9: 設備と難易度のヘルパー */
+  function hasFacility(k) {
+    var f = FACILITIES.filter(function (x) { return x.k === k; })[0];
+    return !!f && gradeIdx() >= f.gi;
+  }
+  function bonusCap() { return hasFacility('video') ? 8 : 6; }
+  function repGain(n) { return G.difficulty === 'challenge' ? Math.max(1, Math.round(n * 0.7)) : n; }
+  /* v0.9: 帝都学園のエースは G.rival（存命の人物）に差し替える */
+  function effOpp(idx) {
+    var opp = OPPONENTS[idx];
+    if (idx === 3 && G.rival) {
+      var c = {}; Object.keys(opp).forEach(function (k) { c[k] = opp[k]; });
+      c.ace = { name: G.rival.name, pos: G.rival.pos, skill: G.rival.skill };
+      return c;
+    }
+    return opp;
+  }
+  function newRivalAce(grade) {
+    return { name: uniqName(), pos: pick(['SO', 'SO', 'CTB', 'FB']), skill: pick(['big', 'kick', 'step', 'big']), grade: grade || 1 };
+  }
   function effOf(p) { return p.fatigue >= 70 ? 0.55 : (p.fatigue >= 40 ? 0.85 : 1); }
   function avgFatigue() { return Math.round(G.players.reduce(function (a, p) { return a + p.fatigue; }, 0) / Math.max(1, G.players.length)); }
 
@@ -408,6 +502,12 @@
     cells.push({ t: 'end', done: false });
     G.board = { cells: cells, pos: -1, hand: drawCards(3), log: [] };
     if (mo.camp) G.board.log.push('夏合宿の月。練習の実りが1.5倍になる');
+    /* v0.9: 部の格が上がって新たに解放された設備を知らせる */
+    var newFac = FACILITIES.filter(function (f) { return hasFacility(f.k) && (G.facSeen || []).indexOf(f.k) < 0; });
+    if (newFac.length) {
+      G.facSeen = (G.facSeen || []).concat(newFac.map(function (f) { return f.k; }));
+      G.board.log.push('🏟 設備が解放された！ ' + newFac.map(function (f) { return f.n + '（' + f.d + '）'; }).join('／'));
+    }
     screen = 'board';
     save(); render();
   }
@@ -431,7 +531,9 @@
     if (t === 'ev') { var e = rollEvent(); b.log.push('🎲 ' + (e ? e.t : '穏やかな日々。特に何もなかった')); if (e && e.dlg) b.dlg = e.dlg; return; }
     if (t === 'rec') {
       var rr = ethosOf().r;
-      G.players.forEach(function (p) { p.fatigue = Math.max(0, p.fatigue - Math.round(25 * rr)); });
+      /* v0.9: 寮・専用グラウンドがあるとケアの回復量が増える */
+      var recAmt = hasFacility('dorm') ? 32 : 25;
+      G.players.forEach(function (p) { p.fatigue = Math.max(0, p.fatigue - Math.round(recAmt * rr)); });
       /* v0.8: ケアの日は調子も上向きやすい */
       var upN = 0;
       G.players.forEach(function (p) { if ((p.form || 0) < 0 && Math.random() < 0.65) { p.form++; upN++; } });
@@ -446,11 +548,11 @@
       return;
     }
     if (t === 'free') {
-      G.players.forEach(function (p) { p.fatigue = Math.max(0, p.fatigue - Math.round(12 * ethosOf().r)); });
+      G.players.forEach(function (p) { p.fatigue = Math.max(0, p.fatigue - Math.round((hasFacility('dorm') ? 16 : 12) * ethosOf().r)); });
       G.players.forEach(function (p) { if ((p.form || 0) < 0 && Math.random() < 0.45) p.form++; });
       b.log.push('😴 完全休養。リフレッシュした'); return;
     }
-    if (t === 'meet') { G.nextBonus = Math.min(6, G.nextBonus + 3); G.players.forEach(function (p) { p.fatigue = Math.max(0, p.fatigue - 4); }); b.log.push('📋 作戦会議。次の試合の準備が整った（次の試合 +' + G.nextBonus + '）'); return; }
+    if (t === 'meet') { G.nextBonus = Math.min(bonusCap(), G.nextBonus + (hasFacility('video') ? 4 : 3)); G.players.forEach(function (p) { p.fatigue = Math.max(0, p.fatigue - 4); }); b.log.push('📋 作戦会議。次の試合の準備が整った（次の試合 +' + G.nextBonus + '）'); return; }
     if (t === 'end') return monthEnd();
   }
   /* v0.7: 成長のソフトキャップ。85から逓減し、99に近いほど小さくなるが完全には止まらない。
@@ -476,6 +578,8 @@
         if (p.id === G.captainId) raw *= 1.1;
         /* v0.8: 調子が良い選手は練習の実りも良い */
         raw *= 1 + (p.form || 0) * 0.05;
+        /* v0.9: ウェイト場があればパワー練習の伸びが上がる */
+        if (stat === 'pow' && hasFacility('weights')) raw *= 1.15;
         var decay = softDecay(cur);
         var effGain = cur >= 99 ? 0 : raw * decay;
         surplus += raw - effGain;
@@ -519,7 +623,7 @@
     if (seniors.length && r < 0.35) {
       var s = pick(seniors);
       gainTrust(s, 5);
-      G.nextBonus = Math.min(6, G.nextBonus + 2);
+      G.nextBonus = Math.min(bonusCap(), G.nextBonus + 2);
       var path = pick([
         '卒業後は大学でもラグビーを続ける決意を固めた',
         '実業団への就職が内定。それでも最後の花園に全てを懸けている',
@@ -548,24 +652,24 @@
     if (r < 0.24) return null;
     var healthy = G.players.filter(function (p) { return !p.injured; });
     if (r < 0.34) {
-      G.nextBonus = Math.min(6, G.nextBonus + 3);
+      G.nextBonus = Math.min(bonusCap(), G.nextBonus + 3);
       var seniors = G.players.filter(function (p) { return p.year === 3; });
       var spk = seniors.length ? pick(seniors) : pick(G.players);
       return { t: 'OBの先輩が練習に顔を出し、差し入れと熱いアドバイス。士気が上がった（次の試合 +3）', dlg: spk ? { pid: spk.id, text: dlgLine(spk, 'ob') } : null };
     }
     if (r < 0.46) return playerDrama();
-    if (r < 0.54) { G.rep += 5; return { t: '地域の小学生向けラグビー体験会を開催。部の評判が上がった（評判 +5）' }; }
+    if (r < 0.54) { G.rep += repGain(5); return { t: '地域の小学生向けラグビー体験会を開催。部の評判が上がった（評判 +' + repGain(5) + '）' }; }
     if (r < 0.64) {
       var anyInj = G.players.some(function (p) { return p.injured > 0; });
       G.players.forEach(function (p) { if (p.injured > 0) { p.injured--; if (!p.injured) { p.injSev = null; p.injPart = null; } } });
       return { t: anyInj ? 'マネージャーが入部！ ケアが行き届き、負傷者の回復が早まった（離脱期間が1か月短くなった）' : 'マネージャーが入部！ ケア体制が整い、選手のコンディションが安定した' };
     }
-    if (r < 0.74) { G.nextBonus = Math.min(6, G.nextBonus + 4); return { t: 'ライバル校の試合映像を入手。弱点が見えた（次の試合 +4）' }; }
+    if (r < 0.74) { G.nextBonus = Math.min(bonusCap(), G.nextBonus + 4); return { t: 'ライバル校の試合映像を入手。弱点が見えた（次の試合 +4）' }; }
     if (r < 0.84 && healthy.length) { var v = pick(healthy); v.injured = 1; v.injSev = 'light'; v.injPart = '体調不良'; return { t: v.name + ' が体調を崩した。1か月ほど休養し、次の試合は欠場する', bad: true, dlg: { pid: v.id, text: dlgLine(v, 'sick') } }; }
     if (r < 0.92 && G.players.length) {
       var q = pick(G.players);
       if (q.person === '自由人' || q.person === 'マイペース') { q.fatigue = Math.max(0, q.fatigue - 18); return { t: q.name + '（' + q.person + '）は休日にしっかり気分転換。本人の疲労が抜けた', dlg: { pid: q.id, text: dlgLine(q, 'rest') } }; }
-      if (q.person === 'リーダー気質' || q.person === '熱血') { G.nextBonus = Math.min(6, G.nextBonus + 3); return { t: q.name + '（' + q.person + '）が自主練に皆を誘い、チームの士気が上がった（次の試合 +3）', dlg: { pid: q.id, text: dlgLine(q, 'cheer') } }; }
+      if (q.person === 'リーダー気質' || q.person === '熱血') { G.nextBonus = Math.min(bonusCap(), G.nextBonus + 3); return { t: q.name + '（' + q.person + '）が自主練に皆を誘い、チームの士気が上がった（次の試合 +3）', dlg: { pid: q.id, text: dlgLine(q, 'cheer') } }; }
       q.trust = clamp((q.trust || 50) + 4, 0, 99); return { t: q.name + '（' + q.person + '）とじっくり面談。監督への信頼が深まった', dlg: { pid: q.id, text: dlgLine(q, 'talk') } };
     }
     var s = pick(G.players);
@@ -593,8 +697,14 @@ var TACTICS = [
   { k: 'kick', n: 'キック重視', d: 'キック系の成功率アップ', key: 'kick' },
   { k: 'def', n: '守備固め', d: '守備の勝負どころの成功率アップ', key: 'def' }
 ];
-/* バランス調整(v0.7): 年次ドリフトは県予選（idx1〜3）にだけ小さく掛け、花園の2校は「固定の全国の壁」にする */
-function oppPower(idx) { return OPPONENTS[idx].power + (idx >= 1 && idx <= 3 ? Math.min(6, G.year - 1) : 0); }
+/* バランス調整(v0.7): 年次ドリフトは県予選（idx1〜3）にだけ小さく掛け、花園の2校は「固定の全国の壁」にする
+ * v0.9: 帝都はエースの学年でも強くなる。難易度チャレンジは全校 +3 */
+function oppPower(idx) {
+  var p = OPPONENTS[idx].power + (idx >= 1 && idx <= 3 ? Math.min(6, G.year - 1) : 0);
+  if (idx === 3 && G.rival) p += (G.rival.grade - 1) * 2;
+  if (G.difficulty === 'challenge') p += 3;
+  return p;
+}
 function stopBlocks(n) {
   var out = [];
   for (var i = 1; i <= n; i++) {
@@ -604,7 +714,7 @@ function stopBlocks(n) {
   return out;
 }
 function startMatch(oppIdx) {
-  var opp = OPPONENTS[oppIdx];
+  var opp = effOpp(oppIdx);
   var plan = (STOP_PLANS[oppIdx] || STOP_PLANS[0]).slice();
   var st = starters();
   subOutId = null;
@@ -627,6 +737,13 @@ function startMatch(oppIdx) {
   if (opp.skill) M.log.push('相手の特能：' + opp.skill.n);
   if (opp.style && OPP_STYLES[opp.style]) M.log.push('相手の戦術傾向：' + OPP_STYLES[opp.style].n + ' ― ' + OPP_STYLES[opp.style].d);
   if (opp.ace) M.log.push('相手のエース：' + opp.ace.name + '（' + opp.ace.pos + '・' + skillNameByKey(opp.ace.skill) + '）。要注意だ');
+  /* v0.9: 帝都との因縁を実況にも出す */
+  if (oppIdx === 3 && G.rival) {
+    M.log.push('因縁の相手、帝都学園。エースは ' + G.rival.grade + '年の ' + G.rival.name + '。' +
+      (G.rival.grade >= 3 ? '高校最後の冬に懸ける思いは強い' : '昨年より一段と力をつけている'));
+    if (G.rivalLast === 'lose') M.log.push('昨年はこの相手に敗れた。雪辱の舞台が整った');
+    else if (G.rivalLast === 'win') M.log.push('昨年はこの相手を破っている。帝都イレブンは雪辱に燃えているはずだ');
+  }
   screen = 'match'; render();
 }
 function convProb() { return clamp(0.45 + (statAvg(starters(), 'kik') - 50) * 0.008, 0.2, 0.9); }
@@ -644,7 +761,7 @@ function playBlock() {
   if (scoreRoll(diff)) {
     var able = fieldPlayers().filter(function (p) { return M.knock.indexOf(p.id) < 0; });
     var scorer = pick(able.length ? able : fieldPlayers());
-    if (scorer) scorer.srec.tries++;
+    if (scorer) addStat(scorer, 'tries');
     M.log.push('桜丘、攻め込む。' + (scorer ? scorer.name + ' が駆け抜けた！ ' : '') + tryScore(true));
   }
   else if (scoreRoll(-diff + 6)) {
@@ -653,7 +770,7 @@ function playBlock() {
   }
   else if (Math.random() < 0.3) {
     var kicker = keyPlayer(['SO', 'FB'], 'kik', 'kick');
-    if (kicker) kicker.srec.plays++;
+    if (kicker) addStat(kicker, 'plays');
     M.log.push('桜丘のPG。' + pgScore(true));
   }
   else if (Math.random() < 0.22) M.log.push('相手のPG。' + pgScore(false));
@@ -835,9 +952,9 @@ function chooseScene(idx) {
   else if (fx === 'minus') { M.bonus -= 2; }
   /* v0.6: 個人スタッツ（キーマンの活躍を記録） */
   if (ok && sc.key) {
-    if (fx === 'try') sc.key.srec.tries++;
-    else if (fx === 'pg') sc.key.srec.plays++;
-    else if (fx === 'none' && c.loseFx === 'oppTry') sc.key.srec.plays++;
+    if (fx === 'try') addStat(sc.key, 'tries');
+    else if (fx === 'pg') addStat(sc.key, 'plays');
+    else if (fx === 'none' && c.loseFx === 'oppTry') addStat(sc.key, 'plays');
   }
   if (ok && sc.key) {
     gainTrust(sc.key, 3);
@@ -888,15 +1005,23 @@ function finishMatch() {
   fieldPlayers().forEach(function (p) {
     if (Math.random() < 0.3) p.form = clamp((p.form || 0) + (Math.random() < (res === 'win' ? 0.62 : 0.42) ? 1 : -1), -2, 2);
   });
+  /* v0.9: シーズン到達度と因縁の記録 */
+  if (M.oppIdx === 3) {
+    G.rivalLast = res;
+    if (res === 'win') G.rivalW++; else G.rivalL++;
+  }
   if (res === 'win') {
     G.season.wins++;
-    G.rep += M.oppIdx === 0 ? 2 : (M.oppIdx === 3 ? 20 : 6);
+    G.season.bestWin = Math.max(G.season.bestWin || 0, M.oppIdx);
+    if (M.oppIdx === 4 || M.oppIdx === 5) G.season.hanaWins = (G.season.hanaWins || 0) + 1;
+    if (M.oppIdx === 5) G.season.hanaTitle = true;
+    G.rep += repGain(M.oppIdx === 0 ? 2 : (M.oppIdx === 3 ? 20 : 6));
     growFromMatch();
     if (M.oppIdx === 3) { G.qualified = true; G.career.hana++; }
-    if (M.oppIdx === 4) { G.career.hanaWins++; G.rep += 10; M.log.push('🎉 花園で勝った！ あと1勝で全国制覇だ'); }
+    if (M.oppIdx === 4) { G.career.hanaWins++; G.rep += repGain(10); M.log.push('🎉 花園で勝った！ あと1勝で全国制覇だ'); }
     if (M.oppIdx === 5) {
       G.career.hanaWins++; G.career.hanaTitles++; G.career.titles = G.career.hanaTitles;
-      G.rep += 30;
+      G.rep += repGain(30);
       M.log.push('🏆 花園優勝！ 桜丘高校が全国の頂点に立った！');
     }
   } else {
@@ -904,9 +1029,9 @@ function finishMatch() {
     /* 格上への善戦ボーナス： 7点差以内で、相手が格上（または互角以上）なら報いる */
     if (M.oppIdx >= 1 && (M.op - M.my) <= 7 && M.power >= M.tp0 - 2) {
       M.gallant = true;
-      G.rep += 4;
+      G.rep += repGain(4);
       growFromMatch(0.4);
-      M.log.push('🌟 格上に善戦！ 評判+4。選手たちも大きな経験を積んだ');
+      M.log.push('🌟 格上に善戦！ 評判+' + repGain(4) + '。選手たちも大きな経験を積んだ');
     }
   }
   var recovered = tickInjuries();
@@ -1001,7 +1126,7 @@ function skipMatch(oppIdx) {
     '最終スコア ― 桜丘 ' + M.my + ' － ' + M.op + ' ' + M.opp.name,
     M.result === 'win' ? '桜丘高校の勝利！' : '桜丘高校、敗れる…'
   ];
-  if (M.gallant) lines.push('🌟 格上に善戦！ 評判+4・経験ボーナスが入った');
+  if (M.gallant) lines.push('🌟 格上に善戦！ 評判と経験のボーナスが入った');
   M.log = lines;
   screen = 'match'; save(); render();
 }
@@ -1013,8 +1138,25 @@ function advanceMonth() {
 /* ---------------- 年度末と世代交代 ---------------- */
 function seasonEnd() {
 var grads = G.players.filter(function (p) { return p.year === 3;});
+/* v0.9: シーズン目標の達成判定（達成で評判ボーナス、格上達成は大きめ。未達は小幅減にとどめる） */
+var goalObj = goalOf();
+var ar = achievedRank();
+var goalEval;
+if (ar >= goalObj.rank) {
+  var gd = repGain(4 + goalObj.rank * 2 + (ar > goalObj.rank ? 3 : 0));
+  G.rep += gd;
+  goalEval = { ok: true, delta: gd, text: '🎯 シーズン目標「' + goalObj.n + '」達成！ 評判+' + gd + (ar > goalObj.rank ? '（目標を超える快挙！）' : '') };
+} else {
+  G.rep = Math.max(0, G.rep - 3);
+  goalEval = { ok: false, delta: -3, text: '🎯 シーズン目標「' + goalObj.n + '」には届かなかった（評判-3）。来年こそ達成しよう' };
+}
+/* v0.9: 歴代チームにこの年のチームを記録する */
+if (!Array.isArray(G.history)) G.history = [];
+G.history.push({ year: G.year, power: teamPower(), result: G.season.result });
+if (G.history.length > 60) G.history = G.history.slice(-60);
 G.summary = {
 result: G.season.result, wins: G.season.wins, losses: G.season.losses,
+goalEval: goalEval,
 grade: gradeOf().n, grads: grads.map(function (p) { return { name: p.name, pos: POSITIONS[p.posIdx].p, avg: Math.round(overall(p))};}),
 firstHana: G.qualified && G.career.hana === 1,
 stars: G.players.slice().filter(function (p) { return p.srec && (p.srec.tries > 0 || p.srec.plays > 0); })
@@ -1121,14 +1263,25 @@ function genSpecial() {
 function startRecruit() {
   var grads = G.players.filter(function (p) { return p.year === 3; });
   grads.forEach(function (p) {
-    G.obs.push({ name: p.name, pos: POSITIONS[p.posIdx].p, avg: Math.round(overall(p)), year: G.year });
+    /* v0.9: OB名鑑にキャリア通算スタッツも併記する */
+    G.obs.push({ name: p.name, pos: POSITIONS[p.posIdx].p, avg: Math.round(overall(p)), year: G.year, tries: p.crec ? p.crec.tries : 0, plays: p.crec ? p.crec.plays : 0 });
   });
+  /* v0.9: ライバル（帝都のエース）の進級と代替わり */
+  if (G.rival) {
+    G.rival.grade++;
+    if (G.rival.grade > 3) {
+      var oldAce = G.rival.name;
+      G.rival = newRivalAce(1);
+      G.rivalNews = '📰 帝都学園のエース ' + oldAce + ' が卒業。新しいエースは1年の ' + G.rival.name + '（' + G.rival.pos + '・' + skillNameByKey(G.rival.skill) + '）だという';
+    }
+  }
   if (G.obs.length > 40) G.obs = G.obs.slice(-40);
   G.players = G.players.filter(function (p) { return p.year !== 3; });
   G.players.forEach(function (p) { p.year++; p.injured = 0; p.injSev = null; p.injPart = null; p.fatigue = ri(5, 15); p.srec = { tries: 0, plays: 0 }; });
   G.year++; G.monthIdx = 0; G.qualified = false; G.nextBonus = 0;
   G.lineup = null; /* v0.8: 編成はシーズン単位で保持し、新年度は自動選出に戻す */
-  G.season = { wins: 0, losses: 0, result: '予選敗退' };
+  G.goal = null; G.goalSet = false; /* v0.9: 新年度は目標を選び直す */
+  G.season = { wins: 0, losses: 0, result: '予選敗退', bestWin: 0, hanaWins: 0, hanaTitle: false };
   G.summary = null;
   G.recruit = { cands: genScoutCands(), special: genSpecial() };
   sortRoster();
@@ -1174,9 +1327,10 @@ function finishRecruit() {
   sortRoster();
   G.inst.focus = G.players[0] ? G.players[0].id : 1;
   lines.push('一般入部で ' + gen + ' 名の新入生が加わった');
+  if (G.rivalNews) { lines.push(G.rivalNews); G.rivalNews = null; }
   G.monthLog = lines;
   G.recruit = null;
-  screen = 'inst'; save(); render();
+  screen = 'goal'; save(); render(); /* v0.9: 新年度はまず目標を決める */
 }
 
   /* ---------------- 立ち絵(v0.5): パーツ組み合わせ式SVG生成 ----------------
@@ -1419,6 +1573,7 @@ function finishRecruit() {
   function render() {
     sanitize();
     if (!G) return titleScreen();
+    if (screen === 'goal') return goalScreen();
     if (screen === 'inst') return instScreen();
     if (screen === 'board') return boardScreen();
     if (screen === 'squad') return squadScreen();
@@ -1455,18 +1610,51 @@ function finishRecruit() {
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.8'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.9'])]),
       banner('home', null, 0),
       h('div', { class: 'card center' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
-        h('button', { class: 'btn primary', onclick: function () { newGame(); screen = 'inst'; render(); } }, ['監督に就任する'])
+        h('button', { class: 'btn primary', onclick: function () { newGame('normal'); screen = 'goal'; render(); } }, ['監督に就任する（ふつう）']),
+        h('button', { class: 'btn', onclick: function () { newGame('challenge'); screen = 'goal'; render(); } }, ['監督に就任する（チャレンジ）']),
+        h('p', { class: 'sub' }, ['難易度は開始時だけの選択。チャレンジは相手が少し強く（全校+3）、評判の伸びが渋い（×0.7）'])
       ])
     ]);
     mount(h('div', { class: 'stack shell' }, [inner]));
   }
+  /* v0.9: シーズン目標の設定（年初のみ）。おすすめは部の格で決まり、格上目標も選べる */
+  function goalScreen() {
+    var rec = recommendedGoal();
+    var cur = goalOf();
+    var left = [banner('home', 'grow', 0)];
+    var info = h('div', { class: 'card grow' }, [
+      h('div', { class: 'sec' }, ['🎯 ' + G.year + '年目の目標を決めよう']),
+      h('p', null, ['シーズンの物差しになる目標を1つ選ぶ。達成すれば評判が上がり、格上の目標を達成すればなお大きい。届かなくても罰は小さい（評判-3）から、思い切って高い目標を掲げるのも監督の腕の見せどころ。']),
+      h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['現在の部の格']), h('span', null, [gradeOf().n])]),
+      h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['昨季の結果']), h('span', null, [G.history.length ? G.history[G.history.length - 1].result : '―（初年度）'])]),
+      h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['おすすめの目標']), h('span', null, [rec.n])])
+    ]);
+    left.push(info);
+    var box = h('div', { class: 'card choices grow scroll' });
+    box.appendChild(h('div', { class: 'sec' }, ['今年の目標']));
+    GOALS.forEach(function (gl) {
+      box.appendChild(h('button', { class: 'btn choice' + (cur.k === gl.k ? ' primary' : ''), onclick: function () { G.goal = gl.k; save(); render(); } }, [
+        h('span', { class: 't' }, [gl.n + (rec.k === gl.k ? ' ⭐おすすめ' : '') + (cur.k === gl.k ? ' ✔選択中' : '')]),
+        h('span', { class: 'd' }, [' — ' + gl.d + '（達成ボーナス 評判+' + repGain(4 + gl.rank * 2) + '〜）'])
+      ]));
+    });
+    var right = [box, h('button', { class: 'btn primary', onclick: function () { G.goalSet = true; save(); screen = 'inst'; render(); } }, ['目標を決めてシーズンを始める'])];
+    wrap([hud(), h('div', { class: 'lay2' }, [col(left), col(right)])]);
+  }
   function instScreen() {
     var mo = MONTHS[G.monthIdx];
     var left = [banner('train', 'grow', G.monthIdx)];
+    /* v0.9: 今年の目標と解放済み設備を左カラムに常時表示 */
+    var gObj = goalOf();
+    left.push(h('div', { class: 'card' }, [
+      h('div', { class: 'rowline' }, [h('span', null, ['🎯 今年の目標']), h('span', null, [gObj.n])]),
+      h('div', { class: 'rowline' }, [h('span', null, ['🏟 設備']), h('span', null, [FACILITIES.filter(function (f) { return hasFacility(f.k); }).map(function (f) { return f.n; }).join('・') || 'なし'])]),
+      G.difficulty === 'challenge' ? h('div', { class: 'rowline' }, [h('span', null, ['難易度']), h('span', null, ['チャレンジ'])]) : h('span', null, [])
+    ]));
     if (G.monthLog && G.monthLog.length) {
       left.push(h('div', { class: 'card grow scroll' }, [h('div', { class: 'sub' }, ['最近の出来事'])].concat(G.monthLog.map(function (l) { return h('div', null, [l]); }))));
     }
@@ -1596,6 +1784,7 @@ function finishRecruit() {
       names.forEach(function (n) { sk.children[1].appendChild(h('span', { class: 'tag' }, [n])); });
       detail.appendChild(sk);
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['今季の記録']), h('span', null, ['トライ ' + (sel.srec ? sel.srec.tries : 0) + ' ／ 好プレー ' + (sel.srec ? sel.srec.plays : 0)])]));
+      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['キャリア通算']), h('span', null, ['トライ ' + (sel.crec ? sel.crec.tries : 0) + ' ／ 好プレー ' + (sel.crec ? sel.crec.plays : 0)])]));
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['調子']), h('span', null, [formOf(sel).ic + ' ' + formOf(sel).n + '（成功率と練習効率に影響）'])]));
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['信頼度']), h('span', null, [String(sel.trust) + '（采配の成功率に影響）'])]));
       detail.appendChild(h('div', { class: 'meter' }, [h('div', { style: 'width:' + sel.trust + '%' }, [])]));
@@ -1688,7 +1877,7 @@ function finishRecruit() {
     wrap([hud(), h('div', { class: 'lay2' }, [col([left]), col(rightCol)])]);
   }
   function preMatchScreen() {
-    var mo = MONTHS[G.monthIdx], opp = OPPONENTS[mo.match];
+    var mo = MONTHS[G.monthIdx], opp = effOpp(mo.match);
     var vs = h('div', { class: 'card center' }, [
       h('div', { class: 'big' }, ['vs ' + opp.name]),
       h('div', { class: 'sub' }, [opp.note]),
@@ -1707,8 +1896,19 @@ function finishRecruit() {
       }
       sc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['相手の総合力']), h('span', null, [String(oppPower(mo.match))])]));
       if (opp.ace) {
-        sc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['エース']), h('span', null, [opp.ace.name + '（' + opp.ace.pos + '）'])]));
+        var aceLabel = opp.ace.name + '（' + opp.ace.pos + '）';
+        if (mo.match === 3 && G.rival) aceLabel = opp.ace.name + '（' + G.rival.grade + '年・' + opp.ace.pos + '）';
+        sc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['エース']), h('span', null, [aceLabel])]));
         sc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['エースの特能']), h('span', null, [skillNameByKey(opp.ace.skill)])]));
+      }
+      /* v0.9: 帝都との因縁（通算対戦と前年の結果） */
+      if (mo.match === 3 && G.rival) {
+        sc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['帝都との通算']), h('span', null, [G.rivalW + '勝 ' + G.rivalL + '敗'])]));
+        sc.appendChild(h('div', { class: 'sub' }, [
+          G.rivalLast === 'lose' ? '昨年は決勝でこの相手に敗れた。雪辱を果たす時だ' :
+          G.rivalLast === 'win' ? '昨年はこの相手を破って花園へ。帝都は雪辱に燃えている' :
+          G.rival.grade >= 3 ? 'エース ' + G.rival.name + ' は高校最後の冬。集大成の強さを見せてくるだろう' : '県決勝の常連。エースを中心に年々力をつけている'
+        ]));
       }
       vs.appendChild(sc);
     }
@@ -1791,7 +1991,7 @@ function finishRecruit() {
       ctrl.appendChild(h('button', { class: 'btn primary', onclick: function () { playBlock(); } }, ['試合を進める']));
     } else {
       ctrl.appendChild(h('div', { class: 'sec' }, [M.result === 'win' ? '勝利！ 勝因の内訳' : '試合終了：敗因の内訳']));
-      if (M.gallant) ctrl.appendChild(h('p', null, ['🌟 格上に善戦！ 評判+4・経験ボーナスが入った']));
+      if (M.gallant) ctrl.appendChild(h('p', null, ['🌟 格上に善戦！ 評判と経験のボーナスが入った']));
       if (M.factors) {
         M.factors.forEach(function (f) {
           ctrl.appendChild(h('div', { class: 'frow' }, [
@@ -1828,6 +2028,7 @@ function finishRecruit() {
     var result = h('div', { class: 'card center' }, [
       h('div', { class: 'big' }, [G.year + '年目のシーズン終了']),
       h('p', null, [s.result + '（' + s.wins + '勝 ' + s.losses + '敗）']),
+      s.goalEval ? h('p', null, [s.goalEval.text]) : h('span', null, []),
       s.firstHana ? h('p', null, ['🎉 創部以来、初の花園出場！']) : h('span', null, []),
       h('div', { class: 'rowline' }, [h('span', null, ['部の格']), h('span', { class: 'big' }, [s.grade])]),
       h('div', { class: 'rowline' }, [h('span', null, ['通算 花園出場']), h('span', null, [G.career.hana + '回'])]),
@@ -1912,17 +2113,53 @@ function finishRecruit() {
     ])]);
   }
   function recordsScreen() {
-    var c = h('div', { class: 'card' });
+    var c = h('div', { class: 'card grow scroll' });
     c.appendChild(h('div', { class: 'sec' }, ['監督の記録']));
     c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['在任']), h('span', null, [G.year + '年目'])]));
+    c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['難易度']), h('span', null, [G.difficulty === 'challenge' ? 'チャレンジ' : 'ふつう'])]));
     c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['花園出場']), h('span', null, [G.career.hana + '回'])]));
     c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['花園での勝利']), h('span', null, [G.career.hanaWins + '勝'])]));
     c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['花園優勝']), h('span', null, [G.career.hanaTitles + '回'])]));
+    if (G.rival) {
+      c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['帝都学園との通算']), h('span', null, [G.rivalW + '勝 ' + G.rivalL + '敗'])]));
+      c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['現在の帝都エース']), h('span', null, [G.rival.name + '（' + G.rival.grade + '年・' + G.rival.pos + '）'])]));
+    }
+    /* v0.9: 設備の解放状況 */
+    c.appendChild(h('div', { class: 'sec' }, ['🏟 設備']));
+    FACILITIES.forEach(function (f) {
+      var has = hasFacility(f.k);
+      c.appendChild(h('div', { class: 'rowline' }, [
+        h('span', null, [(has ? '✓ ' : '🔒 ') + f.n]),
+        h('span', { class: 'sub' }, [has ? '解放済み' : '部の格「' + GRADES[f.gi].n + '」で解放'])
+      ]));
+      c.appendChild(h('div', { class: 'sub' }, [f.d]));
+    });
+    /* v0.9: 歴代チーム（総合力ピークを「歴代最強」とする） */
+    c.appendChild(h('div', { class: 'sec' }, ['📖 歴代チーム']));
+    if (!G.history.length) c.appendChild(h('div', { class: 'sub' }, ['まだシーズンを終えていない']));
+    var peak = G.history.reduce(function (a, hh) { return Math.max(a, hh.power); }, 0);
+    G.history.slice().reverse().forEach(function (hh) {
+      c.appendChild(h('div', { class: 'rowline' }, [
+        h('span', null, [hh.year + '年目' + (hh.power === peak && peak > 0 ? ' 👑歴代最強' : '')]),
+        h('span', { class: 'sub' }, ['総合力 ' + hh.power + '・' + hh.result])
+      ]));
+    });
+    /* v0.9: 現役選手のキャリア通算トップ5 */
+    c.appendChild(h('div', { class: 'sec' }, ['🏉 通算スタッツ（現役）']));
+    var tops = G.players.slice().filter(function (p) { return p.crec && (p.crec.tries > 0 || p.crec.plays > 0); })
+      .sort(function (a, b) { return (b.crec.tries * 3 + b.crec.plays) - (a.crec.tries * 3 + a.crec.plays); }).slice(0, 5);
+    if (!tops.length) c.appendChild(h('div', { class: 'sub' }, ['まだ記録がない']));
+    tops.forEach(function (p) {
+      c.appendChild(h('div', { class: 'rowline' }, [
+        h('span', null, [p.name]),
+        h('span', { class: 'sub' }, [POSITIONS[p.posIdx].p + '・トライ ' + p.crec.tries + '／好プレー ' + p.crec.plays])
+      ]));
+    });
     var o = h('div', { class: 'card scroll', style: 'height:100%' });
     o.appendChild(h('div', { class: 'sec' }, ['OB名鑑（' + G.obs.length + '人）']));
     if (!G.obs.length) o.appendChild(h('div', { class: 'sub' }, ['まだ卒業生がいない']));
     G.obs.slice().reverse().forEach(function (x) {
-      o.appendChild(h('div', { class: 'rowline' }, [h('span', null, [x.name]), h('span', { class: 'sub' }, [x.pos + '・' + x.year + '年卒・総合 ' + x.avg])]));
+      o.appendChild(h('div', { class: 'rowline' }, [h('span', null, [x.name]), h('span', { class: 'sub' }, [x.pos + '・' + x.year + '年卒・総合 ' + x.avg + ((x.tries || 0) > 0 ? '・トライ ' + x.tries : '') + ((x.plays || 0) > 0 ? '／好プレー ' + x.plays : '')])]));
     });
     wrap([hud(), h('div', { class: 'lay2' }, [col([c]), o]),
       h('button', { class: 'btn', onclick: function () { screen = G.recruit ? 'recruit' : (G.board ? 'board' : 'inst'); render(); } }, ['戻る'])
@@ -1935,6 +2172,7 @@ function finishRecruit() {
   if (G && G.recruit) screen = 'recruit';
   else if (G && G.board) screen = 'board';
   else if (G && G.summary) screen = 'summary';
+  else if (G && !G.goalSet && G.monthIdx === 0) screen = 'goal';
   else if (G) screen = 'inst';
   render();
 })();
