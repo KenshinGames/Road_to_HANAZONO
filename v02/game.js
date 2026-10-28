@@ -1,9 +1,10 @@
-/* Road to HANAZONO v0.7 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.8 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
  * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示
  * v0.4: 新入生3層の完成(スカウト＋特別枠) + OB連携
  * v0.5: 立ち絵表現(パーツ組み合わせ式の自動生成) + 試合カットイン + 会話劇 + 季節感
  * v0.6: 花園トーナメント化(初戦→決勝) + 相手校の個性(戦術傾向・エース) + スカウティング + 時短スキップ + 個人スタッツ
- * v0.7: キャプテン任命と校風 + 選手イベント拡充(性格×信頼度・進路) + ケガの段階化(軽症/重症・欠場期間) + 成長のソフトキャップ化 */
+ * v0.7: キャプテン任命と校風 + 選手イベント拡充(性格×信頼度・進路) + ケガの段階化(軽症/重症・欠場期間) + 成長のソフトキャップ化
+ * v0.8: メンバー編成(スタメン15名を試合前に編成) + 選手交代(停止点で交代・負傷交代) + 調子(コンディション5段階) */
 (function () {
   'use strict';
   var STORE_KEY = 'hanazono.v02';
@@ -73,6 +74,13 @@
     { k: 'passion', n: '熱血', d: '成長は速いが、疲労も溜まりやすい', g: 1.08, f: 1.12, t: 1.05, r: 0.9 }
   ];
   var INJ_PARTS = ['左膝', '右肩', '足首', '太ももの裏', '腰', '手首'];
+  /* v0.8: 調子（コンディション）。-2..2 の5段階で、場面成功率と練習効率に薄く効く */
+  var FORMS = [
+    { v: -2, n: '絶不調', ic: '💀' }, { v: -1, n: '不調', ic: '😞' }, { v: 0, n: '普通', ic: '😐' },
+    { v: 1, n: '好調', ic: '😊' }, { v: 2, n: '絶好調', ic: '🔥' }
+  ];
+  function formOf(p) { return FORMS.filter(function (x) { return x.v === (p.form || 0); })[0] || FORMS[2]; }
+  function rollForm() { var r = Math.random(); return r < 0.12 ? -1 : (r < 0.24 ? 1 : 0); }
   var UNIT_STAT = { FW: 'pow', BK: 'pas', SP: 'kik' };
   var UNIT_NAME = { FW: 'FW（フィジカル）', BK: 'BK（スキル）', SP: 'セットピース' };
   /* 相手校: 戦術傾向(style)とエース(ace)で個性を持たせる。ace.skill は SKILLS の key */
@@ -128,6 +136,8 @@
   var G = null, M = null;
   var screen = 'title';
   var selPlayerId = null;
+  var subOutId = null;    /* v0.8: 交代UIで選択中の「下げる選手」 */
+  var lineupSlot = null;  /* v0.8: 編成画面で選択中のスロット */
   function rnd(a, b) { return a + Math.random() * (b - a); }
   function ri(a, b) { return Math.floor(rnd(a, b + 1)); }
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -167,7 +177,7 @@
       id: G ? G.nextId++ : posIdx,
       name: opts.surname ? opts.surname + ' ' + pick(GIVEN) : uniqName(),
       year: year, posIdx: posIdx, stats: {},
-      trait: pick(TRAITS), injured: 0, injSev: null, injPart: null, fatigue: ri(5, 20),
+      trait: pick(TRAITS), injured: 0, injSev: null, injPart: null, fatigue: ri(5, 20), form: rollForm(),
       h: sz.h, w: sz.w, person: opts.person || pick(PERSONS).n,
       skills: opts.skills ? opts.skills.slice() : rollSkills(pos),
       trust: typeof opts.trust === 'number' ? opts.trust : (year >= 2 ? ri(35, 60) : ri(22, 45)),
@@ -195,6 +205,9 @@
     if (!p.srec || typeof p.srec !== 'object') p.srec = { tries: 0, plays: 0 };
     if (typeof p.srec.tries !== 'number' || !isFinite(p.srec.tries)) p.srec.tries = 0;
     if (typeof p.srec.plays !== 'number' || !isFinite(p.srec.plays)) p.srec.plays = 0;
+    /* v0.8: 調子（-2..2） */
+    if (typeof p.form !== 'number' || !isFinite(p.form)) p.form = ri(-1, 1);
+    p.form = clamp(Math.round(p.form), -2, 2);
   }
   function overall(p) { return STATS.reduce(function (a, s) { return a + p.stats[s.k]; }, 0) / 6; }
   function newGame() {
@@ -204,7 +217,7 @@
       career: { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0 },
       season: { wins: 0, losses: 0, result: '予選敗退' },
       inst: { team: 'sta', unit: 'FW', focus: 1, level: 0 },
-      captainId: null, ethos: 'discipline',
+      captainId: null, ethos: 'discipline', lineup: null,
       board: null, qualified: false, tactic: 'fw', nextBonus: 0,
       monthLog: [], summary: null
     };
@@ -253,6 +266,13 @@
     if (typeof G.monthIdx !== 'number' || G.monthIdx < 0 || G.monthIdx >= MONTHS.length) G.monthIdx = 0;
     /* v0.7: 校風とキャプテンの検証（キャプテンが卒業・不在なら信頼度トップを自動で引き継ぐ） */
     if (!ETHOS.some(function (e) { return e.k === G.ethos; })) G.ethos = 'discipline';
+    /* v0.8: 編成（スタメン15名のID列）の検証。壊れていたら自動選出に戻す */
+    if (G.lineup != null) {
+      var lok = Array.isArray(G.lineup) && G.lineup.length === 15 &&
+        G.lineup.every(function (id) { return G.players.some(function (p) { return p.id === id; }); }) &&
+        G.lineup.filter(function (id, i) { return G.lineup.indexOf(id) === i; }).length === 15;
+      if (!lok) G.lineup = null;
+    }
     if (!G.players.some(function (p) { return p.id === G.captainId; })) {
       var cb = null;
       G.players.forEach(function (p) { if (!cb || (p.trust || 0) > (cb.trust || 0)) cb = p; });
@@ -279,7 +299,7 @@
     if (!xs.length) return 0;
     return xs.reduce(function (a, p) { return a + p.stats[key]; }, 0) / xs.length;
   }
-  function starters() {
+  function autoStarterIds() {
     var used = {}, out = [];
     for (var n = 0; n < 15; n++) {
       var cands = G.players.filter(function (p) { return p.posIdx === n && !used[p.id]; })
@@ -289,9 +309,47 @@
         var rest = G.players.filter(function (p) { return !used[p.id]; }).sort(function (a, b) { return overall(b) - overall(a); });
         chosen = rest.filter(function (p) { return !p.injured; })[0] || rest[0] || null;
       }
-      if (chosen) { used[chosen.id] = 1; out.push(chosen); }
+      if (chosen) { used[chosen.id] = 1; out.push(chosen.id); }
     }
     return out;
+  }
+  /* v0.8: 実効スタメンのID列。編成（G.lineup）があれば尊重し、
+   * ケガ・不在で欠けた枠は「そのポジションの健康な最上位→全体の健康な最上位」で自動補完する */
+  function lineupIds() {
+    if (!Array.isArray(G.lineup) || G.lineup.length !== 15) return autoStarterIds();
+    var used = {}, out = [];
+    for (var n = 0; n < 15; n++) {
+      var p = G.players.filter(function (x) { return x.id === G.lineup[n]; })[0];
+      if (p && !p.injured && !used[p.id]) { used[p.id] = 1; out.push(p.id); continue; }
+      var cands = G.players.filter(function (x) { return x.posIdx === n && !used[x.id] && !x.injured; })
+        .sort(function (a, b) { return overall(b) - overall(a); });
+      var chosen = cands[0];
+      if (!chosen) {
+        var rest = G.players.filter(function (x) { return !used[x.id] && !x.injured; }).sort(function (a, b) { return overall(b) - overall(a); });
+        chosen = rest[0];
+        if (!chosen) {
+          var rest2 = G.players.filter(function (x) { return !used[x.id]; }).sort(function (a, b) { return overall(b) - overall(a); });
+          chosen = rest2[0];
+        }
+      }
+      out.push(chosen ? chosen.id : null);
+      if (chosen) used[chosen.id] = 1;
+    }
+    return out;
+  }
+  function starters() {
+    return lineupIds().map(function (id) { return G.players.filter(function (p) { return p.id === id; })[0]; }).filter(Boolean);
+  }
+  /* 試合中は M.fieldIds（交代を反映した現在の顔ぶれ）、それ以外は starters() を返す */
+  function fieldPlayers() {
+    if (M && Array.isArray(M.fieldIds) && M.fieldIds.length) {
+      return M.fieldIds.map(function (id) { return G.players.filter(function (p) { return p.id === id; })[0]; }).filter(Boolean);
+    }
+    return starters();
+  }
+  function fieldPower() {
+    var f = fieldPlayers(); if (!f.length) return 0;
+    return Math.round(f.reduce(function (a, p) { return a + overall(p); }, 0) / f.length * 10) / 10;
   }
   function teamPower() {
     var st = starters(); if (!st.length) return 0;
@@ -334,7 +392,16 @@
     if (SP_POS[pos.p]) return 'SP';
     return pos.g;
   }
+  /* v0.8: 調子は月が替わるたびにゆるやかに揺れる */
+  function driftForm() {
+    G.players.forEach(function (p) {
+      var r = Math.random();
+      if (r < 0.22) p.form = clamp((p.form || 0) + 1, -2, 2);
+      else if (r < 0.42) p.form = clamp((p.form || 0) - 1, -2, 2);
+    });
+  }
   function startMonth() {
+    driftForm();
     var mo = MONTHS[G.monthIdx];
     var tpl = mo.cells >= 12 ? ['pS', 'pS', 'pS', 'pS', 'pB', 'pB', 'ev', 'ev', 'rec', 'free', 'meet'] : ['pS', 'pS', 'pB', 'ev', 'rec', 'free'];
     var cells = shuffle(tpl.slice()).map(function (t) { return { t: t, done: false }; });
@@ -365,6 +432,10 @@
     if (t === 'rec') {
       var rr = ethosOf().r;
       G.players.forEach(function (p) { p.fatigue = Math.max(0, p.fatigue - Math.round(25 * rr)); });
+      /* v0.8: ケアの日は調子も上向きやすい */
+      var upN = 0;
+      G.players.forEach(function (p) { if ((p.form || 0) < 0 && Math.random() < 0.65) { p.form++; upN++; } });
+      if (upN) b.log.push('💊 ケアが効いて ' + upN + ' 名の調子が上向いた');
       var inj = G.players.filter(function (p) { return p.injured > 0; }).sort(function (a, c) { return c.injured - a.injured; })[0];
       if (inj) {
         inj.injured--;
@@ -374,7 +445,11 @@
       else b.log.push('💊 ケアの日。全員の疲労が回復した');
       return;
     }
-    if (t === 'free') { G.players.forEach(function (p) { p.fatigue = Math.max(0, p.fatigue - Math.round(12 * ethosOf().r)); }); b.log.push('😴 完全休養。リフレッシュした'); return; }
+    if (t === 'free') {
+      G.players.forEach(function (p) { p.fatigue = Math.max(0, p.fatigue - Math.round(12 * ethosOf().r)); });
+      G.players.forEach(function (p) { if ((p.form || 0) < 0 && Math.random() < 0.45) p.form++; });
+      b.log.push('😴 完全休養。リフレッシュした'); return;
+    }
     if (t === 'meet') { G.nextBonus = Math.min(6, G.nextBonus + 3); G.players.forEach(function (p) { p.fatigue = Math.max(0, p.fatigue - 4); }); b.log.push('📋 作戦会議。次の試合の準備が整った（次の試合 +' + G.nextBonus + '）'); return; }
     if (t === 'end') return monthEnd();
   }
@@ -399,6 +474,8 @@
         /* バランス調整(v0.7): 練習の伸びは ×0.8 に抑え、相手の梯子を引き上げた */
         var raw = base * 0.8 * lvl.mul * p.trait.growth * per.growth * campMul * eff * eth.g * rnd(0.7, 1.3);
         if (p.id === G.captainId) raw *= 1.1;
+        /* v0.8: 調子が良い選手は練習の実りも良い */
+        raw *= 1 + (p.form || 0) * 0.05;
         var decay = softDecay(cur);
         var effGain = cur >= 99 ? 0 : raw * decay;
         surplus += raw - effGain;
@@ -453,7 +530,8 @@
     if (lowTrust.length && r < 0.68) {
       var v = pick(lowTrust);
       gainTrust(v, 10);
-      return { t: '面談：' + v.name + '（' + v.person + '・信頼度が低め）の本音を聞けた。監督への信頼が深まった', dlg: { pid: v.id, text: dlgLine(v, 'honest') } };
+      v.form = clamp((v.form || 0) + 1, -2, 2);
+      return { t: '面談：' + v.name + '（' + v.person + '・信頼度が低め）の本音を聞けた。監督への信頼が深まり、調子も上向いた', dlg: { pid: v.id, text: dlgLine(v, 'honest') } };
     }
     if (highTrust.length) {
       var m = pick(highTrust);
@@ -462,6 +540,7 @@
     }
     var q = pick(G.players);
     gainTrust(q, 6);
+    q.form = clamp((q.form || 0) + 1, -2, 2);
     return { t: q.name + ' と面談。今のチームへの思いを語ってくれた', dlg: { pid: q.id, text: dlgLine(q, 'talk') } };
   }
   function rollEvent() {
@@ -528,6 +607,7 @@ function startMatch(oppIdx) {
   var opp = OPPONENTS[oppIdx];
   var plan = (STOP_PLANS[oppIdx] || STOP_PLANS[0]).slice();
   var st = starters();
+  subOutId = null;
   M = {
     opp: opp, oppIdx: oppIdx, power: oppPower(oppIdx), block: 0, my: 0, op: 0,
     log: [], phase: 'play', pending: null, done: false, result: null,
@@ -536,7 +616,11 @@ function startMatch(oppIdx) {
     scenes: { att: 0, ok: 0 }, factors: null, gallant: false,
     tp0: teamPower(),
     fat0: st.length ? Math.round(st.reduce(function (a, p) { return a + p.fatigue; }, 0) / st.length) : 0,
-    inj0: st.filter(function (p) { return p.injured; }).length
+    inj0: st.filter(function (p) { return p.injured; }).length,
+    /* v0.8: 交代管理（現在の顔ぶれ・交代回数・負傷で動けない選手）と調子の初期値 */
+    fieldIds: st.map(function (p) { return p.id; }),
+    subs: 0, subsMax: 5, knock: [],
+    form0: st.length ? Math.round(st.reduce(function (a, p) { return a + (p.form || 0); }, 0) / st.length * 10) / 10 : 0
   };
   G.nextBonus = 0;
   M.log.push('キックオフ。相手は ' + opp.name + '（総合力 ' + M.power + '）。' + opp.note);
@@ -556,9 +640,10 @@ function tryScore(mine) {
 function pgScore(mine) { if (mine) M.my += 3; else M.op += 3; return 'ペナルティゴール成功（+3点）'; }
 function scoreRoll(diff) { return Math.random() < clamp(0.32 + diff * 0.012, 0.05, 0.75); }
 function playBlock() {
-  var diff = teamPower() - M.power + M.bonus;
+  var diff = fieldPower() - M.power + M.bonus;
   if (scoreRoll(diff)) {
-    var scorer = pick(starters());
+    var able = fieldPlayers().filter(function (p) { return M.knock.indexOf(p.id) < 0; });
+    var scorer = pick(able.length ? able : fieldPlayers());
     if (scorer) scorer.srec.tries++;
     M.log.push('桜丘、攻め込む。' + (scorer ? scorer.name + ' が駆け抜けた！ ' : '') + tryScore(true));
   }
@@ -573,6 +658,16 @@ function playBlock() {
   }
   else if (Math.random() < 0.22) M.log.push('相手のPG。' + pgScore(false));
   else M.log.push('中盤での攻防。スコアは動かない');
+  /* v0.8: 試合中の負傷。負傷した選手はキーマン・得点役から外れ、次の停止点で交代できる（交代しないと試合後に治療が必要） */
+  if (Math.random() < 0.012) {
+    var kc = fieldPlayers().filter(function (p) { return M.knock.indexOf(p.id) < 0; });
+    if (kc.length) {
+      var hurt = pick(kc);
+      M.knock.push(hurt.id);
+      M.bonus -= 2;
+      M.log.push('🚑 ' + hurt.name + ' が接触プレーで負傷！ 次の勝負どころで交代させよう（交代しない場合は試合後に治療が必要になる）');
+    }
+  }
   M.block++;
   maybeSceneOrEnd();
   render();
@@ -604,8 +699,11 @@ function applyOppAdj(sc) {
 }
 /* 場面の成功率： 能力値に体格・特能・信頼度・疲労・戦術・大舞台補正を重ねる */
 function sceneProb(statVal, tacKey, keyPlayer) {
-  var st = starters();
-  var adj = (avgTrust(st) - 50) * 0.0015 + M.bonus * 0.006 - Math.max(0, M.fat0 - 35) * 0.001;
+  var st = fieldPlayers();
+  /* v0.8: 調子（チーム平均とキーマン本人）が成功率に薄く効く */
+  var favg = st.length ? st.reduce(function (a, p) { return a + (p.form || 0); }, 0) / st.length : 0;
+  var adj = (avgTrust(st) - 50) * 0.0015 + M.bonus * 0.006 - Math.max(0, M.fat0 - 35) * 0.001
+    + favg * 0.008 + (keyPlayer ? (keyPlayer.form || 0) * 0.01 : 0);
   if (M.oppIdx >= 3) adj += skillCount(st, 'big') * 0.015 + (keyPlayer && hasSkill(keyPlayer, 'big') ? 0.03 : 0);
   if (M.opp.skill && M.oppIdx >= 2) adj -= 0.03;
   /* 相手の戦術傾向：モール主体の相手にはモール合戦、キック多用の相手にはキック合戦で分が悪い */
@@ -616,8 +714,10 @@ function sceneProb(statVal, tacKey, keyPlayer) {
   return clamp(0.45 + (statVal - M.power) * 0.02 + adj, 0.05, 0.95);
 }
 function keyPlayer(posNames, stat, skillKey) {
-  var st = starters().filter(function (p) { return posNames.indexOf(POSITIONS[p.posIdx].p) >= 0; });
-  if (!st.length) st = starters();
+  var knocked = function (p) { return M && M.knock.indexOf(p.id) >= 0; };
+  var st = fieldPlayers().filter(function (p) { return posNames.indexOf(POSITIONS[p.posIdx].p) >= 0 && !knocked(p); });
+  if (!st.length) st = fieldPlayers().filter(function (p) { return !knocked(p); });
+  if (!st.length) st = fieldPlayers();
   st.sort(function (a, b) {
     var sa = (skillKey && hasSkill(a, skillKey) ? 30 : 0) + a.stats[stat] + (a.trust || 50) * 0.1;
     var sb = (skillKey && hasSkill(b, skillKey) ? 30 : 0) + b.stats[stat] + (b.trust || 50) * 0.1;
@@ -629,7 +729,7 @@ function C(n, d, p, winTxt, loseTxt, winFx, loseFx) {
   return { n: n, d: d, p: p, winTxt: winTxt, loseTxt: loseTxt, winFx: winFx, loseFx: loseFx };
 }
 function makeScene(kind) {
-  var st = starters();
+  var st = fieldPlayers();
   var fw = st.filter(function (p) { return POSITIONS[p.posIdx].g === 'FW'; });
   var fwPow = statAvg(st, 'pow', 'FW');
   var wAdj = (avgAttr(fw, 'w') - 92) * 0.35;
@@ -724,8 +824,8 @@ function chooseScene(idx) {
   else if (fx === 'pg') txt += ' ' + pgScore(true);
   else if (fx === 'oppTry') txt += ' 相手の' + tryScore(false);
   else if (fx === 'oppPg') txt += ' 相手の' + pgScore(false);
-  else if (fx === 'fire') { M.bonus += 5; starters().forEach(function (p) { gainTrust(p, 2); }); }
-  else if (fx === 'calm') { starters().forEach(function (p) { p.fatigue = Math.max(0, p.fatigue - 10); }); M.bonus += 2; }
+  else if (fx === 'fire') { M.bonus += 5; fieldPlayers().forEach(function (p) { gainTrust(p, 2); }); }
+  else if (fx === 'calm') { fieldPlayers().forEach(function (p) { p.fatigue = Math.max(0, p.fatigue - 10); }); M.bonus += 2; }
   else if (fx === 'switch') {
     M.bonus += 6;
     var others = TACTICS.filter(function (t) { return t.k !== G.tactic; });
@@ -739,9 +839,13 @@ function chooseScene(idx) {
     else if (fx === 'pg') sc.key.srec.plays++;
     else if (fx === 'none' && c.loseFx === 'oppTry') sc.key.srec.plays++;
   }
-  if (ok && sc.key) gainTrust(sc.key, 3);
+  if (ok && sc.key) {
+    gainTrust(sc.key, 3);
+    /* v0.8: 活躍したキーマンは調子も上向くことがある */
+    if (Math.random() < 0.3) sc.key.form = clamp((sc.key.form || 0) + 1, -2, 2);
+  }
   M.log.push(txt);
-  M.pending = null; M.phase = 'play'; M.block++;
+  M.pending = null; M.phase = 'play'; subOutId = null; M.block++;
   maybeSceneOrEnd();
   render();
 }
@@ -751,12 +855,12 @@ function computeFactors(won) {
   if (!won) {
     abilityW = clamp((M.power - M.tp0) * 3 + 22, 5, 80);
     tacticW = clamp((1 - rate) * 48 + 6, 5, 80);
-    condW = clamp((M.fat0 - 25) * 0.8 + M.inj0 * 9 + 6, 5, 65);
+    condW = clamp((M.fat0 - 25) * 0.8 + M.inj0 * 9 + 6 - (M.form0 || 0) * 4, 5, 65);
     oppW = 8 + M.oppIdx * 3 + (M.opp.skill ? 7 : 0);
   } else {
     abilityW = clamp((M.tp0 - M.power) * 3 + 22, 5, 80);
     tacticW = clamp(rate * 48 + 6, 5, 80);
-    condW = clamp(48 - M.fat0 * 0.55 - M.inj0 * 6, 5, 65);
+    condW = clamp(48 - M.fat0 * 0.55 - M.inj0 * 6 + (M.form0 || 0) * 4, 5, 65);
     oppW = 6 + M.oppIdx * 2;
   }
   var tot = Math.max(1, abilityW + tacticW + condW + oppW);
@@ -779,7 +883,11 @@ function finishMatch() {
   M.log.push(res === 'win' ? 'ノーサイド！ 桜丘高校の勝利！' : 'ノーサイド。桜丘高校、敗れる…');
   if (M.my === M.op) M.log.push('（同点のため抽選で勝敗を決定）');
   M.factors = computeFactors(res === 'win');
-  starters().forEach(function (p) { gainTrust(p, res === 'win' ? 2 : 1); });
+  fieldPlayers().forEach(function (p) { gainTrust(p, res === 'win' ? 2 : 1); });
+  /* v0.8: 出場した選手の調子がゆるやかに動く（勝てば上向きやすい） */
+  fieldPlayers().forEach(function (p) {
+    if (Math.random() < 0.3) p.form = clamp((p.form || 0) + (Math.random() < (res === 'win' ? 0.62 : 0.42) ? 1 : -1), -2, 2);
+  });
   if (res === 'win') {
     G.season.wins++;
     G.rep += M.oppIdx === 0 ? 2 : (M.oppIdx === 3 ? 20 : 6);
@@ -803,12 +911,23 @@ function finishMatch() {
   }
   var recovered = tickInjuries();
   if (recovered.length) M.log.push('🏥 ' + recovered.join('、') + ' は来月から復帰できる見込み');
-  starters().forEach(function (p) { p.fatigue = Math.min(100, p.fatigue + 8); });
+  /* v0.8: 試合中に負傷したまま出場を続けた選手は、試合後に治療（軽症）が必要になる。
+   * tickInjuries の後に付ける（付けた直後に回復が進んでしまわないように） */
+  if (M.knock && M.knock.length) {
+    M.knock.forEach(function (id) {
+      var p = G.players.filter(function (x) { return x.id === id; })[0];
+      if (p && !p.injured) {
+        hurtPlayer(p, false);
+        M.log.push('🏥 ' + p.name + ' は試合中の負傷で治療が必要になった（軽症・' + p.injPart + '。復帰まであと' + p.injured + 'か月）');
+      }
+    });
+  }
+  fieldPlayers().forEach(function (p) { p.fatigue = Math.min(100, p.fatigue + 8); });
   save();
 }
 function growFromMatch(prob) {
   var pr = (prob == null ? 0.6 : prob);
-  starters().forEach(function (p) {
+  fieldPlayers().forEach(function (p) {
     if (Math.random() < pr) {
       var s = pick(STATS).k;
       p.stats[s] = Math.min(99, p.stats[s] + 1);
@@ -834,6 +953,33 @@ function afterMatchNext() {
   }
   if (idx === 3) { G.season.result = '花園出場決定'; advanceMonth(); return; }
   advanceMonth();
+}
+/* v0.8: 選手交代。停止点で控えと入れ替える（上限 subsMax 回）。
+ * 負傷した選手（M.knock）の交代は回数に数えない。
+ * キーマンが下がった場合は、その場面を交代後の顔ぶれで作り直す */
+function doSub(outId, inId) {
+  if (!M || M.done) return;
+  var oi = M.fieldIds.indexOf(outId);
+  if (oi < 0) return;
+  var inP = G.players.filter(function (p) { return p.id === inId; })[0];
+  var outP = G.players.filter(function (p) { return p.id === outId; })[0];
+  if (!inP || !outP || inP.injured || M.fieldIds.indexOf(inId) >= 0) return;
+  var free = M.knock.indexOf(outId) >= 0;
+  if (!free && M.subs >= M.subsMax) return;
+  M.fieldIds[oi] = inId;
+  if (free) M.knock = M.knock.filter(function (id) { return id !== outId; });
+  else M.subs++;
+  M.log.push('🔁 交代：' + outP.name + '（' + POSITIONS[outP.posIdx].p + '）OUT → ' + inP.name + '（' + POSITIONS[inP.posIdx].p + '）IN' +
+    (free ? '（負傷交代のため回数に数えない）' : '（交代 ' + M.subs + '/' + M.subsMax + '）'));
+  gainTrust(inP, 1);
+  subOutId = null;
+  if (M.phase === 'scene' && M.pending && M.pending.key && M.pending.key.id === outId) {
+    var kind = M.pending.kind, side = M.pending.side, guard = 0;
+    do { M.pending = makeScene(kind); guard++; } while (kind === 'goal' && M.pending.side !== side && guard < 4);
+    applyOppAdj(M.pending);
+    M.log.push('⚑ ' + M.pending.title + (M.pending.key ? '（キーマン：' + M.pending.key.name + '）' : ''));
+  }
+  render();
 }
 /* v0.6: 時短スキップ。戦力差の大きい格下戦だけ、試合経過を省略して結果と要因だけを出す */
 function canSkip(oppIdx) {
@@ -981,6 +1127,7 @@ function startRecruit() {
   G.players = G.players.filter(function (p) { return p.year !== 3; });
   G.players.forEach(function (p) { p.year++; p.injured = 0; p.injSev = null; p.injPart = null; p.fatigue = ri(5, 15); p.srec = { tries: 0, plays: 0 }; });
   G.year++; G.monthIdx = 0; G.qualified = false; G.nextBonus = 0;
+  G.lineup = null; /* v0.8: 編成はシーズン単位で保持し、新年度は自動選出に戻す */
   G.season = { wins: 0, losses: 0, result: '予選敗退' };
   G.summary = null;
   G.recruit = { cands: genScoutCands(), special: genSpecial() };
@@ -1276,6 +1423,7 @@ function finishRecruit() {
     if (screen === 'board') return boardScreen();
     if (screen === 'squad') return squadScreen();
     if (screen === 'preMatch') return preMatchScreen();
+    if (screen === 'lineup') return lineupScreen();
     if (screen === 'match') return matchScreen();
     if (screen === 'summary') return summaryScreen();
     if (screen === 'recruit') return recruitScreen();
@@ -1307,7 +1455,7 @@ function finishRecruit() {
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.7'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.8'])]),
       banner('home', null, 0),
       h('div', { class: 'card center' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
@@ -1413,7 +1561,7 @@ function finishRecruit() {
           var pm = h('span', { class: 'pmini' });
           pm.innerHTML = portraitSVG(p);
           td.appendChild(pm);
-          td.appendChild(document.createTextNode(p.name + (p.id === G.captainId ? ' ©主将' : '') + (p.injured ? ' 🚑' + (p.injured > 1 ? '（あと' + p.injured + 'か月）' : '') : '')));
+          td.appendChild(document.createTextNode(p.name + ' ' + formOf(p).ic + (p.id === G.captainId ? ' ©主将' : '') + (p.injured ? ' 🚑' + (p.injured > 1 ? '（あと' + p.injured + 'か月）' : '') : '')));
           return td;
         }
         return h('td', null, [x]);
@@ -1448,6 +1596,7 @@ function finishRecruit() {
       names.forEach(function (n) { sk.children[1].appendChild(h('span', { class: 'tag' }, [n])); });
       detail.appendChild(sk);
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['今季の記録']), h('span', null, ['トライ ' + (sel.srec ? sel.srec.tries : 0) + ' ／ 好プレー ' + (sel.srec ? sel.srec.plays : 0)])]));
+      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['調子']), h('span', null, [formOf(sel).ic + ' ' + formOf(sel).n + '（成功率と練習効率に影響）'])]));
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['信頼度']), h('span', null, [String(sel.trust) + '（采配の成功率に影響）'])]));
       detail.appendChild(h('div', { class: 'meter' }, [h('div', { style: 'width:' + sel.trust + '%' }, [])]));
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['疲労']), h('span', null, [String(sel.fatigue)])]));
@@ -1469,6 +1618,75 @@ function finishRecruit() {
       col([detail, h('button', { class: 'btn', onclick: function () { screen = G.recruit ? 'recruit' : (G.board ? 'board' : 'inst'); render(); } }, ['戻る'])])
     ])]);
   }
+  /* v0.8: メンバー編成。左にスタメン（背番号順）、右に控えと操作。
+   * スタメンの行をタップで選択 → 控えをタップで入れ替え。スタメン同士のタップで枠の交換もできる。
+   * 編成は G.lineup に保存してシーズン中保持する（新年度は自動選出に戻る）。
+   * ケガ・欠場中の選手は「入れる」ことができない（枠にいる場合は試合で自動補完される） */
+  function swapLineupWith(slot, benchId) {
+    var ids = lineupIds().slice();
+    ids[slot] = benchId;
+    G.lineup = ids;
+    lineupSlot = null;
+    save(); render();
+  }
+  function lineupScreen() {
+    var ids = lineupIds();
+    var inSet = {};
+    ids.forEach(function (id) { if (id != null) inSet[id] = 1; });
+    var left = h('div', { class: 'card grow scroll' });
+    left.appendChild(h('div', { class: 'sec' }, ['スタメン（背番号順）― 行タップで選択']));
+    var table = h('table', { class: 'squad' });
+    table.appendChild(h('tr', null, ['No', 'Pos', '名前', '年', '総合', '疲労', '調子'].map(function (x) { return h('th', null, [x]); })));
+    ids.forEach(function (id, n) {
+      var p = G.players.filter(function (x) { return x.id === id; })[0];
+      var pos = POSITIONS[n];
+      var filled = Array.isArray(G.lineup) && G.lineup[n] !== id;
+      var cells = [String(pos.no), pos.p,
+        p ? (p.name + (filled ? ' ※' : '')) : '―',
+        p ? String(p.year) : '', p ? String(Math.round(overall(p))) : '',
+        p ? String(p.fatigue) : '', p ? formOf(p).ic + formOf(p).n : ''];
+      var tr = h('tr', { class: 'prow' + (lineupSlot === n ? ' sel' : ''), onclick: (function (nn) {
+        return function () {
+          if (lineupSlot === nn) { lineupSlot = null; render(); return; }
+          if (lineupSlot != null) {
+            var cur = lineupIds().slice();
+            var t = cur[lineupSlot]; cur[lineupSlot] = cur[nn]; cur[nn] = t;
+            G.lineup = cur; lineupSlot = null; save(); render(); return;
+          }
+          lineupSlot = nn; render();
+        };
+      })(n) }, cells.map(function (x) { return h('td', null, [x]); }));
+      table.appendChild(tr);
+    });
+    left.appendChild(table);
+    left.appendChild(h('div', { class: 'sub' }, ['※ はケガなどで編成どおりに出られないため自動補完された枠。編成はシーズンを通して保持され、試合中の交代とは別に次の試合にも引き継がれる']));
+    var right = h('div', { class: 'card grow scroll' });
+    right.appendChild(h('div', { class: 'sec' }, ['控えメンバー']));
+    if (lineupSlot == null) right.appendChild(h('div', { class: 'sub' }, ['先に左のスタメンから、入れ替えたい選手を選んでください。スタメン同士の入れ替えは、続けて別のスタメンをタップ']));
+    else {
+      var selP = G.players.filter(function (x) { return x.id === ids[lineupSlot]; })[0];
+      right.appendChild(h('div', { class: 'sub' }, [(selP ? selP.name : '―') + ' と入れ替える控えを選んでください']));
+    }
+    var bench = G.players.filter(function (p) { return !inSet[p.id]; });
+    if (!bench.length) right.appendChild(h('div', { class: 'sub' }, ['控えがいない']));
+    bench.forEach(function (p) {
+      if (p.injured) {
+        right.appendChild(h('div', { class: 'rowline subrow' }, [
+          h('span', null, ['🚑 ' + p.name]),
+          h('span', { class: 'sub' }, [POSITIONS[p.posIdx].p + '・' + (p.injSev === 'heavy' ? '重症' : '軽症') + '（' + (p.injPart || '負傷') + '）・復帰まであと' + p.injured + 'か月'])
+        ]));
+        return;
+      }
+      right.appendChild(h('button', { class: 'btn small subbtn', onclick: (function (pid) {
+        return function () { if (lineupSlot != null) swapLineupWith(lineupSlot, pid); };
+      })(p.id) }, ['IN ' + POSITIONS[p.posIdx].p + ' ' + p.name + '（' + p.year + '年・総合' + Math.round(overall(p)) + '・疲労' + p.fatigue + '・' + formOf(p).ic + formOf(p).n + '）']));
+    });
+    var rightCol = [right,
+      h('button', { class: 'btn', onclick: function () { G.lineup = null; lineupSlot = null; save(); render(); } }, ['自動選出に戻す']),
+      h('button', { class: 'btn primary', onclick: function () { screen = 'preMatch'; render(); } }, ['試合前に戻る'])
+    ];
+    wrap([hud(), h('div', { class: 'lay2' }, [col([left]), col(rightCol)])]);
+  }
   function preMatchScreen() {
     var mo = MONTHS[G.monthIdx], opp = OPPONENTS[mo.match];
     var vs = h('div', { class: 'card center' }, [
@@ -1476,7 +1694,8 @@ function finishRecruit() {
       h('div', { class: 'sub' }, [opp.note]),
       opp.skill ? h('div', { class: 'sub' }, ['相手の特能：' + opp.skill.n]) : h('span', null, []),
       h('div', { class: 'rowline' }, [h('span', null, ['桜丘の総合力']), h('span', { class: 'big' }, [String(teamPower())])]),
-      h('div', { class: 'rowline' }, [h('span', null, ['相手の総合力']), h('span', { class: 'big' }, [String(oppPower(mo.match))])])
+      h('div', { class: 'rowline' }, [h('span', null, ['相手の総合力']), h('span', { class: 'big' }, [String(oppPower(mo.match))])]),
+      h('div', { class: 'rowline' }, [h('span', null, ['スタメン編成']), h('span', null, [Array.isArray(G.lineup) ? 'カスタム編成' : '自動選出（総合力順）'])])
     ]);
     /* v0.6: スカウティング（相手の傾向・総合力・エース） */
     if (opp.style || opp.ace) {
@@ -1500,7 +1719,9 @@ function finishRecruit() {
         h('span', { class: 't' }, [tc.n]), h('span', { class: 'd' }, [' — ' + tc.d])
       ]));
     });
-    var rightKids = [box, h('button', { class: 'btn primary', onclick: function () { startMatch(mo.match); } }, ['キックオフ'])];
+    var rightKids = [box,
+      h('button', { class: 'btn', onclick: function () { lineupSlot = null; screen = 'lineup'; render(); } }, ['👥 メンバー編成']),
+      h('button', { class: 'btn primary', onclick: function () { startMatch(mo.match); } }, ['キックオフ'])];
     if (canSkip(mo.match)) {
       rightKids.push(h('button', { class: 'btn', onclick: function () { skipMatch(mo.match); } }, ['⏩ 結果のみ表示（スキップ）']));
       rightKids.push(h('div', { class: 'sub' }, ['戦力差の大きい格下戦は、経過を省略して結果と勝因・敗因だけを確認できる（決勝・花園では使えない）']));
@@ -1509,6 +1730,42 @@ function finishRecruit() {
       col([banner('match', 'grow'), vs]),
       col(rightKids)
     ])]);
+  }
+  /* v0.8: 停止点での交代パネル（右カラム・選択肢の下）。
+   * 2タップ式：下げる選手 → 入れる選手。負傷交代は回数に数えない */
+  function subPanelEl() {
+    var box = h('div', { class: 'subbox' });
+    var leftN = M.subsMax - M.subs;
+    box.appendChild(h('div', { class: 'sec' }, ['🔁 選手交代（残り' + leftN + '回）']));
+    M.knock.forEach(function (id) {
+      var kp = G.players.filter(function (p) { return p.id === id; })[0];
+      if (kp) box.appendChild(h('div', { class: 'subwarn' }, ['🚑 ' + kp.name + ' が負傷中。この選手の交代は回数に数えられない']));
+    });
+    var bench = G.players.filter(function (p) { return M.fieldIds.indexOf(p.id) < 0 && !p.injured; });
+    if (leftN <= 0 && !M.knock.length) { box.appendChild(h('div', { class: 'sub' }, ['交代回数を使い切った'])); return box; }
+    if (!bench.length) { box.appendChild(h('div', { class: 'sub' }, ['交代できる控えがいない'])); return box; }
+    if (subOutId == null || M.fieldIds.indexOf(subOutId) < 0) {
+      box.appendChild(h('div', { class: 'sub' }, ['まず下げる選手を選ぶ（疲労・調子を見て判断）']));
+      var list = h('div', { class: 'sublist' });
+      fieldPlayers().forEach(function (p) {
+        list.appendChild(h('button', { class: 'btn small subbtn', onclick: (function (pid) {
+          return function () { subOutId = pid; render(); };
+        })(p.id) }, ['OUT ' + POSITIONS[p.posIdx].no + ' ' + p.name + '（疲労' + p.fatigue + '・' + formOf(p).ic + formOf(p).n + (M.knock.indexOf(p.id) >= 0 ? '・🚑負傷' : '') + '）']));
+      });
+      box.appendChild(list);
+    } else {
+      var outP = G.players.filter(function (p) { return p.id === subOutId; })[0];
+      box.appendChild(h('div', { class: 'sub' }, [(outP ? outP.name : '―') + ' を下げる。入れる選手を選ぶ']));
+      var list2 = h('div', { class: 'sublist' });
+      bench.forEach(function (p) {
+        list2.appendChild(h('button', { class: 'btn small subbtn', onclick: (function (pid) {
+          return function () { doSub(subOutId, pid); };
+        })(p.id) }, ['IN ' + POSITIONS[p.posIdx].p + ' ' + p.name + '（総合' + Math.round(overall(p)) + '・疲労' + p.fatigue + '・' + formOf(p).ic + formOf(p).n + '）']));
+      });
+      box.appendChild(list2);
+      box.appendChild(h('button', { class: 'btn small', onclick: function () { subOutId = null; render(); } }, ['交代をやめる']));
+    }
+    return box;
   }
   function matchScreen() {
     var sb = h('div', { class: 'card score' }, [
@@ -1527,6 +1784,7 @@ function finishRecruit() {
         ]));
       });
       ctrl.appendChild(box);
+      ctrl.appendChild(subPanelEl());
     } else if (!M.done) {
       ctrl.appendChild(h('div', { class: 'sec' }, ['実況']));
       ctrl.appendChild(h('p', { class: 'sub' }, ['左の実況を見ながら、試合を進めよう。勝負どころでは采配が求められる']));

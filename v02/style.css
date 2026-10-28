@@ -134,6 +134,13 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
 .scout .sec { margin-bottom: 4px; }
 /* v0.7: 伸びしろバー */
 .capmeter { margin: 2px 0 7px; height: 6px; }
+/* v0.8: 交代パネル・編成画面 */
+.subbox { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+.sublist { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+.subbtn { text-align: left; font-size: 13px; padding: 7px 9px; margin-top: 6px; }
+.sublist .subbtn { margin-top: 0; }
+.subwarn { background: var(--warn-soft); border-radius: 8px; padding: 5px 8px; font-size: 13px; margin-top: 4px; }
+.subrow { padding: 6px 2px; border-bottom: 1px solid var(--line); font-size: 13px; }
 
 /* ===== 固定レイアウト（横画面・広い画面）: ページはスクロールしない ===== */
 @media (min-width: 760px) and (orientation: landscape) {
