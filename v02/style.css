@@ -108,6 +108,10 @@ table.squad td.name { text-align: left; font-weight: 700; white-space: nowrap; }
 .tag { display: inline-block; padding: 1px 8px; margin: 1px 0 1px 4px; border-radius: 99px; background: var(--brand-soft); color: var(--brand); font-size: 12px; font-weight: 700; }
 table.squad tr.prow { cursor: pointer; }
 table.squad tr.prow.sel td { background: var(--brand-soft); }
+/* v0.4: スカウト・特別枠カード */
+.cand p { margin: 6px 0; }
+.cand.sel { outline: 3px solid var(--brand); outline-offset: -2px; }
+.badge { display: inline-block; padding: 1px 9px; border-radius: 99px; background: #f2762e; color: #fff; font-size: 12px; font-weight: 700; }
 
 /* ===== 固定レイアウト（横画面・広い画面）: ページはスクロールしない ===== */
 @media (min-width: 760px) and (orientation: landscape) {

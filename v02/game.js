@@ -1,5 +1,6 @@
-/* Road to HANAZONO v0.3 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
- * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示 */
+/* Road to HANAZONO v0.4 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
+ * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示
+ * v0.4: 新入生3層の完成(スカウト＋特別枠) + OB連携 */
 (function () {
   'use strict';
   var STORE_KEY = 'hanazono.v02';
@@ -131,17 +132,22 @@
     var rg = POS_SIZE[pos.p] || [168, 185, 70, 100];
     return { h: ri(rg[0], rg[1]), w: ri(rg[2], rg[3]) };
   }
-  function makePlayer(posIdx, year, base) {
+  function makePlayer(posIdx, year, base, opts) {
+    opts = opts || {};
     var pos = POSITIONS[posIdx];
     var sz = sizeFor(pos);
     var pl = {
-      id: G ? G.nextId++ : posIdx, name: uniqName(), year: year, posIdx: posIdx, stats: {},
+      id: G ? G.nextId++ : posIdx,
+      name: opts.surname ? opts.surname + ' ' + pick(GIVEN) : uniqName(),
+      year: year, posIdx: posIdx, stats: {},
       trait: pick(TRAITS), injured: 0, fatigue: ri(5, 20),
-      h: sz.h, w: sz.w, person: pick(PERSONS).n, skills: rollSkills(pos),
-      trust: year >= 2 ? ri(35, 60) : ri(22, 45)
+      h: sz.h, w: sz.w, person: opts.person || pick(PERSONS).n,
+      skills: opts.skills ? opts.skills.slice() : rollSkills(pos),
+      trust: typeof opts.trust === 'number' ? opts.trust : (year >= 2 ? ri(35, 60) : ri(22, 45))
     };
     STATS.forEach(function (s) {
-      var v = base + ri(-6, 6) + (s.k === pos.main ? 8 : 0) + (s.k === 'sta' ? 3 : 0);
+      var v = base + ri(-6, 6) + (s.k === pos.main ? 8 : 0) + (s.k === 'sta' ? 3 : 0)
+        + (opts.bonus && opts.bonus[s.k] ? opts.bonus[s.k] : 0);
       pl.stats[s.k] = clamp(Math.round(v), 20, 95);
     });
     return pl;
@@ -186,14 +192,26 @@
     try { var s = localStorage.getItem(STORE_KEY); if (s) { G = JSON.parse(s); return !!G; } } catch (e) {}
     return false;
   }
+  function fixPlayer(p) {
+    if (!p || typeof p !== 'object') return;
+    if (!p.stats) p.stats = {};
+    STATS.forEach(function (s) { if (typeof p.stats[s.k] !== 'number' || !isFinite(p.stats[s.k])) p.stats[s.k] = 45; });
+    if (typeof p.fatigue !== 'number' || !isFinite(p.fatigue)) p.fatigue = 20;
+    migratePlayer(p);
+  }
   function sanitize() {
     if (!G || !G.players) return;
-    G.players.forEach(function (p) {
-      if (!p.stats) p.stats = {};
-      STATS.forEach(function (s) { if (typeof p.stats[s.k] !== 'number' || !isFinite(p.stats[s.k])) p.stats[s.k] = 45; });
-      if (typeof p.fatigue !== 'number' || !isFinite(p.fatigue)) p.fatigue = 20;
-      migratePlayer(p);
-    });
+    G.players.forEach(fixPlayer);
+    /* v0.4: スカウト候補・特別枠の選手オブジェクトも検証（壊れていたら勧誘情報ごと破棄） */
+    if (G.recruit) {
+      var okR = Array.isArray(G.recruit.cands) && G.recruit.cands.every(function (c) { return c && c.p && c.p.stats; });
+      if (!okR) G.recruit = null;
+      else {
+        G.recruit.cands.forEach(function (c) { fixPlayer(c.p); });
+        if (G.recruit.special && G.recruit.special.p) fixPlayer(G.recruit.special.p);
+        else if (G.recruit.special && !G.recruit.special.p) G.recruit.special = null;
+      }
+    }
   }
   function gradeOf() {
     var g = GRADES[0];
@@ -626,28 +644,159 @@ firstHana: G.qualified && G.career.hana === 1
 };
 screen = 'summary'; save(); render();
 }
-function nextYear() {
-var grads = G.players.filter(function (p) { return p.year === 3;});
-grads.forEach(function (p) {
-G.obs.push({ name: p.name, pos: POSITIONS[p.posIdx].p, avg: Math.round(overall(p)), year: G.year});
-});
-if (G.obs.length > 40) G.obs = G.obs.slice(-40);
-G.players = G.players.filter(function (p) { return p.year!== 3;});
-G.players.forEach(function (p) { p.year++; p.injured = 0; p.fatigue = ri(5, 15);});
-var gr = gradeOf();
-for (var i = 0; i < gr.count; i++) {
-var counts = [];
-for (var n = 0; n < 15; n++) counts.push(G.players.filter(function (p) { return p.posIdx === n;}).length + rnd(0, 1.2));
-var minIdx = 0;
-counts.forEach(function (c, ix) { if (c < counts[minIdx]) minIdx = ix;});
-G.players.push(makePlayer(minIdx, 1, gr.fresh));
+/* ---------------- 新入生スカウト・特別枠(v0.4) ----------------
+ * 3層構造の残り2層。一般入部は finishRecruit で不足分を埋める。
+ * 卒業・進級は startRecruit で行い、勧誘画面を挟んでから新年度が始まる */
+function gradeIdx() { var gi = 0; GRADES.forEach(function (x, i) { if (G.rep >= x.min) gi = i; }); return gi; }
+function scoutQuota() { return [1, 1, 2, 2, 3][gradeIdx()]; }
+function scarcePosIdx() {
+  var counts = POSITIONS.map(function (_, i) { return G.players.filter(function (p) { return p.posIdx === i; }).length; });
+  var min = Math.min.apply(null, counts);
+  var slack = Math.random() < 0.5 ? 0 : 1;
+  var low = [];
+  counts.forEach(function (c, i) { if (c <= min + slack) low.push(i); });
+  return low.length ? pick(low) : ri(0, 14);
 }
-sortRoster();
-G.year++; G.monthIdx = 0; G.qualified = false; G.nextBonus = 0;
-G.season = { wins: 0, losses: 0, result: '予選敗退'};
-G.inst.focus = G.players[0]? G.players[0].id: 1;
-G.summary = null;
-screen = 'inst'; save(); render();
+var SKILL_HINT = {
+  lineout: '中学の大会でラインアウトの制空権を握っていた', maul: 'コンタクトの強さに定評がある',
+  tackle: 'タックルの鋭さが目を引く', kick: 'キックの飛距離と精度が評判',
+  step: 'ステップの切れ味は中学レベルではない', big: '大事な試合ほど力を出すタイプらしい',
+  tough: '中学時代に大きなケガなし。丈夫そうだ'
+};
+var PERSON_HINT = {
+  '熱血': '練習から声が出る熱いタイプ', 'クール': '常に落ち着いた表情の冷静なタイプ',
+  '真面目': 'コツコツと努力を続ける真面目なタイプ', '自由人': '型にはまらない自由なプレースタイル',
+  '頑張り屋': '誰よりも練習量が多いタイプ', 'マイペース': '自分のペースを崩さないタイプ',
+  'リーダー気質': '中学でもキャプテンシーを見せていたタイプ'
+};
+function makeBlurb(p, extra) {
+  var parts = [];
+  if (p.h >= 185) parts.push('身長' + p.h + 'cmの大柄で、空中戦が武器になりそう');
+  else if (p.w >= 102) parts.push('体重' + p.w + 'kgの迫力ある体格。コンタクトで押せる');
+  else if (p.h <= 168) parts.push('小柄だが俊敏。スペースを突く動きが光る');
+  else parts.push('バランスの取れた体格で、大きな欠点が見当たらない');
+  if ((p.skills || []).length) parts.push(SKILL_HINT[p.skills[0]]);
+  parts.push(PERSON_HINT[p.person] || '');
+  if (extra) parts.push(extra);
+  return parts.filter(function (x) { return x; }).join('。') + '。';
+}
+function genScoutCands() {
+  var gr = gradeOf(), gi = gradeIdx();
+  var n = 3 + (gi >= 2 ? 1 : 0) + (gi >= 4 ? 1 : 0);
+  var cands = [];
+  for (var i = 0; i < n; i++) {
+    var elite = Math.random() < 0.18;
+    var base = gr.fresh + ri(1, 6) + gi + (elite ? ri(8, 13) : 0);
+    var p = makePlayer(scarcePosIdx(), 1, base);
+    var sp = clamp(0.52 + gi * 0.06 + (G.rep - 30) * 0.0012 - (base - gr.fresh) * 0.018, 0.15, 0.95);
+    var cand = { p: p, sp: Math.round(sp * 100) / 100, elite: elite, viaOb: null, obYear: 0, picked: false, blurb: '' };
+    if (G.obs.length && Math.random() < 0.3) {
+      var ob = pick(G.obs);
+      cand.viaOb = ob.name; cand.obYear = ob.year;
+      cand.sp = clamp(cand.sp + 0.10, 0.15, 0.97);
+    }
+    cand.blurb = makeBlurb(p, cand.viaOb ? ('OBの' + cand.viaOb + 'さん（' + cand.obYear + '年卒）の紹介で名前が挙がった') : null);
+    cands.push(cand);
+  }
+  return cands;
+}
+var CONVERT_SPORTS = [
+  { n: 'サッカー', bonus: { spd: 10, kik: 8 }, skill: 'kick' },
+  { n: '柔道', bonus: { pow: 10, tak: 9 }, skill: 'tackle' },
+  { n: '陸上', bonus: { spd: 12, sta: 8 }, skill: 'step' },
+  { n: '野球', bonus: { pas: 9, pow: 7 }, skill: null }
+];
+function genSpecial() {
+  if (Math.random() > 0.32) return null;
+  var gr = gradeOf();
+  var types = ['transfer', 'convert', 'returnee'];
+  if (G.obs.length) types.push('obson', 'obson');
+  var t = pick(types);
+  if (t === 'transfer') {
+    var p1 = makePlayer(scarcePosIdx(), 2, gr.fresh + ri(8, 13));
+    return { type: t, p: p1, accepted: false, title: '🌟 特別枠：転校生',
+      desc: '強豪校で出場機会に恵まれなかった2年生が、「試合に出られる環境で勝負したい」と桜丘への転校を決めてきた。即戦力として期待できる。' };
+  }
+  if (t === 'convert') {
+    var sport = pick(CONVERT_SPORTS);
+    var opts = { bonus: sport.bonus };
+    if (sport.skill) opts.skills = [sport.skill];
+    var p2 = makePlayer(scarcePosIdx(), 1, gr.fresh - 2, opts);
+    return { type: t, p: p2, sport: sport.n, accepted: false, title: '🌟 特別枠：他競技からの転向（' + sport.n + '）',
+      desc: sport.n + 'で鍛えた身体能力は本物。「ラグビーに挑戦したい」と入部を希望してきた。基礎体力は申し分ないが、ラグビーの技術はこれからだ。' };
+  }
+  if (t === 'returnee') {
+    var p3 = makePlayer(scarcePosIdx(), 1, gr.fresh + ri(4, 8), { bonus: { kik: 6, pas: 5 } });
+    return { type: t, p: p3, accepted: false, title: '🌟 特別枠：帰国子女',
+      desc: 'ラグビー王国ニュージーランドで育った帰国子女。本場仕込みのスキルと、独特の距離感を持つ。' };
+  }
+  var ob = pick(G.obs);
+  var idx = 0;
+  POSITIONS.forEach(function (x, i) { if (x.p === ob.pos && !idx) idx = i; });
+  var surname = ob.name.split(' ')[0];
+  var p4 = makePlayer(idx, 1, gr.fresh + ri(3, 7), { surname: surname, trust: ri(60, 75) });
+  if (p4.name === ob.name) p4.name = surname + ' ' + (pick(GIVEN) === ob.name.split(' ')[1] ? '隼' : pick(GIVEN));
+  return { type: t, p: p4, obName: ob.name, obYear: ob.year, accepted: false, title: '🌟 特別枠：OBの息子',
+    desc: 'OBの' + ob.name + 'さん（' + ob.year + '年卒・' + ob.pos + '）の息子が入部を希望してきた。ポジションも父親と同じ' + ob.pos + '。幼い頃から桜丘のグラウンドで育ち、監督への信頼も厚い。' };
+}
+function startRecruit() {
+  var grads = G.players.filter(function (p) { return p.year === 3; });
+  grads.forEach(function (p) {
+    G.obs.push({ name: p.name, pos: POSITIONS[p.posIdx].p, avg: Math.round(overall(p)), year: G.year });
+  });
+  if (G.obs.length > 40) G.obs = G.obs.slice(-40);
+  G.players = G.players.filter(function (p) { return p.year !== 3; });
+  G.players.forEach(function (p) { p.year++; p.injured = 0; p.fatigue = ri(5, 15); });
+  G.year++; G.monthIdx = 0; G.qualified = false; G.nextBonus = 0;
+  G.season = { wins: 0, losses: 0, result: '予選敗退' };
+  G.summary = null;
+  G.recruit = { cands: genScoutCands(), special: genSpecial() };
+  sortRoster();
+  screen = 'recruit'; save(); render();
+}
+function togglePick(i) {
+  var R = G.recruit; if (!R || !R.cands[i]) return;
+  var c = R.cands[i];
+  if (c.picked) c.picked = false;
+  else {
+    if (R.cands.filter(function (x) { return x.picked; }).length >= scoutQuota()) return;
+    c.picked = true;
+  }
+  save(); render();
+}
+function setSpecial(accept) {
+  if (!G.recruit || !G.recruit.special) return;
+  G.recruit.special.accepted = !!accept;
+  save(); render();
+}
+function finishRecruit() {
+  var R = G.recruit;
+  var lines = [];
+  var scoutJoined = 0;
+  if (R) {
+    R.cands.forEach(function (c) {
+      if (!c.picked) return;
+      if (Math.random() < c.sp) {
+        G.players.push(c.p); scoutJoined++;
+        lines.push('🌸 スカウト成功！ ' + c.p.name + '（' + POSITIONS[c.p.posIdx].p + '）が入部を決めた');
+      } else {
+        lines.push('スカウト叶わず… ' + c.p.name + ' は他校へ進学した');
+      }
+    });
+    if (R.special && R.special.accepted) {
+      G.players.push(R.special.p);
+      lines.push('🌸 ' + R.special.title.replace('🌟 ', '') + ' ― ' + R.special.p.name + '（' + POSITIONS[R.special.p.posIdx].p + '・' + R.special.p.year + '年）が入部した');
+    }
+  }
+  var gr = gradeOf();
+  var gen = Math.max(0, gr.count - scoutJoined);
+  for (var i = 0; i < gen; i++) G.players.push(makePlayer(scarcePosIdx(), 1, gr.fresh));
+  sortRoster();
+  G.inst.focus = G.players[0] ? G.players[0].id : 1;
+  lines.push('一般入部で ' + gen + ' 名の新入生が加わった');
+  G.monthLog = lines;
+  G.recruit = null;
+  screen = 'inst'; save(); render();
 }
 
     /* ---------------- シーン背景(SVG) ---------------- */
@@ -750,6 +899,7 @@ screen = 'inst'; save(); render();
     if (screen === 'preMatch') return preMatchScreen();
     if (screen === 'match') return matchScreen();
     if (screen === 'summary') return summaryScreen();
+    if (screen === 'recruit') return recruitScreen();
     if (screen === 'records') return recordsScreen();
     return boardScreen();
   }
@@ -778,7 +928,7 @@ screen = 'inst'; save(); render();
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.3'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.4'])]),
       banner('home'),
       h('div', { class: 'card center' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
@@ -791,7 +941,7 @@ screen = 'inst'; save(); render();
     var mo = MONTHS[G.monthIdx];
     var left = [banner('train', 'grow')];
     if (G.monthLog && G.monthLog.length) {
-      left.push(h('div', { class: 'card grow scroll' }, [h('div', { class: 'sub' }, ['先月の出来事'])].concat(G.monthLog.map(function (l) { return h('div', null, [l]); }))));
+      left.push(h('div', { class: 'card grow scroll' }, [h('div', { class: 'sub' }, ['最近の出来事'])].concat(G.monthLog.map(function (l) { return h('div', null, [l]); }))));
     }
     var card = h('div', { class: 'card grow' });
     card.appendChild(h('div', { class: 'sec' }, [mo.m + 'の練習指示' + (mo.camp ? '（合宿月：実り1.5倍）' : '') + (mo.match != null ? ' ／ 月末に試合あり' : '')]));
@@ -888,7 +1038,7 @@ screen = 'inst'; save(); render();
     }
     wrap([hud(), h('div', { class: 'lay2' }, [
       h('div', { class: 'card grow scroll' }, [h('div', { class: 'sec' }, ['選手一覧（行タップで詳細）']), table]),
-      col([detail, h('button', { class: 'btn', onclick: function () { screen = G.board ? 'board' : 'inst'; render(); } }, ['戻る'])])
+      col([detail, h('button', { class: 'btn', onclick: function () { screen = G.recruit ? 'recruit' : (G.board ? 'board' : 'inst'); render(); } }, ['戻る'])])
     ])]);
   }
   function preMatchScreen() {
@@ -970,7 +1120,65 @@ screen = 'inst'; save(); render();
     g.appendChild(h('div', { class: 'sub' }, ['彼らはOBとして記録に残る。お疲れさま']));
     wrap([hud(), h('div', { class: 'lay2' }, [
       col([banner(G.qualified ? 'hanazono' : 'sunset', 'grow'), result]),
-      col([g, h('button', { class: 'btn primary', onclick: function () { nextYear(); } }, ['新年度へ（新入生が入部する）'])])
+      col([g, h('button', { class: 'btn primary', onclick: function () { startRecruit(); } }, ['新年度へ（新入生を迎える）'])])
+    ])]);
+  }
+  function candHead(p) {
+    return h('div', { class: 'rowline' }, [
+      h('span', { class: 'big' }, [p.name]),
+      h('span', { class: 'sub' }, [POSITIONS[p.posIdx].p + ' ・ ' + p.year + '年 ・ ' + p.h + 'cm／' + p.w + 'kg'])
+    ]);
+  }
+  function recruitScreen() {
+    var R = G.recruit;
+    if (!R) { wrap([hud(), h('div', { class: 'card' }, ['新入生情報がありません'])]); return; }
+    var quota = scoutQuota();
+    var pickedN = R.cands.filter(function (c) { return c.picked; }).length;
+    var leftKids = [
+      h('div', { class: 'sec' }, ['🌸 ' + G.year + '年目 ― 新入生を迎える']),
+      h('p', null, ['卒業生が巣立ち、新しい世代がやってくる。中学3年生のスカウト候補から、声をかけたい選手を獲得リスト（' + quota + '名まで）に入れよう。']),
+      h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['部の格']), h('span', null, [gradeOf().n])]),
+      h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['スカウト獲得枠']), h('span', null, [quota + '名（選択中 ' + pickedN + '名）'])]),
+      h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['OB名鑑']), h('span', null, [G.obs.length + '名が記録に残る'])]),
+      h('p', { class: 'sub' }, ['寸評はOBや中学の指導者からの伝聞。体格と「らしさ」のヒントにしよう。獲得できなくても、残りの枠は一般入部で埋まる。'])
+    ];
+    var newObs = G.obs.filter(function (o) { return o.year === G.year - 1; });
+    if (newObs.length) {
+      leftKids.push(h('div', { class: 'sec' }, ['巣立った卒業生']));
+      newObs.slice(-5).forEach(function (o) {
+        leftKids.push(h('div', { class: 'rowline' }, [h('span', null, [o.name]), h('span', { class: 'sub' }, [o.pos + '・総合 ' + o.avg])]));
+      });
+      leftKids.push(h('p', { class: 'sub' }, ['彼らの紹介や息子の入部で、OBはこれからも部に返ってくる。']));
+    }
+    var left = h('div', { class: 'card grow' }, leftKids);
+    var list = h('div', { class: 'stack grow scroll' });
+    if (R.special) {
+      var sp = R.special;
+      var sc = h('div', { class: 'card cand' + (sp.accepted ? ' sel' : '') });
+      sc.appendChild(h('div', { class: 'sec' }, [sp.title]));
+      sc.appendChild(candHead(sp.p));
+      sc.appendChild(h('p', null, [sp.desc]));
+      sc.appendChild(h('div', { class: 'hand' }, [
+        h('button', { class: 'btn small' + (sp.accepted ? ' primary' : ''), onclick: function () { setSpecial(true); } }, ['迎え入れる']),
+        h('button', { class: 'btn small', onclick: function () { setSpecial(false); } }, ['見送る'])
+      ]));
+      list.appendChild(sc);
+    }
+    R.cands.forEach(function (c, i) {
+      var card = h('div', { class: 'card cand' + (c.picked ? ' sel' : '') });
+      card.appendChild(candHead(c.p));
+      if (c.elite) card.appendChild(h('div', null, [h('span', { class: 'badge' }, ['目玉候補'])]));
+      card.appendChild(h('p', null, [c.blurb]));
+      card.appendChild(h('div', { class: 'rowline' }, [
+        h('span', { class: 'sub' }, ['獲得成功率の目安']),
+        h('span', null, [Math.round(c.sp * 100) + '%'])
+      ]));
+      card.appendChild(h('button', { class: 'btn small' + (c.picked ? ' primary' : ''), onclick: (function (ix) { return function () { togglePick(ix); }; })(i) }, [c.picked ? '✔ 獲得リストから外す' : '獲得リストに入れる']));
+      list.appendChild(card);
+    });
+    wrap([hud(), h('div', { class: 'lay2' }, [
+      col([left]),
+      col([list, h('button', { class: 'btn primary', onclick: function () { finishRecruit(); } }, ['新年度を始める'])])
     ])]);
   }
   function recordsScreen() {
@@ -986,14 +1194,15 @@ screen = 'inst'; save(); render();
       o.appendChild(h('div', { class: 'rowline' }, [h('span', null, [x.name]), h('span', { class: 'sub' }, [x.pos + '・' + x.year + '年卒・総合 ' + x.avg])]));
     });
     wrap([hud(), h('div', { class: 'lay2' }, [col([c]), o]),
-      h('button', { class: 'btn', onclick: function () { screen = G.board ? 'board' : 'inst'; render(); } }, ['戻る'])
+      h('button', { class: 'btn', onclick: function () { screen = G.recruit ? 'recruit' : (G.board ? 'board' : 'inst'); render(); } }, ['戻る'])
     ]);
   }
 
   /* ---------------- 起動 ---------------- */
   if (!loadSaved()) G = null;
   if (G) { sanitize(); save(); } /* マイグレーション結果を即永続化 */
-  if (G && G.board) screen = 'board';
+  if (G && G.recruit) screen = 'recruit';
+  else if (G && G.board) screen = 'board';
   else if (G && G.summary) screen = 'summary';
   else if (G) screen = 'inst';
   render();
