@@ -98,6 +98,16 @@ table.squad td.name { text-align: left; font-weight: 700; white-space: nowrap; }
 .pcard:active { transform: scale(.98); }
 .meter { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
 .meter > div { height: 100%; background: var(--brand); }
+/* v0.3: 要因分解バー・特能タグ・選手詳細 */
+.frow { display: flex; align-items: center; gap: 8px; margin-top: 7px; font-size: 13px; }
+.frow .flab { flex: 0 0 46%; color: var(--sub); word-break: keep-all; }
+.nowrap { white-space: nowrap; }
+.frow .fmeter { flex: 1; }
+.frow .fval { flex: 0 0 38px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+.tags { text-align: right; }
+.tag { display: inline-block; padding: 1px 8px; margin: 1px 0 1px 4px; border-radius: 99px; background: var(--brand-soft); color: var(--brand); font-size: 12px; font-weight: 700; }
+table.squad tr.prow { cursor: pointer; }
+table.squad tr.prow.sel td { background: var(--brand-soft); }
 
 /* ===== 固定レイアウト（横画面・広い画面）: ページはスクロールしない ===== */
 @media (min-width: 760px) and (orientation: landscape) {

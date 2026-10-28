@@ -1,6 +1,5 @@
-/* Road to HANAZONO v0.2 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
- * 範囲: 基盤(横画面) + 時間(進行カード+マス) + 世代交代(卒業・新入生・部の格)
- * 試合は v0.1 の3回停止・戦術を踏襲(場面連動化は次フェーズ) */
+/* Road to HANAZONO v0.3 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
+ * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示 */
 (function () {
   'use strict';
   var STORE_KEY = 'hanazono.v02';
@@ -29,6 +28,35 @@
     { n: '負けず嫌い', growth: 1.1, inj: 1, clutch: 3 }, { n: '冷静沈着', growth: 1, inj: 0.8, clutch: 3 },
     { n: 'ムードメーカー', growth: 1, inj: 1 }, { n: '怪我がち', growth: 1.15, inj: 2.2 }
   ];
+  /* 性格: 成長・疲労・信頼度の伸びに薄く効く */
+  var PERSONS = [
+    { n: '熱血', d: '練習も試合も全力。信頼を集めやすいが疲れやすい', growth: 1.06, fat: 1.18, trust: 1.3 },
+    { n: 'クール', d: '常に冷静。疲労が溜まりにくい', growth: 1.0, fat: 0.85, trust: 0.9 },
+    { n: '真面目', d: 'コツコツ努力する。成長が安定して速い', growth: 1.1, fat: 1.0, trust: 1.1 },
+    { n: '自由人', d: '気分屋だが疲れ知らず。伸びはゆっくり', growth: 0.95, fat: 0.8, trust: 1.0 },
+    { n: '頑張り屋', d: '人一倍練習する。成長は速いが無理もする', growth: 1.13, fat: 1.22, trust: 1.05 },
+    { n: 'マイペース', d: '自分のリズムを崩さない。疲労に強い', growth: 1.0, fat: 0.88, trust: 0.85 },
+    { n: 'リーダー気質', d: '周囲を引っ張る。監督の信頼を集める', growth: 1.04, fat: 1.0, trust: 1.4 }
+  ];
+  /* ラグビー特能: 試合の場面で効く */
+  var SKILLS = [
+    { n: 'ラインアウトの要', key: 'lineout' }, { n: 'モールの核', key: 'maul' },
+    { n: 'タックルマン', key: 'tackle' }, { n: 'ロングキッカー', key: 'kick' },
+    { n: 'ステップ職人', key: 'step' }, { n: '大舞台○', key: 'big' },
+    { n: 'ケガしにくさ', key: 'tough' }
+  ];
+  var SKILL_AFFINITY = { /* ポジション別の出やすい特能 */
+    PR: ['maul', 'tough', 'tackle'], HO: ['maul', 'tough', 'lineout'], LO: ['lineout', 'maul', 'tough'],
+    FL: ['tackle', 'maul', 'tough'], No8: ['maul', 'tackle', 'step'],
+    SH: ['step', 'tackle', 'kick'], SO: ['kick', 'step', 'tackle'],
+    CTB: ['tackle', 'step', 'maul'], WTB: ['step', 'kick', 'tackle'], FB: ['kick', 'step', 'tackle']
+  };
+  /* ポジション別の体格レンジ [身長min,max, 体重min,max] */
+  var POS_SIZE = {
+    PR: [168, 183, 88, 115], HO: [166, 179, 82, 103], LO: [178, 196, 88, 112],
+    FL: [172, 188, 82, 105], No8: [174, 190, 88, 110], SH: [158, 175, 60, 79],
+    SO: [165, 181, 68, 87], CTB: [168, 185, 76, 99], WTB: [165, 183, 68, 91], FB: [168, 185, 70, 91]
+  };
   var LEVELS = [
     { n: '通常', mul: 1.0, fat: 5, inj: 1.0 },
     { n: '強め', mul: 1.4, fat: 9, inj: 1.6 },
@@ -37,11 +65,19 @@
   var UNIT_STAT = { FW: 'pow', BK: 'pas', SP: 'kik' };
   var UNIT_NAME = { FW: 'FW（フィジカル）', BK: 'BK（スキル）', SP: 'セットピース' };
   var OPPONENTS = [
-    { name: '青葉高校', power: 38, note: '練習試合。力試し' },
-    { name: '県立西高校', power: 44, note: '花園予選 1回戦' },
-    { name: '県立工業高校', power: 50, note: '花園予選 準決勝。FWの圧力が強い' },
-    { name: '帝都学園', power: 56, note: '花園予選 決勝。県内王者の強豪校' },
-    { name: '東都第一高校', power: 62, note: '花園 1回戦。全国レベルの強豪' }
+    { name: '青葉高校', power: 38, note: '練習試合。力試し', skill: null },
+    { name: '県立西高校', power: 44, note: '花園予選 1回戦', skill: { n: '堅いディフェンス', key: 'def' } },
+    { name: '県立工業高校', power: 50, note: '花園予選 準決勝。FWの圧力が強い', skill: { n: 'モールの核がいるFW陣', key: 'maul' } },
+    { name: '帝都学園', power: 56, note: '花園予選 決勝。県内王者の強豪校', skill: { n: '大舞台に強いエース', key: 'big' } },
+    { name: '東都第一高校', power: 62, note: '花園 1回戦。全国レベルの強豪', skill: { n: 'ロングキッカーの司令塔', key: 'kick' } }
+  ];
+  /* 試合の格ごとの停止点プラン（場面連動）。halftime は block5=40分 に来る並び */
+  var STOP_PLANS = [
+    ['setpiece', 'goal'],                                   // 練習試合: 2回
+    ['setpiece', 'penalty', 'goal'],                        // 予選1回戦: 3回
+    ['setpiece', 'goal', 'penalty', 'late'],                // 準決勝: 4回
+    ['setpiece', 'goal', 'halftime', 'penalty', 'late'],    // 決勝: 5回
+    ['setpiece', 'goal', 'halftime', 'penalty', 'late']     // 花園: 5回
   ];
   var GRADES = [
     { n: '弱小', min: 0, fresh: 34, count: 6 }, { n: 'そこそこ', min: 40, fresh: 37, count: 7 },
@@ -64,6 +100,7 @@
   /* ---------------- 状態 ---------------- */
   var G = null, M = null;
   var screen = 'title';
+  var selPlayerId = null;
   function rnd(a, b) { return a + Math.random() * (b - a); }
   function ri(a, b) { return Math.floor(rnd(a, b + 1)); }
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -76,14 +113,50 @@
     do { n = pick(SURNAMES) + ' ' + pick(GIVEN); tries++; } while (namePool[n] && tries < 60);
     namePool[n] = 1; return n;
   }
+  function personOf(p) { return PERSONS.filter(function (x) { return x.n === p.person; })[0] || PERSONS[2]; }
+  function hasSkill(p, key) { return (p.skills || []).some(function (s) { return s === key; }); }
+  function skillNames(p) { return (p.skills || []).map(function (k) { var s = SKILLS.filter(function (x) { return x.key === k; })[0]; return s ? s.n : k; }); }
+  function rollSkills(pos) {
+    var r = Math.random();
+    var count = r < 0.38 ? 0 : (r < 0.85 ? 1 : 2);
+    var pool = (SKILL_AFFINITY[pos.p] || []).concat(['big', 'tough']);
+    var out = [];
+    for (var i = 0; i < count; i++) {
+      var k = pick(pool);
+      if (out.indexOf(k) < 0) out.push(k);
+    }
+    return out;
+  }
+  function sizeFor(pos) {
+    var rg = POS_SIZE[pos.p] || [168, 185, 70, 100];
+    return { h: ri(rg[0], rg[1]), w: ri(rg[2], rg[3]) };
+  }
   function makePlayer(posIdx, year, base) {
     var pos = POSITIONS[posIdx];
-    var pl = { id: G ? G.nextId++ : posIdx, name: uniqName(), year: year, posIdx: posIdx, stats: {}, trait: pick(TRAITS), injured: 0, fatigue: ri(5, 20) };
+    var sz = sizeFor(pos);
+    var pl = {
+      id: G ? G.nextId++ : posIdx, name: uniqName(), year: year, posIdx: posIdx, stats: {},
+      trait: pick(TRAITS), injured: 0, fatigue: ri(5, 20),
+      h: sz.h, w: sz.w, person: pick(PERSONS).n, skills: rollSkills(pos),
+      trust: year >= 2 ? ri(35, 60) : ri(22, 45)
+    };
     STATS.forEach(function (s) {
       var v = base + ri(-6, 6) + (s.k === pos.main ? 8 : 0) + (s.k === 'sta' ? 3 : 0);
       pl.stats[s.k] = clamp(Math.round(v), 20, 95);
     });
     return pl;
+  }
+  /* 旧セーブ(v0.2.x)の選手に新フィールドを補完する */
+  function migratePlayer(p) {
+    var pos = POSITIONS[p.posIdx] || POSITIONS[0];
+    if (typeof p.h !== 'number' || !isFinite(p.h) || typeof p.w !== 'number' || !isFinite(p.w)) {
+      var sz = sizeFor(pos); if (typeof p.h !== 'number' || !isFinite(p.h)) p.h = sz.h;
+      if (typeof p.w !== 'number' || !isFinite(p.w)) p.w = sz.w;
+    }
+    if (!p.person || !PERSONS.some(function (x) { return x.n === p.person; })) p.person = pick(PERSONS).n;
+    if (!Array.isArray(p.skills)) p.skills = rollSkills(pos);
+    if (typeof p.trust !== 'number' || !isFinite(p.trust)) p.trust = p.year >= 2 ? ri(35, 55) : ri(22, 40);
+    p.trust = clamp(Math.round(p.trust), 0, 99);
   }
   function overall(p) { return STATS.reduce(function (a, s) { return a + p.stats[s.k]; }, 0) / 6; }
   function newGame() {
@@ -116,8 +189,10 @@
   function sanitize() {
     if (!G || !G.players) return;
     G.players.forEach(function (p) {
+      if (!p.stats) p.stats = {};
       STATS.forEach(function (s) { if (typeof p.stats[s.k] !== 'number' || !isFinite(p.stats[s.k])) p.stats[s.k] = 45; });
       if (typeof p.fatigue !== 'number' || !isFinite(p.fatigue)) p.fatigue = 20;
+      migratePlayer(p);
     });
   }
   function gradeOf() {
@@ -149,6 +224,10 @@
     return Math.round(st.reduce(function (a, p) { return a + overall(p); }, 0) / st.length * 10) / 10;
   }
   function clutchBonus() { return starters().reduce(function (a, p) { return a + (p.trait.clutch || 0); }, 0) / 4; }
+  function avgTrust(players) { if (!players.length) return 50; return players.reduce(function (a, p) { return a + (p.trust || 50); }, 0) / players.length; }
+  function skillCount(players, key) { return players.filter(function (p) { return hasSkill(p, key); }).length; }
+  function avgAttr(players, key) { if (!players.length) return 0; return players.reduce(function (a, p) { return a + (p[key] || 0); }, 0) / players.length; }
+  function gainTrust(p, amt) { p.trust = clamp(Math.round((p.trust || 50) + amt * (personOf(p).trust || 1)), 0, 99); }
   function effOf(p) { return p.fatigue >= 70 ? 0.55 : (p.fatigue >= 40 ? 0.85 : 1); }
   function avgFatigue() { return Math.round(G.players.reduce(function (a, p) { return a + p.fatigue; }, 0) / Math.max(1, G.players.length)); }
 
@@ -203,8 +282,9 @@
     var gains = [];
     G.players.forEach(function (p) {
       var eff = effOf(p);
+      var per = personOf(p);
       function gain(stat, base) {
-        var g = Math.round(base * lvl.mul * p.trait.growth * campMul * eff * rnd(0.7, 1.3));
+        var g = Math.round(base * lvl.mul * p.trait.growth * per.growth * campMul * eff * rnd(0.7, 1.3));
         if (g > 0 && p.stats[stat] < 99) {
           p.stats[stat] = Math.min(99, p.stats[stat] + g);
           gains.push({ name: p.name, stat: stat, g: g, focus: p.id === inst.focus });
@@ -213,8 +293,9 @@
       gain(inst.team, big ? ri(1, 3) : ri(0, 2));
       if (unitOf(p) === inst.unit) gain(UNIT_STAT[inst.unit], big ? ri(1, 2) : ri(0, 1));
       if (p.id === inst.focus) gain(inst.team, ri(2, 4));
-      p.fatigue = Math.min(100, p.fatigue + Math.round(lvl.fat * (big ? 1.3 : 1)));
-      if (!p.injured && Math.random() < 0.010 * lvl.inj * p.trait.inj * (p.fatigue >= 70 ? 2 : 1)) {
+      p.fatigue = Math.min(100, p.fatigue + Math.round(lvl.fat * (big ? 1.3 : 1) * per.fat));
+      var injMul = hasSkill(p, 'tough') ? 0.35 : 1;
+      if (!p.injured && Math.random() < 0.010 * lvl.inj * p.trait.inj * injMul * (p.fatigue >= 70 ? 2 : 1)) {
         p.injured = 1;
         G.board.log.push('🚑 ' + p.name + ' が練習で負傷。次の試合は欠場');
       }
@@ -234,6 +315,12 @@
     if (r < 0.64) { G.players.forEach(function (p) { p.injured = 0; }); return { t: 'マネージャーが入部！ ケアが行き届き、怪我人が全員復帰した' }; }
     if (r < 0.76) { G.nextBonus = Math.min(8, G.nextBonus + 4); return { t: 'ライバル校の試合映像を入手。弱点が見えた（次の試合 +4）' }; }
     if (r < 0.88 && healthy.length) { var v = pick(healthy); v.injured = 1; return { t: v.name + ' が体調を崩した。次の試合は欠場する', bad: true }; }
+    if (r < 0.94 && G.players.length) {
+      var q = pick(G.players);
+      if (q.person === '自由人' || q.person === 'マイペース') { q.fatigue = Math.max(0, q.fatigue - 18); return { t: q.name + '（' + q.person + '）は休日にしっかり気分転換。本人の疲労が抜けた' }; }
+      if (q.person === 'リーダー気質' || q.person === '熱血') { G.nextBonus = Math.min(8, G.nextBonus + 3); return { t: q.name + '（' + q.person + '）が自主練に皆を誘い、チームの士気が上がった（次の試合 +3）' }; }
+      q.trust = clamp((q.trust || 50) + 4, 0, 99); return { t: q.name + '（' + q.person + '）とじっくり面談。監督への信頼が深まった' };
+    }
     var s = pick(G.players);
     s.stats.sta = Math.max(20, s.stats.sta - 2);
     return { t: 'テスト期間。' + s.name + ' は勉強との両立に苦戦（スタミナ -2）', bad: true };
@@ -250,137 +337,283 @@
     screen = 'inst'; save(); render();
   }
 
-/* ---------------- 試合(v0.1踏襲) ---------------- */
+/* ---------------- 試合(v0.3: 場面連動型の停止点) ---------------- */
 var TACTICS = [
-{ k: 'fw', n: 'FW重視', d: 'モールの成功率アップ', key: 'maul'},
-{ k: 'bk', n: '展開重視', d: 'バックス展開の成功率アップ', key: 'wide'},
-{ k: 'kick', n: 'キック重視', d: 'キック系の成功率アップ', key: 'kick'},
-{ k: 'def', n: '守備固め', d: '守備の勝負どころの成功率アップ', key: 'def'}
+  { k: 'fw', n: 'FW重視', d: 'モールの成功率アップ', key: 'maul' },
+  { k: 'bk', n: '展開重視', d: 'バックス展開の成功率アップ', key: 'wide' },
+  { k: 'kick', n: 'キック重視', d: 'キック系の成功率アップ', key: 'kick' },
+  { k: 'def', n: '守備固め', d: '守備の勝負どころの成功率アップ', key: 'def' }
 ];
-function oppPower(idx) { return OPPONENTS[idx].power + (idx >= 1? Math.min(8, (G.year - 1)): 0);}
+function oppPower(idx) { return OPPONENTS[idx].power + (idx >= 1 ? Math.min(8, (G.year - 1)) : 0); }
+function stopBlocks(n) {
+  var out = [];
+  for (var i = 1; i <= n; i++) {
+    var b = Math.round(i * 10 / (n + 1));
+    if (b >= 1 && b <= 9 && out.indexOf(b) < 0) out.push(b);
+  }
+  return out;
+}
 function startMatch(oppIdx) {
-var opp = OPPONENTS[oppIdx];
-M = {
-opp: opp, oppIdx: oppIdx, power: oppPower(oppIdx), block: 0, my: 0, op: 0,
-log: [], phase: 'play', pending: null, done: false, result: null,
-bonus: G.nextBonus + clutchBonus()
-};
-G.nextBonus = 0;
-M.log.push('キックオフ。相手は ' + opp.name + '（総合力 ' + M.power + '）。' + opp.note);
-screen = 'match'; render();
+  var opp = OPPONENTS[oppIdx];
+  var plan = (STOP_PLANS[oppIdx] || STOP_PLANS[0]).slice();
+  var st = starters();
+  M = {
+    opp: opp, oppIdx: oppIdx, power: oppPower(oppIdx), block: 0, my: 0, op: 0,
+    log: [], phase: 'play', pending: null, done: false, result: null,
+    bonus: G.nextBonus + clutchBonus(),
+    plan: plan, stopAt: stopBlocks(plan.length), goalFlip: Math.random() < 0.5,
+    scenes: { att: 0, ok: 0 }, factors: null, gallant: false,
+    tp0: teamPower(),
+    fat0: st.length ? Math.round(st.reduce(function (a, p) { return a + p.fatigue; }, 0) / st.length) : 0,
+    inj0: st.filter(function (p) { return p.injured; }).length
+  };
+  G.nextBonus = 0;
+  M.log.push('キックオフ。相手は ' + opp.name + '（総合力 ' + M.power + '）。' + opp.note);
+  if (opp.skill) M.log.push('相手の特能：' + opp.skill.n);
+  screen = 'match'; render();
 }
-function convProb() { return clamp(0.45 + (statAvg(starters(), 'kik') - 50) * 0.008, 0.2, 0.9);}
+function convProb() { return clamp(0.45 + (statAvg(starters(), 'kik') - 50) * 0.008, 0.2, 0.9); }
 function tryScore(mine) {
-var pts = 5, txt = 'トライ！';
-if (Math.random() < convProb()) { pts += 2; txt += ' コンバージョンも成功（+7点）';}
-else txt += ' コンバージョンは外れた（+5点）';
-if (mine) M.my += pts; else M.op += pts;
-return txt;
+  var pts = 5, txt = 'トライ！';
+  if (Math.random() < convProb()) { pts += 2; txt += ' コンバージョンも成功（+7点）'; }
+  else txt += ' コンバージョンは外れた（+5点）';
+  if (mine) M.my += pts; else M.op += pts;
+  return txt;
 }
-function pgScore(mine) { if (mine) M.my += 3; else M.op += 3; return 'ペナルティゴール成功（+3点）';}
-function scoreRoll(diff) { return Math.random() < clamp(0.32 + diff * 0.012, 0.05, 0.75);}
+function pgScore(mine) { if (mine) M.my += 3; else M.op += 3; return 'ペナルティゴール成功（+3点）'; }
+function scoreRoll(diff) { return Math.random() < clamp(0.32 + diff * 0.012, 0.05, 0.75); }
 function playBlock() {
-var diff = teamPower() - M.power + M.bonus;
-var minute = (M.block + 1) * 8;
-if (scoreRoll(diff)) M.log.push('桜丘、攻め込む。' + tryScore(true));
-else if (scoreRoll(-diff + 6)) M.log.push('相手の攻撃を止めきれない。' + tryScore(false));
-else if (Math.random() < 0.3) M.log.push('桜丘のPG。' + pgScore(true));
-else if (Math.random() < 0.22) M.log.push('相手のPG。' + pgScore(false));
-else M.log.push('中盤での攻防。スコアは動かない');
-M.block++;
-maybeHighlightOrEnd();
-render();
+  var diff = teamPower() - M.power + M.bonus;
+  if (scoreRoll(diff)) M.log.push('桜丘、攻め込む。' + tryScore(true));
+  else if (scoreRoll(-diff + 6)) M.log.push('相手の攻撃を止めきれない。' + tryScore(false));
+  else if (Math.random() < 0.3) M.log.push('桜丘のPG。' + pgScore(true));
+  else if (Math.random() < 0.22) M.log.push('相手のPG。' + pgScore(false));
+  else M.log.push('中盤での攻防。スコアは動かない');
+  M.block++;
+  maybeSceneOrEnd();
+  render();
 }
-function maybeHighlightOrEnd() {
-if (M.block >= 10) return finishMatch();
-if (M.block === 2 || M.block === 5 || M.block === 8) { M.phase = 'highlight'; M.pending = makeHighlight();}
+function maybeSceneOrEnd() {
+  if (M.block >= 10) return finishMatch();
+  var idx = M.stopAt.indexOf(M.block);
+  if (idx >= 0) {
+    M.phase = 'scene';
+    M.pending = makeScene(M.plan[idx]);
+    M.log.push('⚑ ' + M.pending.title + (M.pending.key ? '（キーマン：' + M.pending.key.name + '）' : ''));
+  }
 }
-function hlProb(statVal) { return clamp(0.45 + (statVal - M.power) * 0.02 + M.bonus * 0.006, 0.1, 0.92);}
-function makeHighlight() {
-var st = starters();
-var fwPow = statAvg(st, 'pow', 'FW'), bkGo = (statAvg(st, 'spd', 'BK') + statAvg(st, 'pas', 'BK')) / 2;
-var kick = statAvg(st, 'kik'), tak = statAvg(st, 'tak'), sta = statAvg(st, 'sta');
-var tac = TACTICS.filter(function (t) { return t.k === G.tactic;})[0];
-function P(key, v) { return clamp(hlProb(v) + (tac && tac.key === key? 0.10: 0), 0.05, 0.95);}
-if (M.block === 2) return { kind: 'attack', title: '勝負どころ：敵陣深くでボールを持った！', choices: [
-{ n: 'モールで押し込む', d: 'FWのパワーが勝負', p: P('maul', fwPow), lose: 'モールが崩れた…ターンオーバー'},
-{ n: 'バックスに展開', d: 'パスとスピードが勝負', p: P('wide', bkGo), lose: 'パスが乱れてノックオン'},
-{ n: 'キックで裏を狙う', d: 'キック精度が勝負', p: P('kick', kick), lose: 'キックが深すぎてタッチへ'}
-]};
-if (M.block === 5) return { kind: 'defense', title: '勝負どころ：自陣ゴール前、相手の猛攻！', choices: [
-{ n: '前に出てプレッシャー', d: 'タックルが勝負', p: P('def', tak), win: '強烈なタックルでボールを奪った！', lose: 'タックルがずれて突破された…'},
-{ n: '受けて立って粘る', d: 'スタミナが勝負', p: P('def', sta) - 0.05, win: '何度も止めて、最後は相手の反則を誘った！', lose: '粘りきれず押し込まれた…'},
-{ n: '勝負タックル', d: 'ハイリスク・ハイリターン', p: P('def', tak) - 0.15, win: '起死回生のタックル！ ボールがこぼれた', lose: 'かわされて一気に持っていかれた…'}
-]};
-var behind = M.my <= M.op;
-return { kind: behind? 'attack': 'defense', title: behind? '勝負どころ：終盤、敵陣でのチャンス！': '勝負どころ：終盤、リードを守れるか！', choices: behind? [
-{ n: 'PGで確実に3点', d: 'キック精度が勝負', p: P('kick', kick) + 0.08, lose: 'PGがわずかに外れた…'},
-{ n: 'トライを取りにいく', d: 'スピードとパスが勝負', p: P('wide', bkGo) - 0.05, lose: 'あと一歩で止められた…'},
-{ n: 'モールでじわじわ', d: 'FWのパワーが勝負', p: P('maul', fwPow), lose: 'モールが止められ、時間だけが過ぎる'}
-]: [
-{ n: 'キックで敵陣へ押し返す', d: 'キック精度が勝負', p: P('kick', kick), win: '大きく蹴り出して敵陣で試合を進める', lose: 'キックが甘く、カウンターを浴びた…'},
-{ n: 'ボールキープで時間を使う', d: 'スタミナが勝負', p: P('def', sta), win: 'ボールを保持し続けて時間を消化した', lose: 'プレッシャーでボールを失った…'},
-{ n: 'タックルで止め続ける', d: 'タックルが勝負', p: P('def', tak), win: 'タックルの雨で相手を前進させない', lose: 'タックルがずれて突破された…'}
-]};
+/* 場面の成功率： 能力値に体格・特能・信頼度・疲労・戦術・大舞台補正を重ねる */
+function sceneProb(statVal, tacKey, keyPlayer) {
+  var st = starters();
+  var adj = (avgTrust(st) - 50) * 0.0015 + M.bonus * 0.006 - Math.max(0, M.fat0 - 35) * 0.001;
+  if (M.oppIdx >= 3) adj += skillCount(st, 'big') * 0.015 + (keyPlayer && hasSkill(keyPlayer, 'big') ? 0.03 : 0);
+  if (M.opp.skill && M.oppIdx >= 2) adj -= 0.03;
+  var tac = TACTICS.filter(function (t) { return t.k === G.tactic; })[0];
+  if (tac && tac.key === tacKey) adj += 0.10;
+  return clamp(0.45 + (statVal - M.power) * 0.02 + adj, 0.05, 0.95);
 }
-function chooseHighlight(idx) {
-var hl = M.pending, c = hl.choices[idx];
-var ok = Math.random() < c.p;
-if (hl.kind === 'attack') {
-if (ok) M.log.push('' + c.n + ' → 成功！ ' + tryScore(true));
-else M.log.push('' + c.n + ' → ' + c.lose);
-} else {
-if (ok) M.log.push('' + c.n + ' → 成功！ ' + (c.win || ''));
-else M.log.push('' + c.n + ' → ' + c.lose + ' 相手の' + tryScore(false));
+function keyPlayer(posNames, stat, skillKey) {
+  var st = starters().filter(function (p) { return posNames.indexOf(POSITIONS[p.posIdx].p) >= 0; });
+  if (!st.length) st = starters();
+  st.sort(function (a, b) {
+    var sa = (skillKey && hasSkill(a, skillKey) ? 30 : 0) + a.stats[stat] + (a.trust || 50) * 0.1;
+    var sb = (skillKey && hasSkill(b, skillKey) ? 30 : 0) + b.stats[stat] + (b.trust || 50) * 0.1;
+    return sb - sa;
+  });
+  return st[0];
 }
-M.pending = null; M.phase = 'play'; M.block++;
-if (M.block >= 10) finishMatch();
-render();
+function C(n, d, p, winTxt, loseTxt, winFx, loseFx) {
+  return { n: n, d: d, p: p, winTxt: winTxt, loseTxt: loseTxt, winFx: winFx, loseFx: loseFx };
+}
+function makeScene(kind) {
+  var st = starters();
+  var fw = st.filter(function (p) { return POSITIONS[p.posIdx].g === 'FW'; });
+  var fwPow = statAvg(st, 'pow', 'FW');
+  var wAdj = (avgAttr(fw, 'w') - 92) * 0.35;
+  var loH = avgAttr(st.filter(function (p) { return POSITIONS[p.posIdx].p === 'LO'; }), 'h');
+  var bkGo = (statAvg(st, 'spd', 'BK') + statAvg(st, 'pas', 'BK')) / 2;
+  var kick = statAvg(st, 'kik'), tak = statAvg(st, 'tak'), sta = statAvg(st, 'sta');
+  if (kind === 'setpiece') {
+    if (Math.random() < 0.5) {
+      var k1 = keyPlayer(['PR', 'HO', 'LO', 'FL', 'No8'], 'pow', 'maul');
+      var k2 = keyPlayer(['SH'], 'pas', null);
+      return { kind: kind, key: k1, title: '勝負どころ：敵陣でのスクラム', choices: [
+        C('真っ向勝負で押し込む', 'FWのパワーと総体重が勝負', sceneProb(fwPow + wAdj + skillCount(st, 'maul') * 2, 'maul', k1), 'スクラムで圧倒し、そのまま押し込んだ！', 'スクラムが拮抗し、押し切れなかった', 'try', 'none'),
+        C('早めに出してBKへ展開', 'SHのパスが勝負', sceneProb((statAvg(st, 'pas') + fwPow) / 2, 'wide', k2), k2.name + ' が素早くさばき、BKが走り切った！', 'ボールが乱れてチャンスを逃した', 'try', 'none'),
+        C('相手の反則を誘う', '安定志向。成功でPG', sceneProb(fwPow + wAdj + 6, 'maul', k1), '相手のコラプシングを誘った！', '反則は取れず、ボールは相手へ', 'pg', 'none')
+      ] };
+    }
+    var k3 = keyPlayer(['LO', 'FL'], 'pow', 'lineout');
+    var k4 = keyPlayer(['PR', 'HO', 'LO', 'FL', 'No8'], 'pow', 'maul');
+    var loVal = fwPow + (loH - 180) * 0.7 + skillCount(st, 'lineout') * 2.5;
+    return { kind: kind, key: k3, title: '勝負どころ：敵陣でのラインアウト', choices: [
+      C('エースジャンパーへ投げる', 'LOの身長と「ラインアウトの要」が勝負', sceneProb(loVal, 'maul', k3), k3.name + ' が高い打点でキャッチし、そのままモールで押し込んだ！', '相手に競り負けてボールを奪われた', 'try', 'none'),
+      C('モールで押し込む', 'FWの総体重と「モールの核」が勝負', sceneProb(fwPow + wAdj + skillCount(st, 'maul') * 2.5, 'maul', k4), 'モールが一気に進み、押し込んだ！', 'モールが止められ、崩れてしまった', 'try', 'none'),
+      C('クイックスローで奇襲', 'ハイリスク・ハイリターン', sceneProb(loVal - 5, 'wide', k3), '意表を突いた！ 一気に抜け出した', '呼吸が合わずノックオン…', 'try', 'none')
+    ] };
+  }
+  if (kind === 'goal') {
+    M.goalFlip = !M.goalFlip;
+    if (M.goalFlip) {
+      var a1 = keyPlayer(['PR', 'HO', 'LO', 'FL', 'No8'], 'pow', 'maul');
+      var a2 = keyPlayer(['WTB', 'CTB', 'FB'], 'spd', 'step');
+      var a3 = keyPlayer(['SO', 'FB'], 'kik', 'kick');
+      return { kind: kind, key: a2, title: '勝負どころ：ゴール前、あと少しでトライ！', choices: [
+        C('モールで押し込む', 'FWのパワーと総体重が勝負', sceneProb(fwPow + wAdj + skillCount(st, 'maul') * 2, 'maul', a1), 'モールでじりじり進み、最後は押し込んだ！', 'モールが崩れた…ターンオーバー', 'try', 'none'),
+        C('バックスに展開', 'パスとスピード、「ステップ職人」が勝負', sceneProb(bkGo + skillCount(st, 'step') * 2.5, 'wide', a2), a2.name + ' がステップで抜けた！', 'パスが乱れてノックオン', 'try', 'none'),
+        C('キックパスで裏へ', 'キック精度が勝負', sceneProb(kick + (hasSkill(a3, 'kick') ? 4 : 0), 'kick', a3), 'キックパスが通り、WTBが抑えた！', 'キックが深すぎてタッチへ', 'try', 'none')
+      ] };
+    }
+    var d1 = keyPlayer(['FL', 'CTB', 'No8'], 'tak', 'tackle');
+    return { kind: kind, key: d1, title: '勝負どころ：自陣ゴール前、相手の猛攻！', choices: [
+      C('前に出てプレッシャー', 'タックルと「タックルマン」が勝負', sceneProb(tak + skillCount(st, 'tackle') * 2, 'def', d1), d1.name + ' の強烈なタックルでボールを奪った！', 'タックルがずれて突破された…', 'none', 'oppTry'),
+      C('受けて立って粘る', 'スタミナと体の重さが勝負', sceneProb(sta + wAdj * 0.5, 'def', d1), '何度も止めて、最後は相手の反則を誘った！', '粘りきれず押し込まれた…', 'none', 'oppTry'),
+      C('勝負タックル', 'ハイリスク・ハイリターン', sceneProb(tak - 6, 'def', d1), '起死回生のタックル！ ボールがこぼれた', 'かわされて一気に持っていかれた…', 'none', 'oppTry')
+    ] };
+  }
+  if (kind === 'penalty') {
+    var p1 = keyPlayer(['SO', 'FB'], 'kik', 'kick');
+    var p2 = keyPlayer(['PR', 'HO', 'LO', 'FL', 'No8'], 'pow', 'maul');
+    return { kind: kind, key: p1, title: '勝負どころ：相手の反則！ ペナルティの選択', choices: [
+      C('ショット（PGを狙う）', 'キッカーの精度と「ロングキッカー」が勝負', sceneProb(kick + 8 + (hasSkill(p1, 'kick') ? 4 : 0), 'kick', p1), p1.name + ' のキックが決まった！', 'PGがわずかに外れた…', 'pg', 'none'),
+      C('タッチに蹴ってラインアウト', '成功すればトライチャンス', sceneProb(kick + skillCount(st, 'lineout') * 2, 'kick', p1), '大きくタッチを割り、ラインアウトから攻め切った！', 'タッチを割りきれず、チャンスが流れた', 'try', 'none'),
+      C('スクラムを選択', 'FWの総体重が勝負', sceneProb(fwPow + wAdj, 'maul', p2), 'スクラムで圧力をかけ、そのまま押し込んだ！', 'スクラムで押し切れなかった', 'try', 'none')
+    ] };
+  }
+  if (kind === 'halftime') {
+    var tr = avgTrust(st);
+    return { kind: kind, key: null, title: 'ハーフタイム：ロッカールームでの指示', choices: [
+      C('檄を飛ばす', '信頼関係が深いほど火がつく', clamp(0.5 + (tr - 50) * 0.004, 0.2, 0.9), '選手の目に火がついた！ 後半の勢いが増す', '熱が入りすぎて少し硬くなった', 'fire', 'none'),
+      C('落ち着いて立て直す', '疲労を抜き、形を確認する', 0.8, '呼吸を整えた。疲労が抜け、後半の形も確認できた', '時間切れで話しきれなかった', 'calm', 'none'),
+      C('戦術を切り替える', '成功すれば流れが変わる', 0.55, '新しい形が噛み合い、流れを引き寄せた！', '連携が乱れてしまった…', 'switch', 'minus')
+    ] };
+  }
+  /* late: 終盤 */
+  var behind = M.my <= M.op;
+  if (behind) {
+    var l1 = keyPlayer(['SO', 'FB'], 'kik', 'kick');
+    var l2 = keyPlayer(['WTB', 'CTB', 'FB'], 'spd', 'step');
+    var l3 = keyPlayer(['PR', 'HO', 'LO', 'FL', 'No8'], 'pow', 'maul');
+    return { kind: kind, key: l2, title: '勝負どころ：終盤、逆転を狙う！', choices: [
+      C('PGで確実に3点', 'キック精度が勝負', sceneProb(kick + 8, 'kick', l1), 'PGで詰め寄った！', 'PGがわずかに外れた…', 'pg', 'none'),
+      C('トライを取りにいく', 'スピードとパスが勝負', sceneProb(bkGo + skillCount(st, 'step') * 2 - 3, 'wide', l2), l2.name + ' が抜け出した！', 'あと一歩で止められた…', 'try', 'none'),
+      C('モールでじわじわ', 'FWのパワーが勝負', sceneProb(fwPow + wAdj, 'maul', l3), 'モールが進み、押し込んだ！', 'モールが止められ、時間だけが過ぎる', 'try', 'none')
+    ] };
+  }
+  var e1 = keyPlayer(['SO', 'FB'], 'kik', 'kick');
+  var e2 = keyPlayer(['FL', 'CTB', 'No8'], 'tak', 'tackle');
+  return { kind: kind, key: e2, title: '勝負どころ：終盤、リードを守れるか！', choices: [
+    C('キックで敵陣へ押し返す', 'キック精度が勝負', sceneProb(kick, 'kick', e1), '大きく蹴り出して敵陣で試合を進める', 'キックが甘く、カウンターを浴びた…', 'none', 'oppTry'),
+    C('ボールキープで時間を使う', 'スタミナが勝負', sceneProb(sta, 'def', e2), 'ボールを保持し続けて時間を消化した', 'プレッシャーでボールを失い、相手に持っていかれた…', 'none', 'oppTry'),
+    C('タックルで止め続ける', 'タックルが勝負', sceneProb(tak + skillCount(st, 'tackle') * 2, 'def', e2), 'タックルの雨で相手を前進させない', 'タックルがずれて突破された…', 'none', 'oppTry')
+  ] };
+}
+function chooseScene(idx) {
+  var sc = M.pending, c = sc.choices[idx];
+  M.scenes.att++;
+  var ok = Math.random() < c.p;
+  if (ok) M.scenes.ok++;
+  var fx = ok ? c.winFx : c.loseFx;
+  var txt = (ok ? '✅ ' : '❌ ') + c.n + ' → ' + (ok ? c.winTxt : c.loseTxt);
+  if (fx === 'try') txt += ' ' + tryScore(true);
+  else if (fx === 'pg') txt += ' ' + pgScore(true);
+  else if (fx === 'oppTry') txt += ' 相手の' + tryScore(false);
+  else if (fx === 'oppPg') txt += ' 相手の' + pgScore(false);
+  else if (fx === 'fire') { M.bonus += 5; starters().forEach(function (p) { gainTrust(p, 2); }); }
+  else if (fx === 'calm') { starters().forEach(function (p) { p.fatigue = Math.max(0, p.fatigue - 10); }); M.bonus += 2; }
+  else if (fx === 'switch') {
+    M.bonus += 6;
+    var others = TACTICS.filter(function (t) { return t.k !== G.tactic; });
+    G.tactic = pick(others).k;
+    txt += '（戦術を「' + TACTICS.filter(function (t) { return t.k === G.tactic; })[0].n + '」に変更）';
+  }
+  else if (fx === 'minus') { M.bonus -= 2; }
+  if (ok && sc.key) gainTrust(sc.key, 3);
+  M.log.push(txt);
+  M.pending = null; M.phase = 'play'; M.block++;
+  maybeSceneOrEnd();
+  render();
+}
+function computeFactors(won) {
+  var att = Math.max(1, M.scenes.att), rate = M.scenes.ok / att;
+  var abilityW, tacticW, condW, oppW;
+  if (!won) {
+    abilityW = clamp((M.power - M.tp0) * 3 + 22, 5, 80);
+    tacticW = clamp((1 - rate) * 48 + 6, 5, 80);
+    condW = clamp((M.fat0 - 25) * 0.8 + M.inj0 * 9 + 6, 5, 65);
+    oppW = 8 + M.oppIdx * 3 + (M.opp.skill ? 7 : 0);
+  } else {
+    abilityW = clamp((M.tp0 - M.power) * 3 + 22, 5, 80);
+    tacticW = clamp(rate * 48 + 6, 5, 80);
+    condW = clamp(48 - M.fat0 * 0.55 - M.inj0 * 6, 5, 65);
+    oppW = 6 + M.oppIdx * 2;
+  }
+  var tot = Math.max(1, abilityW + tacticW + condW + oppW);
+  function pct(w) { return Math.round(w / tot * 100); }
+  var v1 = pct(abilityW), v2 = pct(tacticW), v3 = pct(condW);
+  return [
+    { n: '能力差', v: v1 },
+    { n: '采配（勝負どころ ' + M.scenes.ok + '/' + att + ' 成功）', v: v2 },
+    { n: '調子・疲労', v: v3 },
+    { n: M.opp.skill ? '相手の特能（' + M.opp.skill.n + '）' : '試合の流れ', v: 100 - v1 - v2 - v3 }
+  ];
 }
 function finishMatch() {
-M.done = true; M.phase = 'done';
-var res;
-if (M.my > M.op) res = 'win';
-else if (M.my < M.op) res = 'lose';
-else res = Math.random() < 0.5? 'win': 'lose';
-M.result = res;
-M.log.push(res === 'win'? 'ノーサイド！ 桜丘高校の勝利！': 'ノーサイド。桜丘高校、敗れる…');
-if (M.my === M.op) M.log.push('（同点のため抽選で勝敗を決定）');
-if (res === 'win') {
-G.season.wins++;
-G.rep += M.oppIdx === 0? 2: (M.oppIdx === 3? 20: 6);
-growFromMatch();
-if (M.oppIdx === 3) { G.qualified = true; G.career.hana++;}
-if (M.oppIdx === 4) { G.career.hanaWins++; G.career.titles++; G.rep += 20;}
-} else G.season.losses++;
-G.players.forEach(function (p) { if (p.injured) p.injured = Math.max(0, p.injured - 1);});
-starters().forEach(function (p) { p.fatigue = Math.min(100, p.fatigue + 8);});
-save();
+  M.done = true; M.phase = 'done';
+  var res;
+  if (M.my > M.op) res = 'win';
+  else if (M.my < M.op) res = 'lose';
+  else res = Math.random() < 0.5 ? 'win' : 'lose';
+  M.result = res;
+  M.log.push(res === 'win' ? 'ノーサイド！ 桜丘高校の勝利！' : 'ノーサイド。桜丘高校、敗れる…');
+  if (M.my === M.op) M.log.push('（同点のため抽選で勝敗を決定）');
+  M.factors = computeFactors(res === 'win');
+  starters().forEach(function (p) { gainTrust(p, res === 'win' ? 2 : 1); });
+  if (res === 'win') {
+    G.season.wins++;
+    G.rep += M.oppIdx === 0 ? 2 : (M.oppIdx === 3 ? 20 : 6);
+    growFromMatch();
+    if (M.oppIdx === 3) { G.qualified = true; G.career.hana++; }
+    if (M.oppIdx === 4) { G.career.hanaWins++; G.career.titles++; G.rep += 20; }
+  } else {
+    G.season.losses++;
+    /* 格上への善戦ボーナス： 7点差以内で、相手が格上（または互角以上）なら報いる */
+    if (M.oppIdx >= 1 && (M.op - M.my) <= 7 && M.power >= M.tp0 - 2) {
+      M.gallant = true;
+      G.rep += 4;
+      growFromMatch(0.4);
+      M.log.push('🌟 格上に善戦！ 評判+4。選手たちも大きな経験を積んだ');
+    }
+  }
+  G.players.forEach(function (p) { if (p.injured) p.injured = Math.max(0, p.injured - 1); });
+  starters().forEach(function (p) { p.fatigue = Math.min(100, p.fatigue + 8); });
+  save();
 }
-function growFromMatch() {
-starters().forEach(function (p) {
-if (Math.random() < 0.6) {
-var s = pick(STATS).k;
-p.stats[s] = Math.min(99, p.stats[s] + 1);
-}
-});
+function growFromMatch(prob) {
+  var pr = (prob == null ? 0.6 : prob);
+  starters().forEach(function (p) {
+    if (Math.random() < pr) {
+      var s = pick(STATS).k;
+      p.stats[s] = Math.min(99, p.stats[s] + 1);
+    }
+  });
 }
 function afterMatchNext() {
-var won = M.result === 'win';
-var idx = M.oppIdx;
-M = null;
-if (idx === 0) { advanceMonth(); return;}
-if (idx === 4) { G.season.result = won? '花園で勝利！': '花園出場（1回戦敗退）'; seasonEnd(); return;}
-if (!won) {
-G.season.result = idx === 1? '予選1回戦敗退': (idx === 2? '予選準決勝敗退': '予選決勝敗退');
-seasonEnd(); return;
-}
-if (idx === 3) { G.season.result = '花園出場決定'; advanceMonth(); return;}
-advanceMonth();
+  var won = M.result === 'win';
+  var idx = M.oppIdx;
+  M = null;
+  if (idx === 0) { advanceMonth(); return; }
+  if (idx === 4) { G.season.result = won ? '花園で勝利！' : '花園出場（1回戦敗退）'; seasonEnd(); return; }
+  if (!won) {
+    G.season.result = idx === 1 ? '予選1回戦敗退' : (idx === 2 ? '予選準決勝敗退' : '予選決勝敗退');
+    seasonEnd(); return;
+  }
+  if (idx === 3) { G.season.result = '花園出場決定'; advanceMonth(); return; }
+  advanceMonth();
 }
 function advanceMonth() {
-G.monthIdx++;
-screen = 'inst'; save(); render();
+  G.monthIdx++;
+  screen = 'inst'; save(); render();
 }
 
 /* ---------------- 年度末と世代交代 ---------------- */
@@ -545,7 +778,7 @@ screen = 'inst'; save(); render();
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.2.3'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.3'])]),
       banner('home'),
       h('div', { class: 'card center' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
@@ -571,7 +804,7 @@ screen = 'inst'; save(); render();
     }));
     s2.value = G.inst.unit; s2.onchange = function () { G.inst.unit = s2.value; save(); };
     var s3 = h('select', null, G.players.map(function (p) {
-      return h('option', { value: String(p.id) }, [POSITIONS[p.posIdx].no + ' ' + p.name + '（' + p.year + '年・' + POSITIONS[p.posIdx].p + '・' + p.trait.n + '）']);
+      return h('option', { value: String(p.id) }, [POSITIONS[p.posIdx].no + ' ' + p.name + '（' + p.year + '年・' + POSITIONS[p.posIdx].p + '・' + p.person + '・' + p.trait.n + '）']);
     }));
     if (!G.players.some(function (p) { return p.id === G.inst.focus; })) G.inst.focus = G.players[0].id;
     s3.value = String(G.inst.focus); s3.onchange = function () { G.inst.focus = +s3.value; save(); };
@@ -617,26 +850,53 @@ screen = 'inst'; save(); render();
     var lg = document.querySelector('.log'); if (lg) lg.scrollTop = lg.scrollHeight;
   }
   function squadScreen() {
+    if (!G.players.some(function (p) { return p.id === selPlayerId; })) selPlayerId = G.players[0] ? G.players[0].id : null;
     var table = h('table', { class: 'squad' });
-    table.appendChild(h('tr', null, ['No', '名前', '年', 'Pos'].concat(STATS.map(function (s) { return s.n.slice(0, 2); })).concat(['疲労']).map(function (x) { return h('th', null, [x]); })));
+    table.appendChild(h('tr', null, ['No', '名前', '年', 'Pos', '身長', '体重'].concat(STATS.map(function (s) { return s.n.slice(0, 2); })).concat(['疲労', '信頼']).map(function (x) { return h('th', null, [x]); })));
     G.players.forEach(function (p) {
-      var cells = [String(POSITIONS[p.posIdx].no), p.name + (p.injured ? ' 🚑' : ''), String(p.year), POSITIONS[p.posIdx].p].map(function (x, i) {
+      var cells = [String(POSITIONS[p.posIdx].no), p.name + (p.injured ? ' 🚑' : ''), String(p.year), POSITIONS[p.posIdx].p, String(p.h), String(p.w)].map(function (x, i) {
         return h('td', i === 1 ? { class: 'name' } : null, [x]);
       });
       STATS.forEach(function (s) { cells.push(h('td', null, [String(p.stats[s.k])])); });
       cells.push(h('td', null, [String(p.fatigue)]));
-      table.appendChild(h('tr', null, cells));
+      cells.push(h('td', null, [String(p.trust)]));
+      var tr = h('tr', { class: 'prow' + (p.id === selPlayerId ? ' sel' : ''), onclick: (function (pid) { return function () { selPlayerId = pid; render(); }; })(p.id) }, cells);
+      table.appendChild(tr);
     });
-    wrap([hud(),
-      h('div', { class: 'card grow scroll' }, [table]),
-      h('button', { class: 'btn', onclick: function () { screen = G.board ? 'board' : 'inst'; render(); } }, ['戻る'])
-    ]);
+    var sel = G.players.filter(function (p) { return p.id === selPlayerId; })[0];
+    var detail = h('div', { class: 'card grow scroll' });
+    if (sel) {
+      var per = personOf(sel);
+      detail.appendChild(h('div', { class: 'sec' }, [POSITIONS[sel.posIdx].no + ' ' + sel.name + (sel.injured ? ' 🚑負傷中' : '')]));
+      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['学年／ポジション']), h('span', null, [sel.year + '年・' + POSITIONS[sel.posIdx].p + '（' + POSITIONS[sel.posIdx].g + '）'])]));
+      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['体格']), h('span', null, [sel.h + 'cm ／ ' + sel.w + 'kg'])]));
+      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['性格']), h('span', null, [sel.person])]));
+      detail.appendChild(h('div', { class: 'sub' }, [per.d]));
+      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['個性']), h('span', null, [sel.trait.n])]));
+      var sk = h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['特能']), h('span', { class: 'tags' }, [])]);
+      var names = skillNames(sel);
+      if (!names.length) sk.children[1].appendChild(document.createTextNode('なし'));
+      names.forEach(function (n) { sk.children[1].appendChild(h('span', { class: 'tag' }, [n])); });
+      detail.appendChild(sk);
+      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['信頼度']), h('span', null, [String(sel.trust) + '（采配の成功率に影響）'])]));
+      detail.appendChild(h('div', { class: 'meter' }, [h('div', { style: 'width:' + sel.trust + '%' }, [])]));
+      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['疲労']), h('span', null, [String(sel.fatigue)])]));
+      STATS.forEach(function (s) {
+        detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, [s.n]), h('span', null, [String(sel.stats[s.k])])]));
+      });
+      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['総合']), h('span', { class: 'big' }, [String(Math.round(overall(sel)))])]));
+    }
+    wrap([hud(), h('div', { class: 'lay2' }, [
+      h('div', { class: 'card grow scroll' }, [h('div', { class: 'sec' }, ['選手一覧（行タップで詳細）']), table]),
+      col([detail, h('button', { class: 'btn', onclick: function () { screen = G.board ? 'board' : 'inst'; render(); } }, ['戻る'])])
+    ])]);
   }
   function preMatchScreen() {
     var mo = MONTHS[G.monthIdx], opp = OPPONENTS[mo.match];
     var vs = h('div', { class: 'card center' }, [
       h('div', { class: 'big' }, ['vs ' + opp.name]),
       h('div', { class: 'sub' }, [opp.note]),
+      opp.skill ? h('div', { class: 'sub' }, ['相手の特能：' + opp.skill.n]) : h('span', null, []),
       h('div', { class: 'rowline' }, [h('span', null, ['桜丘の総合力']), h('span', { class: 'big' }, [String(teamPower())])]),
       h('div', { class: 'rowline' }, [h('span', null, ['相手の総合力']), h('span', { class: 'big' }, [String(oppPower(mo.match))])])
     ]);
@@ -659,12 +919,13 @@ screen = 'inst'; save(); render();
       h('div', { class: 'team' }, [h('div', null, [M.opp.name]), h('div', { class: 'pts' }, [String(M.op)])])
     ]);
     var ctrl = h('div', { class: 'card grow scroll' });
-    if (M.phase === 'highlight' && M.pending) {
+    if (M.phase === 'scene' && M.pending) {
       ctrl.appendChild(h('div', { class: 'sec' }, [M.pending.title]));
+      if (M.pending.key) ctrl.appendChild(h('div', { class: 'sub' }, ['キーマン：' + M.pending.key.name + '（' + POSITIONS[M.pending.key.posIdx].p + (skillNames(M.pending.key).length ? '・' + skillNames(M.pending.key).join('／') : '') + '）']));
       var box = h('div', { class: 'choices' });
       M.pending.choices.forEach(function (c, i) {
-        box.appendChild(h('button', { class: 'btn choice', onclick: function () { chooseHighlight(i); } }, [
-          h('span', { class: 't' }, [c.n]), h('span', { class: 'd' }, [' — ' + c.d + '（成功率の目安 ' + Math.round(c.p * 100) + '%）'])
+        box.appendChild(h('button', { class: 'btn choice', onclick: function () { chooseScene(i); } }, [
+          h('span', { class: 't' }, [c.n]), h('span', { class: 'd' }, [' — ' + c.d + ' ']), h('span', { class: 'd nowrap' }, ['（成功率の目安 ' + Math.round(c.p * 100) + '%）'])
         ]));
       });
       ctrl.appendChild(box);
@@ -673,7 +934,18 @@ screen = 'inst'; save(); render();
       ctrl.appendChild(h('p', { class: 'sub' }, ['左の実況を見ながら、試合を進めよう。勝負どころでは采配が求められる']));
       ctrl.appendChild(h('button', { class: 'btn primary', onclick: function () { playBlock(); } }, ['試合を進める']));
     } else {
-      ctrl.appendChild(h('div', { class: 'sec' }, [M.result === 'win' ? '勝利！' : '試合終了']));
+      ctrl.appendChild(h('div', { class: 'sec' }, [M.result === 'win' ? '勝利！ 勝因の内訳' : '試合終了：敗因の内訳']));
+      if (M.gallant) ctrl.appendChild(h('p', null, ['🌟 格上に善戦！ 評判+4・経験ボーナスが入った']));
+      if (M.factors) {
+        M.factors.forEach(function (f) {
+          ctrl.appendChild(h('div', { class: 'frow' }, [
+            h('span', { class: 'flab' }, [f.n]),
+            h('span', { class: 'meter fmeter' }, [h('div', { style: 'width:' + f.v + '%' }, [])]),
+            h('span', { class: 'fval' }, [f.v + '%'])
+          ]));
+        });
+        ctrl.appendChild(h('p', { class: 'sub' }, [M.result === 'win' ? '勝ち切れた要因の目安。次もこの形を伸ばそう。' : '敗因の目安。練習指示と采配で一番大きい要素を潰していこう。']));
+      }
       ctrl.appendChild(h('button', { class: 'btn primary', onclick: function () { afterMatchNext(); } }, [M.result === 'win' ? 'やった！次へ' : '次へ']));
     }
     var log = h('div', { class: 'log grow' });
@@ -720,6 +992,7 @@ screen = 'inst'; save(); render();
 
   /* ---------------- 起動 ---------------- */
   if (!loadSaved()) G = null;
+  if (G) { sanitize(); save(); } /* マイグレーション結果を即永続化 */
   if (G && G.board) screen = 'board';
   else if (G && G.summary) screen = 'summary';
   else if (G) screen = 'inst';
