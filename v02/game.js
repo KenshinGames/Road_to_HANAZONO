@@ -490,13 +490,13 @@ screen = 'inst'; save(); render();
       + '<rect y="112" width="560" height="38" fill="#5f4048"/>'
       + postsSVG(280, 140, 1.25, '#402b33') + ballSVG(150, 138, 0.9) + '</svg>';
   }
-  function banner(kind) {
-    var d = h('div', { class: 'banner' });
-    d.innerHTML = sceneSVG(kind);
+  function banner(kind, cls) {
+    var d = h('div', { class: 'banner' + (cls ? ' ' + cls : '') });
+    d.innerHTML = sceneSVG(kind).replace('<svg ', '<svg preserveAspectRatio="xMidYMid slice" ');
     return d;
   }
 
-  /* ---------------- 画面 ---------------- */
+  /* ---------------- 画面（固定レイアウト） ---------------- */
   function h(tag, attrs, children) {
     var el = document.createElement(tag);
     if (attrs) Object.keys(attrs).forEach(function (k) {
@@ -531,64 +531,63 @@ screen = 'inst'; save(); render();
       h('span', { class: 'item' }, ['部の格 ', h('b', null, [gradeOf().n])]),
       h('span', { class: 'item' }, ['総合力 ', h('b', null, [String(teamPower())])]),
       h('span', { class: 'item' }, ['評判 ', h('b', null, [String(G.rep)])]),
+      h('span', { class: 'sp' }, []),
       hudBtn('選手一覧', 'squad'),
       hudBtn('記録・OB', 'records')
     ]);
   }
   function wrap(children) {
-    var w = h('div', { class: 'stack' });
-    var note = h('div', { class: 'portrait-note' }, ['📱 横画面にすると見やすいよ']);
-    w.appendChild(note);
+    var w = h('div', { class: 'stack shell' });
+    w.appendChild(h('div', { class: 'portrait-note' }, ['📱 横画面にすると1画面に収まるよ']));
     children.forEach(function (c) { w.appendChild(c); });
     mount(w);
   }
+  function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
-    var w = h('div', { class: 'stack' });
-    w.appendChild(h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.2'])]));
-    w.appendChild(banner('home'));
-    w.appendChild(h('div', { class: 'card center' }, [
-      h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
-      h('button', { class: 'btn primary', onclick: function () { newGame(); screen = 'inst'; render(); } }, ['監督に就任する'])
-    ]));
-    mount(w);
+    var inner = h('div', { class: 'titlewrap' }, [
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.2.1'])]),
+      banner('home'),
+      h('div', { class: 'card center' }, [
+        h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
+        h('button', { class: 'btn primary', onclick: function () { newGame(); screen = 'inst'; render(); } }, ['監督に就任する'])
+      ])
+    ]);
+    mount(h('div', { class: 'stack shell' }, [inner]));
   }
   function instScreen() {
     var mo = MONTHS[G.monthIdx];
-    var nodes = [hud(), banner('train')];
+    var left = [banner('train', 'grow')];
     if (G.monthLog && G.monthLog.length) {
-      var lg = h('div', { class: 'card' }, [h('div', { class: 'sub' }, ['先月の出来事'])].concat(G.monthLog.map(function (l) { return h('div', null, [l]); })));
-      nodes.push(lg);
+      left.push(h('div', { class: 'card grow scroll' }, [h('div', { class: 'sub' }, ['先月の出来事'])].concat(G.monthLog.map(function (l) { return h('div', null, [l]); }))));
     }
-    var card = h('div', { class: 'card' });
+    var card = h('div', { class: 'card grow' });
     card.appendChild(h('div', { class: 'sec' }, [mo.m + 'の練習指示' + (mo.camp ? '（合宿月：実り1.5倍）' : '') + (mo.match != null ? ' ／ 月末に試合あり' : '')]));
-    var l1 = h('label', { class: 'lab' }, ['全体方針（チーム全員の底上げ）']);
+    var form = h('div', { class: 'form2' });
+    function field(label, sel) { var d = h('div', null, [h('label', { class: 'lab' }, [label]), sel]); return d; }
     var s1 = h('select', null, STATS.map(function (s) { return h('option', { value: s.k }, [s.n]); }));
     s1.value = G.inst.team; s1.onchange = function () { G.inst.team = s1.value; save(); };
-    var l2 = h('label', { class: 'lab' }, ['ユニット練習']);
     var s2 = h('select', null, Object.keys(UNIT_STAT).map(function (u) {
       return h('option', { value: u }, [UNIT_NAME[u] + ' → ' + STATS.filter(function (s) { return s.k === UNIT_STAT[u]; })[0].n + 'アップ']);
     }));
     s2.value = G.inst.unit; s2.onchange = function () { G.inst.unit = s2.value; save(); };
-    var l3 = h('label', { class: 'lab' }, ['重点育成する選手']);
     var s3 = h('select', null, G.players.map(function (p) {
       return h('option', { value: String(p.id) }, [POSITIONS[p.posIdx].no + ' ' + p.name + '（' + p.year + '年・' + POSITIONS[p.posIdx].p + '・' + p.trait.n + '）']);
     }));
     if (!G.players.some(function (p) { return p.id === G.inst.focus; })) G.inst.focus = G.players[0].id;
     s3.value = String(G.inst.focus); s3.onchange = function () { G.inst.focus = +s3.value; save(); };
-    var l4 = h('label', { class: 'lab' }, ['練習強度（成長と疲労・ケガのバランス）']);
     var s4 = h('select', null, LEVELS.map(function (lv, i) { return h('option', { value: String(i) }, [lv.n + '（成長×' + lv.mul + '）']); }));
     s4.value = String(G.inst.level); s4.onchange = function () { G.inst.level = +s4.value; save(); };
-    card.appendChild(l1); card.appendChild(s1); card.appendChild(l2); card.appendChild(s2);
-    card.appendChild(l3); card.appendChild(s3); card.appendChild(l4); card.appendChild(s4);
-    nodes.push(card);
-    nodes.push(h('button', { class: 'btn primary', onclick: function () { startMonth(); } }, ['指示を確定して月を始める']));
-    wrap(nodes);
+    form.appendChild(field('全体方針（チーム全員の底上げ）', s1));
+    form.appendChild(field('ユニット練習', s2));
+    form.appendChild(field('重点育成する選手', s3));
+    form.appendChild(field('練習強度（成長と疲労・ケガのバランス）', s4));
+    card.appendChild(form);
+    var right = [card, h('button', { class: 'btn primary', onclick: function () { startMonth(); } }, ['指示を確定して月を始める'])];
+    wrap([hud(), h('div', { class: 'lay2' }, [col(left), col(right)])]);
   }
   function boardScreen() {
     var b = G.board;
-    var nodes = [hud()];
-    if (!b) { nodes.push(h('div', { class: 'card' }, ['盤面がありません'])); wrap(nodes); return; }
-    var left = h('div', { class: 'stack' });
+    if (!b) { wrap([hud(), h('div', { class: 'card' }, ['盤面がありません'])]); return; }
     var boardEl = h('div', { class: 'board' });
     b.cells.forEach(function (c, i) {
       var meta = CELL_META[c.t];
@@ -596,11 +595,9 @@ screen = 'inst'; save(); render();
         h('span', { class: 'ic' }, [meta.ic]), h('span', null, [meta.n])
       ]));
     });
-    left.appendChild(h('div', { class: 'card' }, [h('div', { class: 'sec' }, [MONTHS[G.monthIdx].m + 'の盤面（止まったマスで日々が決まる）']), boardEl]));
-    var log = h('div', { class: 'log' });
-    (b.log.length ? b.log : ['月が始まった。進行カードを選ぼう']).forEach(function (ln) { log.appendChild(h('div', null, [ln])); });
-    left.appendChild(log);
-    var right = h('div', { class: 'stack' });
+    var boardCard = h('div', { class: 'card grow', style: 'display:flex;flex-direction:column' }, [
+      h('div', { class: 'sec' }, [MONTHS[G.monthIdx].m + 'の盤面（止まったマスで日々が決まる）']), boardEl
+    ]);
     var handCard = h('div', { class: 'card' });
     handCard.appendChild(h('div', { class: 'sec' }, ['進行カード（進むマス数）']));
     var hand = h('div', { class: 'hand' });
@@ -610,21 +607,16 @@ screen = 'inst'; save(); render();
       ]));
     });
     handCard.appendChild(hand);
-    right.appendChild(handCard);
     var info = h('div', { class: 'card' });
     info.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['チーム平均疲労']), h('span', null, [String(avgFatigue())])]));
-    var meter = h('div', { class: 'meter' }, [h('div', { style: 'width:' + avgFatigue() + '%' }, [])]);
-    info.appendChild(meter);
-    info.appendChild(h('div', { class: 'sub' }, ['疲労が高いと練習効率が落ち、ケガも増える。回復・休みマスで調整しよう']));
+    info.appendChild(h('div', { class: 'meter' }, [h('div', { style: 'width:' + avgFatigue() + '%' }, [])]));
     info.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['怪我人']), h('span', null, [String(G.players.filter(function (p) { return p.injured; }).length) + '人'])]));
-    right.appendChild(info);
-    var cols = h('div', { class: 'cols' }, [left, right]);
-    nodes.push(cols);
-    wrap(nodes);
+    var log = h('div', { class: 'log grow' });
+    (b.log.length ? b.log : ['月が始まった。進行カードを選ぼう']).forEach(function (ln) { log.appendChild(h('div', null, [ln])); });
+    wrap([hud(), h('div', { class: 'lay2' }, [col([boardCard]), col([handCard, info, log])])]);
     var lg = document.querySelector('.log'); if (lg) lg.scrollTop = lg.scrollHeight;
   }
   function squadScreen() {
-    var nodes = [hud(), banner('room')];
     var table = h('table', { class: 'squad' });
     table.appendChild(h('tr', null, ['No', '名前', '年', 'Pos'].concat(STATS.map(function (s) { return s.n.slice(0, 2); })).concat(['疲労']).map(function (x) { return h('th', null, [x]); })));
     G.players.forEach(function (p) {
@@ -635,96 +627,95 @@ screen = 'inst'; save(); render();
       cells.push(h('td', null, [String(p.fatigue)]));
       table.appendChild(h('tr', null, cells));
     });
-    nodes.push(h('div', { class: 'card' }, [table]));
-    nodes.push(h('div', { class: 'sub' }, ['特性：' + G.players.slice(0, 3).map(function (p) { return p.name + '=' + p.trait.n; }).join('、') + ' など（全員に1つ）']));
-    nodes.push(h('button', { class: 'btn', onclick: function () { screen = G.board ? 'board' : 'inst'; render(); } }, ['戻る']));
-    wrap(nodes);
+    wrap([hud(),
+      h('div', { class: 'card grow scroll' }, [table]),
+      h('button', { class: 'btn', onclick: function () { screen = G.board ? 'board' : 'inst'; render(); } }, ['戻る'])
+    ]);
   }
   function preMatchScreen() {
     var mo = MONTHS[G.monthIdx], opp = OPPONENTS[mo.match];
-    var nodes = [hud(), banner('match')];
-    nodes.push(h('div', { class: 'card center' }, [
+    var vs = h('div', { class: 'card center' }, [
       h('div', { class: 'big' }, ['vs ' + opp.name]),
       h('div', { class: 'sub' }, [opp.note]),
       h('div', { class: 'rowline' }, [h('span', null, ['桜丘の総合力']), h('span', { class: 'big' }, [String(teamPower())])]),
       h('div', { class: 'rowline' }, [h('span', null, ['相手の総合力']), h('span', { class: 'big' }, [String(oppPower(mo.match))])])
-    ]));
-    var box = h('div', { class: 'card choices' });
+    ]);
+    var box = h('div', { class: 'card choices grow scroll' });
     box.appendChild(h('div', { class: 'sec' }, ['今日の戦術']));
     TACTICS.forEach(function (tc) {
       box.appendChild(h('button', { class: 'btn choice' + (G.tactic === tc.k ? ' primary' : ''), onclick: function () { G.tactic = tc.k; save(); render(); } }, [
         h('span', { class: 't' }, [tc.n]), h('span', { class: 'd' }, [' — ' + tc.d])
       ]));
     });
-    nodes.push(box);
-    nodes.push(h('button', { class: 'btn primary', onclick: function () { startMatch(mo.match); } }, ['キックオフ']));
-    wrap(nodes);
+    wrap([hud(), h('div', { class: 'lay2' }, [
+      col([banner('match', 'grow'), vs]),
+      col([box, h('button', { class: 'btn primary', onclick: function () { startMatch(mo.match); } }, ['キックオフ'])])
+    ])]);
   }
   function matchScreen() {
-    var nodes = [banner('match')];
     var sb = h('div', { class: 'card score' }, [
       h('div', { class: 'team' }, [h('div', null, ['桜丘高校']), h('div', { class: 'pts' }, [String(M.my)])]),
       h('div', { class: 'vs' }, [M.done ? '試合終了' : Math.min(80, M.block * 8) + '分']),
       h('div', { class: 'team' }, [h('div', null, [M.opp.name]), h('div', { class: 'pts' }, [String(M.op)])])
     ]);
-    nodes.push(sb);
-    var log = h('div', { class: 'log' });
-    M.log.forEach(function (ln) {
-      log.appendChild(h('div', ln.indexOf('勝負どころ') >= 0 ? { class: 'hl' } : (ln.indexOf('トライ') >= 0 || ln.indexOf('勝利') >= 0 ? { class: 'score-line' } : null), [ln]));
-    });
-    nodes.push(log);
+    var ctrl = h('div', { class: 'card grow scroll' });
     if (M.phase === 'highlight' && M.pending) {
-      nodes.push(h('div', { class: 'sec' }, [M.pending.title]));
+      ctrl.appendChild(h('div', { class: 'sec' }, [M.pending.title]));
       var box = h('div', { class: 'choices' });
       M.pending.choices.forEach(function (c, i) {
         box.appendChild(h('button', { class: 'btn choice', onclick: function () { chooseHighlight(i); } }, [
           h('span', { class: 't' }, [c.n]), h('span', { class: 'd' }, [' — ' + c.d + '（成功率の目安 ' + Math.round(c.p * 100) + '%）'])
         ]));
       });
-      nodes.push(box);
+      ctrl.appendChild(box);
     } else if (!M.done) {
-      nodes.push(h('button', { class: 'btn primary', onclick: function () { playBlock(); } }, ['試合を進める']));
+      ctrl.appendChild(h('div', { class: 'sec' }, ['実況']));
+      ctrl.appendChild(h('p', { class: 'sub' }, ['右の実況を見ながら、試合を進めよう。勝負どころでは采配が求められる']));
+      ctrl.appendChild(h('button', { class: 'btn primary', onclick: function () { playBlock(); } }, ['試合を進める']));
     } else {
-      nodes.push(h('button', { class: 'btn primary', onclick: function () { afterMatchNext(); } }, [M.result === 'win' ? 'やった！次へ' : '次へ']));
+      ctrl.appendChild(h('div', { class: 'sec' }, [M.result === 'win' ? '勝利！' : '試合終了']));
+      ctrl.appendChild(h('button', { class: 'btn primary', onclick: function () { afterMatchNext(); } }, [M.result === 'win' ? 'やった！次へ' : '次へ']));
     }
-    wrap(nodes);
+    var log = h('div', { class: 'log grow' });
+    M.log.forEach(function (ln) {
+      log.appendChild(h('div', ln.indexOf('勝負どころ') >= 0 ? { class: 'hl' } : (ln.indexOf('トライ') >= 0 || ln.indexOf('勝利') >= 0 ? { class: 'score-line' } : null), [ln]));
+    });
+    wrap([sb, h('div', { class: 'lay2' }, [col([ctrl]), log])]);
     var lg = document.querySelector('.log'); if (lg) lg.scrollTop = lg.scrollHeight;
   }
   function summaryScreen() {
     var s = G.summary;
-    var nodes = [hud(), banner(G.qualified ? 'hanazono' : 'sunset')];
-    nodes.push(h('div', { class: 'card center' }, [
+    var result = h('div', { class: 'card center' }, [
       h('div', { class: 'big' }, [G.year + '年目のシーズン終了']),
       h('p', null, [s.result + '（' + s.wins + '勝 ' + s.losses + '敗）']),
       s.firstHana ? h('p', null, ['🎉 創部以来、初の花園出場！']) : h('span', null, []),
       h('div', { class: 'rowline' }, [h('span', null, ['部の格']), h('span', { class: 'big' }, [s.grade])]),
       h('div', { class: 'rowline' }, [h('span', null, ['通算 花園出場']), h('span', null, [G.career.hana + '回'])])
-    ]));
-    var g = h('div', { class: 'card' });
+    ]);
+    var g = h('div', { class: 'card grow scroll' });
     g.appendChild(h('div', { class: 'sec' }, ['卒業する3年生（' + s.grads.length + '人）']));
     s.grads.forEach(function (x) { g.appendChild(h('div', { class: 'rowline' }, [h('span', null, [x.name]), h('span', { class: 'sub' }, [x.pos + '・総合 ' + x.avg])])); });
     g.appendChild(h('div', { class: 'sub' }, ['彼らはOBとして記録に残る。お疲れさま']));
-    nodes.push(g);
-    nodes.push(h('button', { class: 'btn primary', onclick: function () { nextYear(); } }, ['新年度へ（新入生が入部する）']));
-    wrap(nodes);
+    wrap([hud(), h('div', { class: 'lay2' }, [
+      col([banner(G.qualified ? 'hanazono' : 'sunset', 'grow'), result]),
+      col([g, h('button', { class: 'btn primary', onclick: function () { nextYear(); } }, ['新年度へ（新入生が入部する）'])])
+    ])]);
   }
   function recordsScreen() {
-    var nodes = [hud()];
     var c = h('div', { class: 'card' });
     c.appendChild(h('div', { class: 'sec' }, ['監督の記録']));
     c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['在任']), h('span', null, [G.year + '年目'])]));
     c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['花園出場']), h('span', null, [G.career.hana + '回'])]));
     c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['花園での勝利']), h('span', null, [G.career.hanaWins + '勝'])]));
-    nodes.push(c);
-    var o = h('div', { class: 'card' });
+    var o = h('div', { class: 'card scroll', style: 'height:100%' });
     o.appendChild(h('div', { class: 'sec' }, ['OB名鑑（' + G.obs.length + '人）']));
     if (!G.obs.length) o.appendChild(h('div', { class: 'sub' }, ['まだ卒業生がいない']));
     G.obs.slice().reverse().forEach(function (x) {
       o.appendChild(h('div', { class: 'rowline' }, [h('span', null, [x.name]), h('span', { class: 'sub' }, [x.pos + '・' + x.year + '年卒・総合 ' + x.avg])]));
     });
-    nodes.push(o);
-    nodes.push(h('button', { class: 'btn', onclick: function () { screen = G.board ? 'board' : 'inst'; render(); } }, ['戻る']));
-    wrap(nodes);
+    wrap([hud(), h('div', { class: 'lay2' }, [col([c]), o]),
+      h('button', { class: 'btn', onclick: function () { screen = G.board ? 'board' : 'inst'; render(); } }, ['戻る'])
+    ]);
   }
 
   /* ---------------- 起動 ---------------- */
