@@ -1,7 +1,8 @@
-/* Road to HANAZONO v0.5 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.6 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
  * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示
  * v0.4: 新入生3層の完成(スカウト＋特別枠) + OB連携
- * v0.5: 立ち絵表現(パーツ組み合わせ式の自動生成) + 試合カットイン + 会話劇 + 季節感 */
+ * v0.5: 立ち絵表現(パーツ組み合わせ式の自動生成) + 試合カットイン + 会話劇 + 季節感
+ * v0.6: 花園トーナメント化(初戦→決勝) + 相手校の個性(戦術傾向・エース) + スカウティング + 時短スキップ + 個人スタッツ */
 (function () {
   'use strict';
   var STORE_KEY = 'hanazono.v02';
@@ -66,20 +67,35 @@
   ];
   var UNIT_STAT = { FW: 'pow', BK: 'pas', SP: 'kik' };
   var UNIT_NAME = { FW: 'FW（フィジカル）', BK: 'BK（スキル）', SP: 'セットピース' };
+  /* 相手校: 戦術傾向(style)とエース(ace)で個性を持たせる。ace.skill は SKILLS の key */
+  var OPP_STYLES = {
+    fw: { n: 'FW主体', d: 'スクラムとモールで押し込む重戦車スタイル' },
+    wide: { n: '展開ラグビー', d: 'バックスに大きく展開して走り勝つ' },
+    kick: { n: 'キック多用', d: 'キックで敵陣に入り、ペナルティを誘う' },
+    def: { n: '堅守', d: '低いタックルで粘り強く守り、カウンターを狙う' }
+  };
   var OPPONENTS = [
-    { name: '青葉高校', power: 38, note: '練習試合。力試し', skill: null },
-    { name: '県立西高校', power: 44, note: '花園予選 1回戦', skill: { n: '堅いディフェンス', key: 'def' } },
-    { name: '県立工業高校', power: 50, note: '花園予選 準決勝。FWの圧力が強い', skill: { n: 'モールの核がいるFW陣', key: 'maul' } },
-    { name: '帝都学園', power: 56, note: '花園予選 決勝。県内王者の強豪校', skill: { n: '大舞台に強いエース', key: 'big' } },
-    { name: '東都第一高校', power: 62, note: '花園 1回戦。全国レベルの強豪', skill: { n: 'ロングキッカーの司令塔', key: 'kick' } }
+    { name: '青葉高校', power: 38, note: '練習試合。力試し', skill: null,
+      style: 'wide', ace: { name: '風間 駿', pos: 'WTB', skill: 'step' } },
+    { name: '県立西高校', power: 44, note: '花園予選 1回戦', skill: { n: '堅いディフェンス', key: 'def' },
+      style: 'def', ace: { name: '岩崎 剛', pos: 'CTB', skill: 'tackle' } },
+    { name: '県立工業高校', power: 50, note: '花園予選 準決勝。FWの圧力が強い', skill: { n: 'モールの核がいるFW陣', key: 'maul' },
+      style: 'fw', ace: { name: '大熊 鉄平', pos: 'No8', skill: 'maul' } },
+    { name: '帝都学園', power: 56, note: '花園予選 決勝。県内王者の強豪校', skill: { n: '大舞台に強いエース', key: 'big' },
+      style: 'kick', ace: { name: '白鳥 圭', pos: 'SO', skill: 'big' } },
+    { name: '東都第一高校', power: 62, note: '花園 初戦。全国レベルの強豪', skill: { n: 'ロングキッカーの司令塔', key: 'kick' },
+      style: 'wide', ace: { name: '東雲 悠真', pos: 'SO', skill: 'kick' } },
+    { name: '北辰学園', power: 68, note: '花園 決勝。全国屈指のタレント軍団', skill: { n: '鉄壁のラインアウト', key: 'lineout' },
+      style: 'fw', ace: { name: '北原 蒼汰', pos: 'LO', skill: 'lineout' } }
   ];
   /* 試合の格ごとの停止点プラン（場面連動）。halftime は block5=40分 に来る並び */
   var STOP_PLANS = [
     ['setpiece', 'goal'],                                   // 練習試合: 2回
     ['setpiece', 'penalty', 'goal'],                        // 予選1回戦: 3回
     ['setpiece', 'goal', 'penalty', 'late'],                // 準決勝: 4回
-    ['setpiece', 'goal', 'halftime', 'penalty', 'late'],    // 決勝: 5回
-    ['setpiece', 'goal', 'halftime', 'penalty', 'late']     // 花園: 5回
+    ['setpiece', 'goal', 'halftime', 'penalty', 'late'],    // 予選決勝: 5回
+    ['setpiece', 'goal', 'halftime', 'penalty', 'late'],    // 花園初戦: 5回
+    ['setpiece', 'goal', 'halftime', 'penalty', 'late']     // 花園決勝: 5回
   ];
   var GRADES = [
     { n: '弱小', min: 0, fresh: 34, count: 6 }, { n: 'そこそこ', min: 40, fresh: 37, count: 7 },
@@ -90,7 +106,8 @@
     { m: '4月', cells: 12 }, { m: '5月', cells: 12 }, { m: '6月', cells: 12, match: 0 },
     { m: '7月', cells: 12 }, { m: '8月', cells: 12, camp: true }, { m: '9月', cells: 12 },
     { m: '10月', cells: 12, match: 1 }, { m: '11月', cells: 12, match: 2 }, { m: '12月', cells: 12, match: 3 },
-    { m: '1月', cells: 8, match: 4, needWin: true }
+    { m: '1月', cells: 8, match: 4, needWin: true },
+    { m: '1月・花園決勝', cells: 8, match: 5, needWin: true }
   ];
   var CELL_META = {
     pS: { n: '練習', ic: '💪', cls: 'c-prac' }, pB: { n: '特訓', ic: '🔥', cls: 'c-big' },
@@ -116,6 +133,7 @@
     namePool[n] = 1; return n;
   }
   function personOf(p) { return PERSONS.filter(function (x) { return x.n === p.person; })[0] || PERSONS[2]; }
+  function skillNameByKey(key) { var s = SKILLS.filter(function (x) { return x.key === key; })[0]; return s ? s.n : key; }
   function hasSkill(p, key) { return (p.skills || []).some(function (s) { return s === key; }); }
   function skillNames(p) { return (p.skills || []).map(function (k) { var s = SKILLS.filter(function (x) { return x.key === k; })[0]; return s ? s.n : k; }); }
   function rollSkills(pos) {
@@ -144,7 +162,8 @@
       trait: pick(TRAITS), injured: 0, fatigue: ri(5, 20),
       h: sz.h, w: sz.w, person: opts.person || pick(PERSONS).n,
       skills: opts.skills ? opts.skills.slice() : rollSkills(pos),
-      trust: typeof opts.trust === 'number' ? opts.trust : (year >= 2 ? ri(35, 60) : ri(22, 45))
+      trust: typeof opts.trust === 'number' ? opts.trust : (year >= 2 ? ri(35, 60) : ri(22, 45)),
+      srec: { tries: 0, plays: 0 }
     };
     STATS.forEach(function (s) {
       var v = base + ri(-6, 6) + (s.k === pos.main ? 8 : 0) + (s.k === 'sta' ? 3 : 0)
@@ -164,13 +183,17 @@
     if (!Array.isArray(p.skills)) p.skills = rollSkills(pos);
     if (typeof p.trust !== 'number' || !isFinite(p.trust)) p.trust = p.year >= 2 ? ri(35, 55) : ri(22, 40);
     p.trust = clamp(Math.round(p.trust), 0, 99);
+    /* v0.6: 個人スタッツ（今季のトライ・好プレー） */
+    if (!p.srec || typeof p.srec !== 'object') p.srec = { tries: 0, plays: 0 };
+    if (typeof p.srec.tries !== 'number' || !isFinite(p.srec.tries)) p.srec.tries = 0;
+    if (typeof p.srec.plays !== 'number' || !isFinite(p.srec.plays)) p.srec.plays = 0;
   }
   function overall(p) { return STATS.reduce(function (a, s) { return a + p.stats[s.k]; }, 0) / 6; }
   function newGame() {
     namePool = {};
     G = {
       year: 1, monthIdx: 0, players: [], obs: [], rep: 30, nextId: 1,
-      career: { hana: 0, hanaWins: 0, titles: 0 },
+      career: { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0 },
       season: { wins: 0, losses: 0, result: '予選敗退' },
       inst: { team: 'sta', unit: 'FW', focus: 1, level: 0 },
       board: null, qualified: false, tactic: 'fw', nextBonus: 0,
@@ -203,6 +226,12 @@
   function sanitize() {
     if (!G || !G.players) return;
     G.players.forEach(fixPlayer);
+    /* v0.6: 通算記録の欠けたフィールドを補完（花園優勝回数など） */
+    if (!G.career || typeof G.career !== 'object') G.career = { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0 };
+    ['hana', 'hanaWins', 'titles', 'hanaTitles'].forEach(function (k) {
+      if (typeof G.career[k] !== 'number' || !isFinite(G.career[k])) G.career[k] = 0;
+    });
+    if (typeof G.monthIdx !== 'number' || G.monthIdx < 0 || G.monthIdx >= MONTHS.length) G.monthIdx = 0;
     /* v0.4: スカウト候補・特別枠の選手オブジェクトも検証（壊れていたら勧誘情報ごと破棄） */
     if (G.recruit) {
       var okR = Array.isArray(G.recruit.cands) && G.recruit.cands.every(function (c) { return c && c.p && c.p.stats; });
@@ -394,6 +423,8 @@ function startMatch(oppIdx) {
   G.nextBonus = 0;
   M.log.push('キックオフ。相手は ' + opp.name + '（総合力 ' + M.power + '）。' + opp.note);
   if (opp.skill) M.log.push('相手の特能：' + opp.skill.n);
+  if (opp.style && OPP_STYLES[opp.style]) M.log.push('相手の戦術傾向：' + OPP_STYLES[opp.style].n + ' ― ' + OPP_STYLES[opp.style].d);
+  if (opp.ace) M.log.push('相手のエース：' + opp.ace.name + '（' + opp.ace.pos + '・' + skillNameByKey(opp.ace.skill) + '）。要注意だ');
   screen = 'match'; render();
 }
 function convProb() { return clamp(0.45 + (statAvg(starters(), 'kik') - 50) * 0.008, 0.2, 0.9); }
@@ -408,9 +439,20 @@ function pgScore(mine) { if (mine) M.my += 3; else M.op += 3; return 'ペナル�
 function scoreRoll(diff) { return Math.random() < clamp(0.32 + diff * 0.012, 0.05, 0.75); }
 function playBlock() {
   var diff = teamPower() - M.power + M.bonus;
-  if (scoreRoll(diff)) M.log.push('桜丘、攻め込む。' + tryScore(true));
-  else if (scoreRoll(-diff + 6)) M.log.push('相手の攻撃を止めきれない。' + tryScore(false));
-  else if (Math.random() < 0.3) M.log.push('桜丘のPG。' + pgScore(true));
+  if (scoreRoll(diff)) {
+    var scorer = pick(starters());
+    if (scorer) scorer.srec.tries++;
+    M.log.push('桜丘、攻め込む。' + (scorer ? scorer.name + ' が駆け抜けた！ ' : '') + tryScore(true));
+  }
+  else if (scoreRoll(-diff + 6)) {
+    var aceTxt = (M.opp.ace && Math.random() < 0.45) ? '相手のエース ' + M.opp.ace.name + '（' + M.opp.ace.pos + '）が突破。' : '相手の攻撃を止めきれない。';
+    M.log.push(aceTxt + tryScore(false));
+  }
+  else if (Math.random() < 0.3) {
+    var kicker = keyPlayer(['SO', 'FB'], 'kik', 'kick');
+    if (kicker) kicker.srec.plays++;
+    M.log.push('桜丘のPG。' + pgScore(true));
+  }
   else if (Math.random() < 0.22) M.log.push('相手のPG。' + pgScore(false));
   else M.log.push('中盤での攻防。スコアは動かない');
   M.block++;
@@ -423,8 +465,24 @@ function maybeSceneOrEnd() {
   if (idx >= 0) {
     M.phase = 'scene';
     M.pending = makeScene(M.plan[idx]);
+    applyOppAdj(M.pending);
     M.log.push('⚑ ' + M.pending.title + (M.pending.key ? '（キーマン：' + M.pending.key.name + '）' : ''));
   }
+}
+/* 相手の傾向とエースを場面の成功率に薄く反映する */
+function applyOppAdj(sc) {
+  var d = 0;
+  if (sc.kind === 'setpiece' && M.opp.style === 'fw') d -= 0.02;
+  if (sc.kind === 'goal' && sc.side === 'att') {
+    if (M.opp.style === 'def') d -= 0.03;
+    if (M.opp.ace && M.opp.ace.skill === 'tackle') d -= 0.02;
+  }
+  if (sc.kind === 'goal' && sc.side === 'def') {
+    if (M.opp.style === 'wide') d -= 0.03;
+    if (M.opp.ace && (M.opp.ace.skill === 'step' || M.opp.ace.skill === 'maul')) d -= 0.02;
+  }
+  if (sc.kind === 'setpiece' && M.opp.ace && M.opp.ace.skill === 'lineout') d -= 0.02;
+  if (d) sc.choices.forEach(function (c) { c.p = clamp(c.p + d, 0.05, 0.95); });
 }
 /* 場面の成功率： 能力値に体格・特能・信頼度・疲労・戦術・大舞台補正を重ねる */
 function sceneProb(statVal, tacKey, keyPlayer) {
@@ -432,6 +490,9 @@ function sceneProb(statVal, tacKey, keyPlayer) {
   var adj = (avgTrust(st) - 50) * 0.0015 + M.bonus * 0.006 - Math.max(0, M.fat0 - 35) * 0.001;
   if (M.oppIdx >= 3) adj += skillCount(st, 'big') * 0.015 + (keyPlayer && hasSkill(keyPlayer, 'big') ? 0.03 : 0);
   if (M.opp.skill && M.oppIdx >= 2) adj -= 0.03;
+  /* 相手の戦術傾向：モール主体の相手にはモール合戦、キック多用の相手にはキック合戦で分が悪い */
+  if (M.opp.style === 'fw' && tacKey === 'maul') adj -= 0.025;
+  if (M.opp.style === 'kick' && tacKey === 'kick') adj -= 0.025;
   var tac = TACTICS.filter(function (t) { return t.k === G.tactic; })[0];
   if (tac && tac.key === tacKey) adj += 0.10;
   return clamp(0.45 + (statVal - M.power) * 0.02 + adj, 0.05, 0.95);
@@ -482,14 +543,14 @@ function makeScene(kind) {
       var a1 = keyPlayer(['PR', 'HO', 'LO', 'FL', 'No8'], 'pow', 'maul');
       var a2 = keyPlayer(['WTB', 'CTB', 'FB'], 'spd', 'step');
       var a3 = keyPlayer(['SO', 'FB'], 'kik', 'kick');
-      return { kind: kind, key: a2, title: '勝負どころ：ゴール前、あと少しでトライ！', choices: [
+      return { kind: kind, side: 'att', key: a2, title: '勝負どころ：ゴール前、あと少しでトライ！', choices: [
         C('モールで押し込む', 'FWのパワーと総体重が勝負', sceneProb(fwPow + wAdj + skillCount(st, 'maul') * 2, 'maul', a1), 'モールでじりじり進み、最後は押し込んだ！', 'モールが崩れた…ターンオーバー', 'try', 'none'),
         C('バックスに展開', 'パスとスピード、「ステップ職人」が勝負', sceneProb(bkGo + skillCount(st, 'step') * 2.5, 'wide', a2), a2.name + ' がステップで抜けた！', 'パスが乱れてノックオン', 'try', 'none'),
         C('キックパスで裏へ', 'キック精度が勝負', sceneProb(kick + (hasSkill(a3, 'kick') ? 4 : 0), 'kick', a3), 'キックパスが通り、WTBが抑えた！', 'キックが深すぎてタッチへ', 'try', 'none')
       ] };
     }
     var d1 = keyPlayer(['FL', 'CTB', 'No8'], 'tak', 'tackle');
-    return { kind: kind, key: d1, title: '勝負どころ：自陣ゴール前、相手の猛攻！', choices: [
+    return { kind: kind, side: 'def', key: d1, title: '勝負どころ：自陣ゴール前、相手の猛攻！', choices: [
       C('前に出てプレッシャー', 'タックルと「タックルマン」が勝負', sceneProb(tak + skillCount(st, 'tackle') * 2, 'def', d1), d1.name + ' の強烈なタックルでボールを奪った！', 'タックルがずれて突破された…', 'none', 'oppTry'),
       C('受けて立って粘る', 'スタミナと体の重さが勝負', sceneProb(sta + wAdj * 0.5, 'def', d1), '何度も止めて、最後は相手の反則を誘った！', '粘りきれず押し込まれた…', 'none', 'oppTry'),
       C('勝負タックル', 'ハイリスク・ハイリターン', sceneProb(tak - 6, 'def', d1), '起死回生のタックル！ ボールがこぼれた', 'かわされて一気に持っていかれた…', 'none', 'oppTry')
@@ -552,6 +613,12 @@ function chooseScene(idx) {
     txt += '（戦術を「' + TACTICS.filter(function (t) { return t.k === G.tactic; })[0].n + '」に変更）';
   }
   else if (fx === 'minus') { M.bonus -= 2; }
+  /* v0.6: 個人スタッツ（キーマンの活躍を記録） */
+  if (ok && sc.key) {
+    if (fx === 'try') sc.key.srec.tries++;
+    else if (fx === 'pg') sc.key.srec.plays++;
+    else if (fx === 'none' && c.loseFx === 'oppTry') sc.key.srec.plays++;
+  }
   if (ok && sc.key) gainTrust(sc.key, 3);
   M.log.push(txt);
   M.pending = null; M.phase = 'play'; M.block++;
@@ -598,7 +665,12 @@ function finishMatch() {
     G.rep += M.oppIdx === 0 ? 2 : (M.oppIdx === 3 ? 20 : 6);
     growFromMatch();
     if (M.oppIdx === 3) { G.qualified = true; G.career.hana++; }
-    if (M.oppIdx === 4) { G.career.hanaWins++; G.career.titles++; G.rep += 20; }
+    if (M.oppIdx === 4) { G.career.hanaWins++; G.rep += 10; M.log.push('🎉 花園で勝った！ あと1勝で全国制覇だ'); }
+    if (M.oppIdx === 5) {
+      G.career.hanaWins++; G.career.hanaTitles++; G.career.titles = G.career.hanaTitles;
+      G.rep += 30;
+      M.log.push('🏆 花園優勝！ 桜丘高校が全国の頂点に立った！');
+    }
   } else {
     G.season.losses++;
     /* 格上への善戦ボーナス： 7点差以内で、相手が格上（または互角以上）なら報いる */
@@ -627,13 +699,44 @@ function afterMatchNext() {
   var idx = M.oppIdx;
   M = null;
   if (idx === 0) { advanceMonth(); return; }
-  if (idx === 4) { G.season.result = won ? '花園で勝利！' : '花園出場（1回戦敗退）'; seasonEnd(); return; }
+  if (idx === 4) {
+    if (won) { G.season.result = '花園決勝進出'; advanceMonth(); return; }
+    G.season.result = '花園出場（初戦敗退）'; seasonEnd(); return;
+  }
+  if (idx === 5) {
+    G.season.result = won ? '🏆 花園優勝！' : '花園準優勝（決勝敗退）';
+    seasonEnd(); return;
+  }
   if (!won) {
     G.season.result = idx === 1 ? '予選1回戦敗退' : (idx === 2 ? '予選準決勝敗退' : '予選決勝敗退');
     seasonEnd(); return;
   }
   if (idx === 3) { G.season.result = '花園出場決定'; advanceMonth(); return; }
   advanceMonth();
+}
+/* v0.6: 時短スキップ。戦力差の大きい格下戦だけ、試合経過を省略して結果と要因だけを出す */
+function canSkip(oppIdx) {
+  return oppIdx < 3 && (teamPower() - oppPower(oppIdx)) >= 8;
+}
+function skipMatch(oppIdx) {
+  startMatch(oppIdx);
+  var guard = 0;
+  while (M && !M.done && guard++ < 300) {
+    if (M.phase === 'scene' && M.pending) {
+      var bi = 0;
+      M.pending.choices.forEach(function (c, i) { if (c.p > M.pending.choices[bi].p) bi = i; });
+      chooseScene(bi);
+    } else playBlock();
+  }
+  if (!M) return;
+  var lines = [
+    '⏩ 時短：戦力差のある試合のため、経過を省略して結果のみ表示した',
+    '最終スコア ― 桜丘 ' + M.my + ' － ' + M.op + ' ' + M.opp.name,
+    M.result === 'win' ? '桜丘高校の勝利！' : '桜丘高校、敗れる…'
+  ];
+  if (M.gallant) lines.push('🌟 格上に善戦！ 評判+4・経験ボーナスが入った');
+  M.log = lines;
+  screen = 'match'; save(); render();
 }
 function advanceMonth() {
   G.monthIdx++;
@@ -646,7 +749,10 @@ var grads = G.players.filter(function (p) { return p.year === 3;});
 G.summary = {
 result: G.season.result, wins: G.season.wins, losses: G.season.losses,
 grade: gradeOf().n, grads: grads.map(function (p) { return { name: p.name, pos: POSITIONS[p.posIdx].p, avg: Math.round(overall(p))};}),
-firstHana: G.qualified && G.career.hana === 1
+firstHana: G.qualified && G.career.hana === 1,
+stars: G.players.slice().filter(function (p) { return p.srec && (p.srec.tries > 0 || p.srec.plays > 0); })
+.sort(function (a, b) { return (b.srec.tries * 3 + b.srec.plays) - (a.srec.tries * 3 + a.srec.plays); })
+.slice(0, 3).map(function (p) { return { name: p.name, pos: POSITIONS[p.posIdx].p, tries: p.srec.tries, plays: p.srec.plays }; })
 };
 screen = 'summary'; save(); render();
 }
@@ -752,7 +858,7 @@ function startRecruit() {
   });
   if (G.obs.length > 40) G.obs = G.obs.slice(-40);
   G.players = G.players.filter(function (p) { return p.year !== 3; });
-  G.players.forEach(function (p) { p.year++; p.injured = 0; p.fatigue = ri(5, 15); });
+  G.players.forEach(function (p) { p.year++; p.injured = 0; p.fatigue = ri(5, 15); p.srec = { tries: 0, plays: 0 }; });
   G.year++; G.monthIdx = 0; G.qualified = false; G.nextBonus = 0;
   G.season = { wins: 0, losses: 0, result: '予選敗退' };
   G.summary = null;
@@ -1077,7 +1183,7 @@ function finishRecruit() {
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.5'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.6'])]),
       banner('home', null, 0),
       h('div', { class: 'card center' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
@@ -1204,6 +1310,7 @@ function finishRecruit() {
       if (!names.length) sk.children[1].appendChild(document.createTextNode('なし'));
       names.forEach(function (n) { sk.children[1].appendChild(h('span', { class: 'tag' }, [n])); });
       detail.appendChild(sk);
+      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['今季の記録']), h('span', null, ['トライ ' + (sel.srec ? sel.srec.tries : 0) + ' ／ 好プレー ' + (sel.srec ? sel.srec.plays : 0)])]));
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['信頼度']), h('span', null, [String(sel.trust) + '（采配の成功率に影響）'])]));
       detail.appendChild(h('div', { class: 'meter' }, [h('div', { style: 'width:' + sel.trust + '%' }, [])]));
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['疲労']), h('span', null, [String(sel.fatigue)])]));
@@ -1226,6 +1333,21 @@ function finishRecruit() {
       h('div', { class: 'rowline' }, [h('span', null, ['桜丘の総合力']), h('span', { class: 'big' }, [String(teamPower())])]),
       h('div', { class: 'rowline' }, [h('span', null, ['相手の総合力']), h('span', { class: 'big' }, [String(oppPower(mo.match))])])
     ]);
+    /* v0.6: スカウティング（相手の傾向・総合力・エース） */
+    if (opp.style || opp.ace) {
+      var sc = h('div', { class: 'card scout' });
+      sc.appendChild(h('div', { class: 'sec' }, ['🔍 スカウティング']));
+      if (opp.style && OPP_STYLES[opp.style]) {
+        sc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['戦術傾向']), h('span', null, [OPP_STYLES[opp.style].n])]));
+        sc.appendChild(h('div', { class: 'sub' }, [OPP_STYLES[opp.style].d]));
+      }
+      sc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['相手の総合力']), h('span', null, [String(oppPower(mo.match))])]));
+      if (opp.ace) {
+        sc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['エース']), h('span', null, [opp.ace.name + '（' + opp.ace.pos + '）'])]));
+        sc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['エースの特能']), h('span', null, [skillNameByKey(opp.ace.skill)])]));
+      }
+      vs.appendChild(sc);
+    }
     var box = h('div', { class: 'card choices grow scroll' });
     box.appendChild(h('div', { class: 'sec' }, ['今日の戦術']));
     TACTICS.forEach(function (tc) {
@@ -1233,9 +1355,14 @@ function finishRecruit() {
         h('span', { class: 't' }, [tc.n]), h('span', { class: 'd' }, [' — ' + tc.d])
       ]));
     });
+    var rightKids = [box, h('button', { class: 'btn primary', onclick: function () { startMatch(mo.match); } }, ['キックオフ'])];
+    if (canSkip(mo.match)) {
+      rightKids.push(h('button', { class: 'btn', onclick: function () { skipMatch(mo.match); } }, ['⏩ 結果のみ表示（スキップ）']));
+      rightKids.push(h('div', { class: 'sub' }, ['戦力差の大きい格下戦は、経過を省略して結果と勝因・敗因だけを確認できる（決勝・花園では使えない）']));
+    }
     wrap([hud(), h('div', { class: 'lay2' }, [
       col([banner('match', 'grow'), vs]),
-      col([box, h('button', { class: 'btn primary', onclick: function () { startMatch(mo.match); } }, ['キックオフ'])])
+      col(rightKids)
     ])]);
   }
   function matchScreen() {
@@ -1300,9 +1427,16 @@ function finishRecruit() {
       h('p', null, [s.result + '（' + s.wins + '勝 ' + s.losses + '敗）']),
       s.firstHana ? h('p', null, ['🎉 創部以来、初の花園出場！']) : h('span', null, []),
       h('div', { class: 'rowline' }, [h('span', null, ['部の格']), h('span', { class: 'big' }, [s.grade])]),
-      h('div', { class: 'rowline' }, [h('span', null, ['通算 花園出場']), h('span', null, [G.career.hana + '回'])])
+      h('div', { class: 'rowline' }, [h('span', null, ['通算 花園出場']), h('span', null, [G.career.hana + '回'])]),
+      h('div', { class: 'rowline' }, [h('span', null, ['通算 花園優勝']), h('span', null, [G.career.hanaTitles + '回'])])
     ]);
     var g = h('div', { class: 'card grow scroll' });
+    if (s.stars && s.stars.length) {
+      g.appendChild(h('div', { class: 'sec' }, ['⭐ 今季の活躍']));
+      s.stars.forEach(function (x) {
+        g.appendChild(h('div', { class: 'rowline' }, [h('span', null, [x.name]), h('span', { class: 'sub' }, [x.pos + '・トライ ' + x.tries + '／好プレー ' + x.plays])]));
+      });
+    }
     g.appendChild(h('div', { class: 'sec' }, ['卒業する3年生（' + s.grads.length + '人）']));
     s.grads.forEach(function (x) { g.appendChild(h('div', { class: 'rowline' }, [h('span', null, [x.name]), h('span', { class: 'sub' }, [x.pos + '・総合 ' + x.avg])])); });
     g.appendChild(h('div', { class: 'sub' }, ['彼らはOBとして記録に残る。お疲れさま']));
@@ -1380,6 +1514,7 @@ function finishRecruit() {
     c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['在任']), h('span', null, [G.year + '年目'])]));
     c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['花園出場']), h('span', null, [G.career.hana + '回'])]));
     c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['花園での勝利']), h('span', null, [G.career.hanaWins + '勝'])]));
+    c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['花園優勝']), h('span', null, [G.career.hanaTitles + '回'])]));
     var o = h('div', { class: 'card scroll', style: 'height:100%' });
     o.appendChild(h('div', { class: 'sec' }, ['OB名鑑（' + G.obs.length + '人）']));
     if (!G.obs.length) o.appendChild(h('div', { class: 'sub' }, ['まだ卒業生がいない']));

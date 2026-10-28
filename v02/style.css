@@ -129,6 +129,9 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
 }
 .cutin-line { font-weight: 700; margin-top: 2px; }
 .dlg { display: flex; gap: 12px; align-items: center; }
+/* v0.6: スカウティング欄 */
+.scout { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; text-align: left; }
+.scout .sec { margin-bottom: 4px; }
 
 /* ===== 固定レイアウト（横画面・広い画面）: ページはスクロールしない ===== */
 @media (min-width: 760px) and (orientation: landscape) {
