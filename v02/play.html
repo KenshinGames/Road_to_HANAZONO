@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Road to HANAZONO v0.2.2</title>
+<title>Road to HANAZONO v0.2.3</title>
 <meta name="description" content="高校ラグビー育成ゲーム v0.2。監督として世代を超えて花園を目指す。">
 <meta name="theme-color" content="#f4f7f2" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#101410" media="(prefers-color-scheme: dark)">
@@ -118,7 +118,10 @@ table.squad td.name { text-align: left; font-weight: 700; white-space: nowrap; }
 /* ===== 固定レイアウト（横画面・広い画面）: ページはスクロールしない ===== */
 @media (min-width: 760px) and (orientation: landscape) {
   body { overflow: hidden; }
-  #app { height: 100dvh; padding: 10px 14px; display: flex; flex-direction: column; }
+  #app {
+    height: 100dvh; display: flex; flex-direction: column;
+    padding: calc(10px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
+  }
   .shell { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 10px; }
   .shell > * { margin-top: 0 !important; }
   .lay2 { display: grid; grid-template-columns: 1.05fr .95fr; gap: 12px; flex: 1; min-height: 0; }
@@ -138,6 +141,7 @@ table.squad td.name { text-align: left; font-weight: 700; white-space: nowrap; }
 @media (orientation: portrait) and (max-width: 759px) {
   .portrait-note { display: block; text-align: center; color: var(--sub); font-size: 13px; padding: 6px; }
   .banner svg { height: auto; }
+  #app { padding-top: calc(12px + env(safe-area-inset-top)); padding-left: calc(14px + env(safe-area-inset-left)); padding-right: calc(14px + env(safe-area-inset-right)); }
 }
 
 </style>
@@ -692,7 +696,7 @@ screen = 'inst'; save(); render();
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.2.2'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.2.3'])]),
       banner('home'),
       h('div', { class: 'card center' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
@@ -817,7 +821,7 @@ screen = 'inst'; save(); render();
       ctrl.appendChild(box);
     } else if (!M.done) {
       ctrl.appendChild(h('div', { class: 'sec' }, ['実況']));
-      ctrl.appendChild(h('p', { class: 'sub' }, ['右の実況を見ながら、試合を進めよう。勝負どころでは采配が求められる']));
+      ctrl.appendChild(h('p', { class: 'sub' }, ['左の実況を見ながら、試合を進めよう。勝負どころでは采配が求められる']));
       ctrl.appendChild(h('button', { class: 'btn primary', onclick: function () { playBlock(); } }, ['試合を進める']));
     } else {
       ctrl.appendChild(h('div', { class: 'sec' }, [M.result === 'win' ? '勝利！' : '試合終了']));
@@ -827,7 +831,7 @@ screen = 'inst'; save(); render();
     M.log.forEach(function (ln) {
       log.appendChild(h('div', ln.indexOf('勝負どころ') >= 0 ? { class: 'hl' } : (ln.indexOf('トライ') >= 0 || ln.indexOf('勝利') >= 0 ? { class: 'score-line' } : null), [ln]));
     });
-    wrap([sb, h('div', { class: 'lay2' }, [col([ctrl]), log])]);
+    wrap([sb, h('div', { class: 'lay2' }, [log, col([ctrl])])]);
     var lg = document.querySelector('.log'); if (lg) lg.scrollTop = lg.scrollHeight;
   }
   function summaryScreen() {

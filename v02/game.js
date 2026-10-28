@@ -545,7 +545,7 @@ screen = 'inst'; save(); render();
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.2.2'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.2.3'])]),
       banner('home'),
       h('div', { class: 'card center' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
@@ -670,7 +670,7 @@ screen = 'inst'; save(); render();
       ctrl.appendChild(box);
     } else if (!M.done) {
       ctrl.appendChild(h('div', { class: 'sec' }, ['実況']));
-      ctrl.appendChild(h('p', { class: 'sub' }, ['右の実況を見ながら、試合を進めよう。勝負どころでは采配が求められる']));
+      ctrl.appendChild(h('p', { class: 'sub' }, ['左の実況を見ながら、試合を進めよう。勝負どころでは采配が求められる']));
       ctrl.appendChild(h('button', { class: 'btn primary', onclick: function () { playBlock(); } }, ['試合を進める']));
     } else {
       ctrl.appendChild(h('div', { class: 'sec' }, [M.result === 'win' ? '勝利！' : '試合終了']));
@@ -680,7 +680,7 @@ screen = 'inst'; save(); render();
     M.log.forEach(function (ln) {
       log.appendChild(h('div', ln.indexOf('勝負どころ') >= 0 ? { class: 'hl' } : (ln.indexOf('トライ') >= 0 || ln.indexOf('勝利') >= 0 ? { class: 'score-line' } : null), [ln]));
     });
-    wrap([sb, h('div', { class: 'lay2' }, [col([ctrl]), log])]);
+    wrap([sb, h('div', { class: 'lay2' }, [log, col([ctrl])])]);
     var lg = document.querySelector('.log'); if (lg) lg.scrollTop = lg.scrollHeight;
   }
   function summaryScreen() {
