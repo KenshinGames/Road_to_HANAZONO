@@ -545,7 +545,7 @@ screen = 'inst'; save(); render();
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.2.1'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.2.2'])]),
       banner('home'),
       h('div', { class: 'card center' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
