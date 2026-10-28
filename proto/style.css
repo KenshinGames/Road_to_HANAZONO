@@ -1,0 +1,73 @@
+/* Road to HANAZONO 試作 — 最小限のデザイン(勉強アプリと同じ変数の考え方) */
+:root {
+  --bg: #f4f7f2; --card: #ffffff; --ink: #1c241c; --sub: #5d6b5d; --line: #dde5da;
+  --brand: #166534; --brand-ink: #ffffff; --brand-soft: #e5f2e7;
+  --ok: #15803d; --ng: #c62f3b; --warn-soft: #fdf3d8; --shadow: 0 1px 3px rgba(20, 40, 20, .08);
+  --fs: 1;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101410; --card: #1b211b; --ink: #e8eee8; --sub: #9fb09f; --line: #2c362c;
+    --brand: #4ade80; --brand-ink: #0c1a0f; --brand-soft: #14301d;
+    --ok: #4ade80; --ng: #ff8a8a; --warn-soft: #38300f; --shadow: 0 1px 3px rgba(0, 0, 0, .4);
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { touch-action: manipulation; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  font-size: calc(16px * var(--fs)); line-height: 1.55;
+}
+#app { max-width: 560px; margin: 0 auto; padding: 14px 14px 40px; }
+.stack > * + * { margin-top: 12px; }
+.hero { text-align: center; padding: 14px 6px 4px; }
+.hero h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: .02em; }
+.hero p { margin: 0; color: var(--sub); font-size: 14px; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  padding: 14px; box-shadow: var(--shadow);
+}
+.sec { font-weight: 700; margin: 18px 2px 8px; font-size: 15px; }
+.rowline { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.big { font-size: 20px; font-weight: 800; }
+.sub { color: var(--sub); font-size: 13px; }
+.btn {
+  display: block; width: 100%; padding: 13px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--card); color: var(--ink); font-size: 16px; font-weight: 700; cursor: pointer;
+  transition: transform .08s ease, background .15s ease;
+}
+.btn:active { transform: scale(.99); }
+.btn.primary { background: var(--brand); color: var(--brand-ink); border-color: transparent; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.small { padding: 9px; font-size: 14px; }
+.choices > * + * { margin-top: 8px; }
+.choice { text-align: left; }
+.choice .t { font-weight: 700; }
+.choice .d { color: var(--sub); font-size: 13px; font-weight: 400; }
+select {
+  width: 100%; padding: 11px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--card); color: var(--ink); font-size: 16px;
+}
+label.lab { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 4px; }
+table.squad { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.squad th, table.squad td { padding: 5px 3px; border-bottom: 1px solid var(--line); text-align: center; font-variant-numeric: tabular-nums; }
+table.squad th { color: var(--sub); font-weight: 600; font-size: 11px; }
+table.squad td.name { text-align: left; font-weight: 700; white-space: nowrap; }
+.score { display: flex; justify-content: space-between; align-items: center; text-align: center; }
+.score .team { flex: 1; }
+.score .pts { font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.score .vs { color: var(--sub); font-size: 13px; }
+.log {
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px;
+  font-size: 14px; max-height: 300px; overflow-y: auto;
+}
+.log > * + * { margin-top: 6px; }
+.log .hl { background: var(--warn-soft); border-radius: 8px; padding: 6px 8px; }
+.log .score-line { font-weight: 700; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); font-size: 12px; font-weight: 700; }
+.tag.ng { background: #fdecec; color: var(--ng); }
+@media (prefers-color-scheme: dark) { .tag.ng { background: #3a1d1d; } }
+.event { background: var(--warn-soft); border-radius: 16px; padding: 14px; }
+.gain { color: var(--ok); font-weight: 700; }
+.center { text-align: center; }
