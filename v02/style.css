@@ -256,3 +256,50 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
 @media (min-width: 760px) and (orientation: landscape) {
   .growreport { flex: 0 1 auto; max-height: 46%; overflow-y: auto; }
 }
+
+/* ===== v0.15: デザイン統一（パワプロ系の参照画像の様式に寄せる） ===== */
+/* 見出しバー：濃紺トーンに共通化 */
+.sec { background: linear-gradient(90deg, #1b2a52, #26386a); color: #fff; border-radius: 8px; padding: 4px 10px; margin: 2px 0 8px; }
+/* 能力ランク（色は JS 側の RANKS が文字色として指定する。ここは体裁のみ） */
+.rk { font-weight: 900; letter-spacing: .02em; }
+.rkval { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rkval.sm { font-size: 12px; }
+.rkval.sm .rk { font-size: 13px; }
+.rkval.lg { font-size: 17px; font-weight: 700; }
+.rkval.lg .rk { font-size: 21px; }
+/* 選手詳細：名前バナー＋プロフィール帯 */
+.pname { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: linear-gradient(90deg, #16294d, #1b2a52 55%, #2a3f74); color: #fff; border-radius: 10px; padding: 7px 12px; margin-bottom: 10px; }
+.pname .pno { background: #0b1730; color: #ffd94d; font-weight: 900; border-radius: 6px; padding: 1px 9px; font-size: 17px; }
+.pname .pname-t { font-size: 19px; font-weight: 800; }
+.pname .pbadge { background: rgba(255, 255, 255, .16); border-radius: 99px; padding: 1px 9px; font-size: 12px; font-weight: 700; }
+.pname .pbadge.cap { background: #ffd94d; color: #4a3200; }
+.pname .pbadge.inj { background: #c62f3b; color: #fff; }
+.pdetail .detail-head { margin-bottom: 4px; }
+/* 特能・個性タググリッド（特能=緑 / 個性=青 / 怪我がち=赤） */
+.taggrid { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0 10px; }
+.taggrid .tag { margin: 0; font-size: 13px; padding: 3px 10px; }
+.tag.good { background: #dff2df; color: #1d7a35; }
+.tag.mid { background: #e2ecfa; color: #2456c6; }
+.tag.bad { background: #fbe3e3; color: #c62f3b; }
+@media (prefers-color-scheme: dark) {
+  .tag.good { background: #17301d; color: #7be495; }
+  .tag.mid { background: #16283f; color: #9db9ec; }
+  .tag.bad { background: #3a1d1d; color: #ff9d9d; }
+}
+/* 成長レポート：濃緑ボード＋名前プレート＋「ランク 数値 → ランク 数値」 */
+.grboard { background: linear-gradient(180deg, #11563c, #0a3d2a); border-color: #062b1c; color: #eef7f1; }
+.grtitle { text-align: center; font-weight: 800; font-size: 16px; color: #fff; margin: 2px 0 10px; letter-spacing: .06em; }
+.grrow { display: flex; gap: 8px 10px; align-items: flex-start; flex-wrap: wrap; padding: 6px 0; border-top: 1px solid rgba(255, 255, 255, .14); }
+.grwho { display: flex; align-items: center; gap: 5px; flex: 0 0 auto; }
+.grrole { background: #07271a; color: #ffd94d; border: 1px solid rgba(255, 217, 77, .5); border-radius: 4px; font-size: 11px; font-weight: 700; padding: 1px 5px; white-space: nowrap; }
+.grplate { display: inline-block; border-radius: 4px; padding: 1px 9px; font-weight: 800; color: #20301f; white-space: nowrap; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .18); }
+.gryear { background: #123a5e; color: #fff; border-radius: 4px; font-size: 11px; font-weight: 700; padding: 1px 5px; white-space: nowrap; }
+.grchg { display: flex; flex-wrap: wrap; gap: 4px 14px; flex: 1; min-width: 180px; font-size: 13px; }
+.gritem { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.gritem .rkval { font-weight: 700; }
+.grarrow { color: #ffd94d; font-weight: 900; margin: 0 3px; }
+.grtrust .grarrow { margin: 0; }
+.grboard .sub { color: rgba(238, 247, 241, .72); }
+.grboard .btn.grcheck { background: rgba(255, 255, 255, .94); color: #0a3d2a; border-color: transparent; }
+/* 初回ヒント（最初の月だけ月頭指示に出る1行） */
+.hintcard { background: var(--warn-soft); font-size: 14px; }

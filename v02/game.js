@@ -1,4 +1,4 @@
-/* Road to HANAZONO v0.14 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.15 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
  * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示
  * v0.4: 新入生3層の完成(スカウト＋特別枠) + OB連携
  * v0.5: 立ち絵表現(パーツ組み合わせ式の自動生成) + 試合カットイン + 会話劇 + 季節感
@@ -14,7 +14,10 @@
  * v0.13: 育成の手触り（月次成長レポート＝盤面の練習で実際に伸びた分の内訳を次の月頭指示画面にカード表示／
  *        選手詳細に調子の推移＝直近最大6件を顔アイコンの列で表示／信頼度イベントに復帰・キャプテン・上級生指導・進路の続きを追加）
  * v0.14: 記録の深化（シーズン別成績＝到達結果・今季勝敗・部の格・目標と達成可否をシーズンごとに career.seasonHist へ記録／
- *        対戦校別の通算成績 career.oppRec／歴代キャプテン career.captains／OB名鑑に卒業時の最終能力6種と進路を保存・表示） */
+ *        対戦校別の通算成績 career.oppRec／歴代キャプテン career.captains／OB名鑑に卒業時の最終能力6種と進路を保存・表示）
+ * v0.15: デザイン統一（能力ランク S〜G＋ランク色の併記を全画面に導入する表示変換／選手詳細を名前バナー＋プロフィール帯＋
+ *        特能タググリッドに作り替え／成長レポートを濃緑ボード＋名前プレート＋「ランク 数値 → ランク 数値」形式に作り替え／
+ *        初回ヒント＝新規開始の最初の月だけ月頭指示に1行／見出しバーの濃紺トーン統一）。数値ロジック・バランスは無変更 */
 (function () {
   'use strict';
   var STORE_KEY = 'hanazono.v02';
@@ -468,6 +471,46 @@
     p.srec[kind]++; p.crec[kind]++;
   }
   function overall(p) { return STATS.reduce(function (a, s) { return a + p.stats[s.k]; }, 0) / 6; }
+  /* v0.15: 能力ランク（表示変換のみ。数値ロジックには一切関与しない）。
+   * 帯域は S=90以上 / A=80台 / B=70台 / C=60台 / D=50台 / E=40台 / F=30台 / G=29以下。
+   * 色はユーザー提示のパワプロ系参照画像の段階色に寄せたもので、c=明背景用 / cb=濃色背景（成長レポートのボード）用。
+   * 能力の実分布（入部時 34〜46 前後、ソフトキャップ 85〜、上限 99）では S はキャリア終盤のスターだけが届く帯域になる */
+  var RANKS = [
+    { r: 'S', min: 90, c: '#e843c8', cb: '#ff7ae0' },
+    { r: 'A', min: 80, c: '#ef4b3f', cb: '#ff7a6e' },
+    { r: 'B', min: 70, c: '#f07f13', cb: '#ffa04d' },
+    { r: 'C', min: 60, c: '#c79400', cb: '#ffd94d' },
+    { r: 'D', min: 50, c: '#7ba41f', cb: '#b5d94e' },
+    { r: 'E', min: 40, c: '#2f9dbd', cb: '#6fd3ee' },
+    { r: 'F', min: 30, c: '#3f6fd8', cb: '#7fa8f0' },
+    { r: 'G', min: -999, c: '#9668c9', cb: '#c39ae8' }
+  ];
+  function rankOf(v) {
+    v = Math.round(v);
+    for (var i = 0; i < RANKS.length; i++) if (v >= RANKS[i].min) return RANKS[i];
+    return RANKS[RANKS.length - 1];
+  }
+  function rankEl(v, onDark) {
+    var rk = rankOf(v);
+    var el = h('span', { class: 'rk', 'data-rank': rk.r }, []);
+    el.style.color = onDark ? rk.cb : rk.c;
+    el.textContent = rk.r;
+    return el;
+  }
+  /* ランク文字＋数値の併記部品（cls: 'sm'=一覧などの小型 / 'lg'=詳細の大型） */
+  function rankValEl(v, cls, onDark) {
+    var wrap15 = h('span', { class: 'rkval' + (cls ? ' ' + cls : '') }, []);
+    wrap15.appendChild(rankEl(v, onDark));
+    wrap15.appendChild(document.createTextNode(' ' + Math.round(v)));
+    return wrap15;
+  }
+  /* v0.15: 成長レポートの名前プレート色（名前から決定的に選ぶ。参照画像の色つき名前プレートに寄せたパレット） */
+  var PLATE_COLORS = ['#f7d54d', '#f6b8cd', '#f49a8c', '#a8d97c', '#f2a541', '#9fd3e8'];
+  function plateColor(name) {
+    var s = 0;
+    for (var i = 0; i < name.length; i++) s += name.charCodeAt(i) * (i + 1);
+    return PLATE_COLORS[s % PLATE_COLORS.length];
+  }
   function newGame(diff) {
     namePool = {};
     G = {
@@ -595,6 +638,8 @@
     if (!Array.isArray(G.facSeen)) {
       G.facSeen = FACILITIES.filter(function (f) { return gradeIdx() >= f.gi; }).map(function (f) { return f.k; });
     }
+    /* v0.15: 初回ヒントの表示済みフラグ。旧セーブは「最初の月（1年目・4月）にいる場合だけ未表示」として移行する */
+    if (typeof G.hintSeen !== 'boolean') G.hintSeen = !(G.year === 1 && G.monthIdx === 0);
     if (!G.players.some(function (p) { return p.id === G.captainId; })) {
       var cb = null;
       G.players.forEach(function (p) { if (!cb || (p.trust || 0) > (cb.trust || 0)) cb = p; });
@@ -833,6 +878,7 @@
   function startMonth() {
     driftForm();
     syncFormHist(); /* v0.13: 月替わりの調子変動を推移に記録 */
+    G.hintSeen = true; /* v0.15: 初回ヒントは最初の月を始めたら二度と出さない */
     var mo = MONTHS[G.monthIdx];
     var tpl = mo.cells >= 12 ? ['pS', 'pS', 'pS', 'pS', 'pB', 'pB', 'ev', 'ev', 'rec', 'free', 'meet'] : ['pS', 'pS', 'pB', 'ev', 'rec', 'free'];
     var cells = shuffle(tpl.slice()).map(function (t) { return { t: t, done: false }; });
@@ -2303,23 +2349,50 @@ function finishRecruit() {
     if (G.monthLog && G.monthLog.length) {
       left.push(h('div', { class: 'card grow scroll' }, [h('div', { class: 'sub' }, ['最近の出来事'])].concat(G.monthLog.map(function (l) { return h('div', null, [l]); }))));
     }
-    /* v0.13: 先月の成長レポート。盤面フロー内のカードとして左カラムに出す（モーダルではないので進行は妨げない） */
+    /* v0.15: 先月の成長レポートを作り替え。濃緑ボード＋色つき名前プレート＋「ランク 数値 → ランク 数値」形式
+     * （データは v0.13 の growReport をそのまま使用し、様式のみ変更）。変化後の数値は現在の能力から
+     * レポートの伸び分を差し引いて逆算し、矢印の幅がレポートの伸び分と一致するようにする。
+     * 選手が見つからない場合は伸び分のみ表示。特能はプレイ中の獲得・変化が存在しない
+     * （生成時にのみ決まる）ため、このレポートには含めない */
     if (G.growReport && G.growReport.rows && G.growReport.rows.length) {
-      var gr = h('div', { class: 'card growreport' });
-      gr.appendChild(h('div', { class: 'sec' }, ['📈 ' + G.growReport.label + 'の成長レポート']));
+      var gr = h('div', { class: 'card growreport grboard' });
+      gr.appendChild(h('div', { class: 'grtitle' }, ['〜 ' + G.growReport.label + 'の成長レポート 〜']));
+      var lineupNow = lineupIds();
       G.growReport.rows.slice(0, 10).forEach(function (r) {
-        var parts = STATS.filter(function (s) { return r.stats[s.k]; }).map(function (s) { return s.n + '+' + r.stats[s.k]; });
-        var txt = (parts.length ? parts.join('・') + ' ' : '') + '（合計+' + r.total + '）';
-        if (r.trust > 0) txt += ' ／ 信頼度+' + r.trust;
-        gr.appendChild(h('div', { class: 'rowline' }, [
-          h('span', null, [(r.focus ? '⭐' : '') + r.name]),
-          h('span', { class: 'grstats' }, [txt])
-        ]));
+        var pl = G.players.filter(function (p) { return p.name === r.name; })[0];
+        var rowEl = h('div', { class: 'grrow' });
+        var who = h('div', { class: 'grwho' });
+        who.appendChild(h('span', { class: 'grrole' }, [r.focus ? '重点' : (pl && lineupNow.indexOf(pl.id) >= 0 ? 'スタメン' : '控え')]));
+        who.appendChild(h('span', { class: 'grplate', style: 'background:' + plateColor(r.name) }, [r.name]));
+        if (pl) who.appendChild(h('span', { class: 'gryear' }, [pl.year + '年']));
+        rowEl.appendChild(who);
+        var chg = h('div', { class: 'grchg' });
+        STATS.filter(function (s) { return r.stats[s.k]; }).forEach(function (s) {
+          var item = h('span', { class: 'gritem' });
+          item.appendChild(document.createTextNode(s.n + ' '));
+          if (pl) {
+            var after = pl.stats[s.k];
+            item.appendChild(rankValEl(after - r.stats[s.k], null, true));
+            item.appendChild(h('span', { class: 'grarrow' }, ['➡']));
+            item.appendChild(rankValEl(after, null, true));
+          } else {
+            item.appendChild(document.createTextNode('+' + r.stats[s.k]));
+          }
+          chg.appendChild(item);
+        });
+        if (r.trust > 0) {
+          var ti = h('span', { class: 'gritem grtrust' });
+          ti.appendChild(document.createTextNode('信頼度 '));
+          ti.appendChild(h('span', { class: 'grarrow' }, [r.trust >= 8 ? '↑↑↑' : (r.trust >= 4 ? '↑↑' : '↑')]));
+          chg.appendChild(ti);
+        }
+        rowEl.appendChild(chg);
+        gr.appendChild(rowEl);
       });
       if (G.growReport.rows.length > 10) {
         gr.appendChild(h('div', { class: 'sub' }, ['ほか ' + (G.growReport.rows.length - 10) + ' 名も成長した']));
       }
-      gr.appendChild(h('button', { class: 'btn small', style: 'margin-top:8px', onclick: function () { G.growReport = null; save(); render(); } }, ['確認した']));
+      gr.appendChild(h('button', { class: 'btn small grcheck', onclick: function () { G.growReport = null; save(); render(); } }, ['確認した']));
       left.push(gr);
     }
     var card = h('div', { class: 'card grow' });
@@ -2354,7 +2427,12 @@ function finishRecruit() {
     form.appendChild(field('キャプテン（檄の効きと信頼の集まりやすさに影響）', s5));
     form.appendChild(field('校風（チーム方針）', s6));
     card.appendChild(form);
-    var right = [card, h('button', { class: 'btn primary', onclick: function () { startMonth(); } }, ['指示を確定して月を始める'])];
+    var right = [];
+    /* v0.15: 初回ヒント。新規開始の最初の月（1年目・4月）の月頭指示にだけ1行出す */
+    if (!G.hintSeen && G.year === 1 && G.monthIdx === 0) {
+      right.push(h('div', { class: 'card hintcard' }, ['💡 まずは全体方針と重点育成する選手を選んで、月を始めよう。練習で選手が育ち、月末には試合が待っている']));
+    }
+    right.push(card, h('button', { class: 'btn primary', onclick: function () { startMonth(); } }, ['指示を確定して月を始める']));
     wrap([hud(), h('div', { class: 'lay2' }, [col(left), col(right)])]);
   }
   function boardScreen() {
@@ -2420,35 +2498,65 @@ function finishRecruit() {
         }
         return h('td', null, [x]);
       });
-      STATS.forEach(function (s) { cells.push(h('td', null, [String(p.stats[s.k])])); });
+      STATS.forEach(function (s) { cells.push(h('td', null, [rankValEl(p.stats[s.k], 'sm')])); }); /* v0.15: ランク併記 */
       cells.push(h('td', null, [String(p.fatigue)]));
       cells.push(h('td', null, [String(p.trust)]));
       var tr = h('tr', { class: 'prow' + (p.id === selPlayerId ? ' sel' : ''), onclick: (function (pid) { return function () { selPlayerId = pid; render(); }; })(p.id) }, cells);
       table.appendChild(tr);
     });
     var sel = G.players.filter(function (p) { return p.id === selPlayerId; })[0];
-    var detail = h('div', { class: 'card grow scroll' });
+    var detail = h('div', { class: 'card grow scroll pdetail' });
     if (sel) {
       var per = personOf(sel);
+      var spos = POSITIONS[sel.posIdx];
+      /* v0.15: 名前バナー（背番号チップ＋名前＋学年・ポジションのバッジ） */
+      var bannerEl = h('div', { class: 'pname' });
+      bannerEl.appendChild(h('span', { class: 'pno' }, [String(spos.no)]));
+      bannerEl.appendChild(h('span', { class: 'pname-t' }, [sel.name]));
+      bannerEl.appendChild(h('span', { class: 'pbadge' }, [sel.year + '年']));
+      bannerEl.appendChild(h('span', { class: 'pbadge' }, [spos.p + '（' + spos.g + '）']));
+      if (sel.id === G.captainId) bannerEl.appendChild(h('span', { class: 'pbadge cap' }, ['©主将']));
+      if (sel.injured) bannerEl.appendChild(h('span', { class: 'pbadge inj' }, ['🚑負傷中']));
+      detail.appendChild(bannerEl);
+      /* プロフィール帯：立ち絵＋体格・性格などの素性（従来の詳細情報を欠かさない） */
       var head = h('div', { class: 'detail-head' });
       head.appendChild(portraitEl(sel, 'detail-p'));
       var hinfo = h('div', { style: 'flex:1;min-width:0' });
-      hinfo.appendChild(h('div', { class: 'sec' }, [POSITIONS[sel.posIdx].no + ' ' + sel.name + (sel.id === G.captainId ? ' ©主将' : '') + (sel.injured ? ' 🚑負傷中' : '')]));
-      hinfo.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['学年／ポジション']), h('span', null, [sel.year + '年・' + POSITIONS[sel.posIdx].p + '（' + POSITIONS[sel.posIdx].g + '）'])]));
+      hinfo.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['学年／ポジション']), h('span', null, [sel.year + '年・' + spos.p + '（' + spos.g + '）'])]));
       hinfo.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['体格']), h('span', null, [sel.h + 'cm ／ ' + sel.w + 'kg'])]));
+      hinfo.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['性格']), h('span', null, [sel.person])]));
+      hinfo.appendChild(h('div', { class: 'sub' }, [per.d]));
       if (sel.injured) {
         hinfo.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['ケガの状態']), h('span', null, [(sel.injSev === 'heavy' ? '重症' : '軽症') + '（' + (sel.injPart || '負傷') + '）・復帰まであと' + sel.injured + 'か月'])]));
       }
       head.appendChild(hinfo);
       detail.appendChild(head);
-      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['性格']), h('span', null, [sel.person])]));
-      detail.appendChild(h('div', { class: 'sub' }, [per.d]));
-      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['個性']), h('span', null, [sel.trait.n])]));
-      var sk = h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['特能']), h('span', { class: 'tags' }, [])]);
+      /* 能力：ランク＋数値の行リスト（伸びしろの段階表示とメーターは従来どおり併記） */
+      detail.appendChild(h('div', { class: 'sec' }, ['能力']));
+      STATS.forEach(function (s) {
+        var v = sel.stats[s.k];
+        var stage = v >= 99 ? '限界' : (v >= 93 ? '限界間近' : (v >= 85 ? 'あと少し' : ''));
+        var color = v >= 93 ? '#c62f3b' : (v >= 85 ? '#e8862e' : null);
+        var valSpan = h('span', { class: 'pstat-val' }, []);
+        valSpan.appendChild(rankValEl(v, 'lg'));
+        if (stage) valSpan.appendChild(document.createTextNode(' ・' + stage));
+        detail.appendChild(h('div', { class: 'rowline' }, [
+          h('span', { class: 'sub' }, [s.n]),
+          valSpan
+        ]));
+        detail.appendChild(h('div', { class: 'meter capmeter' }, [h('div', { style: 'width:' + v + '%' + (color ? ';background:' + color : '') }, [])]));
+      });
+      var totSpan = h('span', { class: 'pstat-val' }, []);
+      totSpan.appendChild(rankValEl(Math.round(overall(sel)), 'lg'));
+      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['総合']), totSpan]));
+      /* 特能・個性：色つきタグのグリッド（特能=緑／個性=青／「怪我がち」は赤で注意色にする） */
+      detail.appendChild(h('div', { class: 'sec' }, ['特能・個性']));
+      var grid = h('div', { class: 'taggrid' });
       var names = skillNames(sel);
-      if (!names.length) sk.children[1].appendChild(document.createTextNode('なし'));
-      names.forEach(function (n) { sk.children[1].appendChild(h('span', { class: 'tag' }, [n])); });
-      detail.appendChild(sk);
+      if (!names.length && !sel.trait) grid.appendChild(h('span', { class: 'sub' }, ['なし']));
+      names.forEach(function (n) { grid.appendChild(h('span', { class: 'tag good' }, [n])); });
+      if (sel.trait) grid.appendChild(h('span', { class: 'tag ' + (sel.trait.n === '怪我がち' ? 'bad' : 'mid') }, [sel.trait.n]));
+      detail.appendChild(grid);
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['今季の記録']), h('span', null, ['トライ ' + (sel.srec ? sel.srec.tries : 0) + ' ／ 好プレー ' + (sel.srec ? sel.srec.plays : 0)])]));
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['キャリア通算']), h('span', null, ['トライ ' + (sel.crec ? sel.crec.tries : 0) + ' ／ 好プレー ' + (sel.crec ? sel.crec.plays : 0)])]));
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['調子']), h('span', null, [formFace(sel), '（成功率と練習効率に影響）'])]));
@@ -2460,18 +2568,6 @@ function finishRecruit() {
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['信頼度']), h('span', null, [String(sel.trust) + '（采配の成功率に影響）'])]));
       detail.appendChild(h('div', { class: 'meter' }, [h('div', { style: 'width:' + sel.trust + '%' }, [])]));
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['疲労']), h('span', null, [String(sel.fatigue)])]));
-      /* v0.7: 伸びしろの見える化（85から減衰、93以上は「限界間近」、99は「限界」） */
-      STATS.forEach(function (s) {
-        var v = sel.stats[s.k];
-        var stage = v >= 99 ? '限界' : (v >= 93 ? '限界間近' : (v >= 85 ? 'あと少し' : ''));
-        var color = v >= 93 ? '#c62f3b' : (v >= 85 ? '#e8862e' : null);
-        detail.appendChild(h('div', { class: 'rowline' }, [
-          h('span', { class: 'sub' }, [s.n]),
-          h('span', null, [String(v) + (stage ? ' ・' + stage : '')])
-        ]));
-        detail.appendChild(h('div', { class: 'meter capmeter' }, [h('div', { style: 'width:' + v + '%' + (color ? ';background:' + color : '') }, [])]));
-      });
-      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['総合']), h('span', { class: 'big' }, [String(Math.round(overall(sel)))])]));
     }
     wrap([hud(), h('div', { class: 'lay2' }, [
       h('div', { class: 'card grow scroll' }, [h('div', { class: 'sec' }, ['選手一覧（行タップで詳細）']), table]),
@@ -2503,9 +2599,10 @@ function finishRecruit() {
       var filled = Array.isArray(G.lineup) && G.lineup[n] !== id;
       var cells = [String(pos.no), pos.p,
         p ? (p.name + (filled ? ' ※' : '')) : '―',
-        p ? String(p.year) : '', p ? String(Math.round(overall(p))) : '',
+        p ? String(p.year) : '', '',
         p ? String(p.fatigue) : ''];
       var tds = cells.map(function (x) { return h('td', null, [x]); });
+      if (p) tds[4].appendChild(rankValEl(Math.round(overall(p)), 'sm')); /* v0.15: 総合もランク併記 */
       tds.push(h('td', null, p ? [formFace(p)] : []));
       var tr = h('tr', { class: 'prow' + (lineupSlot === n ? ' sel' : ''), onclick: (function (nn) {
         return function () {
@@ -2541,7 +2638,7 @@ function finishRecruit() {
       }
       right.appendChild(h('button', { class: 'btn small subbtn', onclick: (function (pid) {
         return function () { if (lineupSlot != null) swapLineupWith(lineupSlot, pid); };
-      })(p.id) }, ['IN ' + POSITIONS[p.posIdx].p + ' ' + p.name + '（' + p.year + '年・総合' + Math.round(overall(p)) + '・疲労' + p.fatigue + '・', formFace(p), '）']));
+      })(p.id) }, ['IN ' + POSITIONS[p.posIdx].p + ' ' + p.name + '（' + p.year + '年・総合 ', rankValEl(Math.round(overall(p)), 'sm'), '・疲労' + p.fatigue + '・', formFace(p), '）']));
     });
     var rightCol = [right,
       h('button', { class: 'btn', onclick: function () { G.lineup = null; lineupSlot = null; save(); render(); } }, ['自動選出に戻す']),
@@ -2654,7 +2751,7 @@ function finishRecruit() {
       bench.forEach(function (p) {
         list2.appendChild(h('button', { class: 'btn small subbtn', onclick: (function (pid) {
           return function () { doSub(subOutId, pid); };
-        })(p.id) }, ['IN ' + POSITIONS[p.posIdx].p + ' ' + p.name + '（総合' + Math.round(overall(p)) + '・疲労' + p.fatigue + '・', formFace(p), '）']));
+        })(p.id) }, ['IN ' + POSITIONS[p.posIdx].p + ' ' + p.name + '（総合 ', rankValEl(Math.round(overall(p)), 'sm'), '・疲労' + p.fatigue + '・', formFace(p), '）']));
       });
       box.appendChild(list2);
       box.appendChild(h('button', { class: 'btn small', onclick: function () { subOutId = null; render(); } }, ['交代をやめる']));
@@ -2746,7 +2843,12 @@ function finishRecruit() {
       });
     }
     g.appendChild(h('div', { class: 'sec' }, ['卒業する3年生（' + s.grads.length + '人）']));
-    s.grads.forEach(function (x) { g.appendChild(h('div', { class: 'rowline' }, [h('span', null, [x.name]), h('span', { class: 'sub' }, [x.pos + '・総合 ' + x.avg])])); });
+    s.grads.forEach(function (x) {
+      var gs = h('span', { class: 'sub' }, []);
+      gs.appendChild(document.createTextNode(x.pos + '・総合 '));
+      gs.appendChild(rankValEl(x.avg, 'sm')); /* v0.15: ランク併記 */
+      g.appendChild(h('div', { class: 'rowline' }, [h('span', null, [x.name]), gs]));
+    });
     g.appendChild(h('div', { class: 'sub' }, ['彼らはOBとして記録に残る。お疲れさま']));
     var nextBtn = h('button', { class: 'btn primary', onclick: function () { startRecruit(); } }, ['新年度へ（新入生を迎える）']);
     /* v0.11: 花園優勝の年は、優勝イラストを全面背景にした特別なエンディング表示にする */
@@ -2797,7 +2899,10 @@ function finishRecruit() {
     if (newObs.length) {
       leftKids.push(h('div', { class: 'sec' }, ['巣立った卒業生']));
       newObs.slice(-5).forEach(function (o) {
-        leftKids.push(h('div', { class: 'rowline' }, [h('span', null, [o.name]), h('span', { class: 'sub' }, [o.pos + '・総合 ' + o.avg])]));
+        var os = h('span', { class: 'sub' }, []);
+        os.appendChild(document.createTextNode(o.pos + '・総合 '));
+        os.appendChild(rankValEl(o.avg, 'sm')); /* v0.15: ランク併記 */
+        leftKids.push(h('div', { class: 'rowline' }, [h('span', null, [o.name]), os]));
       });
       leftKids.push(h('p', { class: 'sub' }, ['彼らの紹介や息子の入部で、OBはこれからも部に返ってくる。']));
     }
@@ -2924,11 +3029,24 @@ function finishRecruit() {
     if (!G.obs.length) o.appendChild(h('div', { class: 'sub' }, ['まだ卒業生がいない']));
     G.obs.slice().reverse().forEach(function (x) {
       /* v0.14: 名鑑に進路と最終能力（6能力）も出す。旧 OB（v0.14 以前の卒業生）は不明項目を「—」にする */
-      o.appendChild(h('div', { class: 'rowline' }, [h('span', null, [x.name]), h('span', { class: 'sub' }, [x.pos + '・' + x.year + '年卒・総合 ' + x.avg + '・進路 ' + (x.path || '—')])]));
-      var stTxt = (x.st && typeof x.st === 'object' && !Array.isArray(x.st))
-        ? STATS.map(function (s) { return s.n + ' ' + (typeof x.st[s.k] === 'number' ? x.st[s.k] : '—'); }).join('・')
-        : '最終能力 —';
-      o.appendChild(h('div', { class: 'sub' }, [stTxt + ((x.tries || 0) > 0 ? '／トライ ' + x.tries : '') + ((x.plays || 0) > 0 ? '／好プレー ' + x.plays : '')]));
+      /* v0.15: OB の総合と最終能力もランク併記に統一する */
+      var obHead = h('span', { class: 'sub' }, []);
+      obHead.appendChild(document.createTextNode(x.pos + '・' + x.year + '年卒・総合 '));
+      obHead.appendChild(rankValEl(x.avg, 'sm'));
+      obHead.appendChild(document.createTextNode('・進路 ' + (x.path || '—')));
+      o.appendChild(h('div', { class: 'rowline' }, [h('span', null, [x.name]), obHead]));
+      var stLine = h('div', { class: 'sub obstats' }, []);
+      if (x.st && typeof x.st === 'object' && !Array.isArray(x.st)) {
+        STATS.forEach(function (s, si) {
+          if (si) stLine.appendChild(document.createTextNode('・'));
+          stLine.appendChild(document.createTextNode(s.n + ' '));
+          if (typeof x.st[s.k] === 'number') stLine.appendChild(rankValEl(x.st[s.k], 'sm'));
+          else stLine.appendChild(document.createTextNode('—'));
+        });
+      } else stLine.appendChild(document.createTextNode('最終能力 —'));
+      if ((x.tries || 0) > 0) stLine.appendChild(document.createTextNode('／トライ ' + x.tries));
+      if ((x.plays || 0) > 0) stLine.appendChild(document.createTextNode('／好プレー ' + x.plays));
+      o.appendChild(stLine);
     });
     wrap([hud(), h('div', { class: 'lay2' }, [col([c]), o]),
       h('button', { class: 'btn', onclick: function () { screen = G.recruit ? 'recruit' : (G.board ? 'board' : 'inst'); render(); } }, ['戻る'])
