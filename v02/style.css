@@ -360,9 +360,9 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
 
 /* ===== v0.19: 週次プランニング画面（練習メニュー様式：場面背景＋大きな活動カード列＋最下部のステータスバー） ===== */
 .lay2.wtop { grid-template-columns: 1.3fr .7fr; }
-.wscene { position: relative; flex: 1; min-height: 180px; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); }
+.wscene { position: relative; flex: 1; min-height: 180px; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); display: flex; flex-direction: column; }
 .wscene .wscenebg { position: absolute; inset: 0; border: none; border-radius: 0; box-shadow: none; min-height: 0; }
-.wsceneov { position: absolute; left: 14px; top: 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.wsceneov { position: relative; padding: 12px 14px 0; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .wtitlerow { display: flex; align-items: center; gap: 12px; }
 .wtitle { font-size: 26px; font-weight: 800; color: #fff; text-shadow: 0 2px 8px rgba(0, 0, 0, .55); }
 .wsub { font-size: 13px; color: #fff; background: rgba(10, 20, 16, .45); padding: 3px 10px; border-radius: 99px; }
@@ -387,3 +387,60 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
 .wstatus .wstext { font-size: 13.5px; font-weight: 700; white-space: nowrap; }
 .wstatus .wstext.sub { color: var(--sub); font-weight: 400; }
 .wstatus .wauto { margin-left: auto; }
+
+/* ===== v0.20: 実機レイアウト修正（週次画面）＋新入生まわり ===== */
+/* 固定レイアウト（横画面）では場面の最小高さを外し、上段の残り高さに収める。
+   基本定義（.wscene の min-height:180px）より後方に置く必要があるため、この節で上書きする */
+@media (min-width: 760px) and (orientation: landscape) {
+  .wscene { min-height: 0; }
+}
+/* 会話バー：場面（背景）の下部に置く半透明カード。通常フローで場面の箱の中に収まり、活動カード列には被らない */
+.wdlgbar { position: relative; margin: auto 10px 10px; background: rgba(8, 20, 15, .78); color: #fff; border-radius: 12px; padding: 7px 10px; display: flex; gap: 9px; align-items: center; box-shadow: 0 4px 14px rgba(0, 0, 0, .25); }
+.wdlgbar .portrait.dlg-p { width: 40px; height: 48px; border-radius: 8px; flex: none; }
+.wdlgbar .wdlgtx { font-size: 13px; line-height: 1.45; min-width: 0; }
+.wdlgbar .wsub2 { color: rgba(255, 255, 255, .75); font-size: 12px; }
+/* 週次画面の情報カードを圧縮（疲労メーター＋1行サマリー） */
+.winfo { padding: 9px 12px; }
+/* シーズン締めの卒業写真ヒーロー：左カラムの高さの約1/3を確保し、結果カード側は内部スクロールで受ける */
+.photobanner.sumhero { flex: 0 0 32%; min-height: 0; }
+/* 候補・新入生カードの能力ミニ行とタグ行 */
+.statmini { display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: center; font-size: 12.5px; color: var(--sub); margin: 2px 0; }
+.statmini .smitem { white-space: nowrap; }
+.statmini .smitem.ov { font-weight: 700; color: var(--ink); }
+.tagrow { flex-wrap: wrap; row-gap: 3px; margin: 2px 0; }
+.tagrow .tag:first-child { margin-left: 0; }
+.tagrow .badge { margin: 1px 0 1px 4px; }
+.tagrow .badge:first-child { margin-left: 0; }
+.badge.obb { background: #2456c6; }
+/* 成功率の内訳 */
+.spbreak { border-top: 1px dashed var(--line); margin-top: 6px; padding-top: 5px; }
+.spbreak .spbrow { padding: 1px 0; font-size: 12.5px; }
+.spbval { font-weight: 700; font-variant-numeric: tabular-nums; }
+/* 比較ビューの上部帯と比較表 */
+.strip { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 9px 14px; }
+.strip .sec { margin: 0; }
+.strip .tabs { margin: 0 0 0 auto; flex: 0 0 260px; }
+.cmpcard { padding: 10px 12px; }
+.cmpcard .cand { margin-top: 10px; }
+table.cmp { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.cmp th, table.cmp td { border: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+table.cmp th.cmplab { background: var(--brand-soft); color: var(--brand); font-size: 12px; white-space: nowrap; width: 64px; }
+table.cmp td.cmphead { text-align: center; background: rgba(27, 42, 82, .05); }
+table.cmp td.cmphead.sel { background: rgba(23, 122, 60, .10); }
+table.cmp td.cmphead .portrait { margin: 0 auto; }
+table.cmp td.cmpblurb { font-size: 12px; line-height: 1.5; color: var(--sub); min-width: 130px; }
+/* 縦の短い横画面（実機 932×430 級）では週次画面の各部を詰めて、全要素を画面内に収める */
+@media (min-width: 760px) and (orientation: landscape) and (max-height: 520px) {
+  .wtitle { font-size: 20px; }
+  .wsub { font-size: 12px; }
+  .wdots .wdot { width: 10px; height: 10px; }
+  .wcard { padding: 7px 3px 6px; }
+  .wcard .wic { font-size: 20px; }
+  .wcard .wnm { font-size: 13px; }
+  .wcard .wdsc { font-size: 10px; min-height: 22px; }
+  .wcard .wbadge { font-size: 10px; min-height: 12px; }
+  .wstatus { padding: 6px 12px; }
+  .wdlgbar { padding: 5px 8px; margin: auto 8px 8px; }
+  .wdlgbar .portrait.dlg-p { width: 32px; height: 38px; }
+  .wdlgbar .wdlgtx { font-size: 12px; line-height: 1.35; }
+}

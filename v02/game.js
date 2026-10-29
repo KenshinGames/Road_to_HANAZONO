@@ -1,4 +1,6 @@
-/* Road to HANAZONO v0.19 — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.20 — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+ * v0.20: 新入生と締め（スカウト候補の比較表示＝能力ランク・特能・寸評・成功率を一覧で比較／成功率の内訳可視化＝判定式の実在要素を分解表示・判定ロジック不変／
+ *        新入生紹介画面＝入部した新入生を立ち絵＋寸評＋特能でお披露目し、卒業演出と対になる見せ場に／全画面デザイン監査／週次方式の長期ソーク最終レポート）
  * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示
  * v0.4: 新入生3層の完成(スカウト＋特別枠) + OB連携
  * v0.5: 立ち絵表現(パーツ組み合わせ式の自動生成) + 試合カットイン + 会話劇 + 季節感
@@ -293,6 +295,7 @@
   var selMarkId = null;   /* v0.16: 対戦確認で指名したエースのマークマン（選手ID）。null=なし。同上 */
   var lineupSlot = null;
   var squadTab = 'stat'; /* v0.17: 選手詳細のタブ（'stat'=能力 / 'prof'=プロフィール）。表示専用でセーブには入れない */
+  var recruitView = 'cards'; /* v0.20: 勧誘画面の表示切替（'cards'=カード / 'cmp'=比較）。表示専用でセーブには入れない */
   /* ===== v0.10: 効果音（WebAudio 合成・外部ファイルなし） =====
    * 設定はゲームのセーブとは別キー hanazono.sound に保存する。
    * AudioContext はユーザー操作の流れでのみ生成・再開し、失敗しても例外を外に出さない。
@@ -764,10 +767,21 @@
       var okR = Array.isArray(G.recruit.cands) && G.recruit.cands.every(function (c) { return c && c.p && c.p.stats; });
       if (!okR) G.recruit = null;
       else {
-        G.recruit.cands.forEach(function (c) { fixPlayer(c.p); });
+        G.recruit.cands.forEach(function (c) { fixPlayer(c.p); scoutPartsOf(c); /* v0.20: 成功率の内訳を旧セーブにも補完 */ });
         if (G.recruit.special && G.recruit.special.p) fixPlayer(G.recruit.special.p);
         else if (G.recruit.special && !G.recruit.special.p) G.recruit.special = null;
       }
+    }
+    /* v0.20: 新入生紹介（表示専用のデータ）。実在しない選手を指す項目や壊れた項目は捨て、空なら紹介なしに戻す */
+    if (G.intro != null) {
+      var okI = G.intro && typeof G.intro === 'object' && Array.isArray(G.intro.list);
+      if (okI) {
+        G.intro.list = G.intro.list.filter(function (x) {
+          return x && G.players.some(function (p) { return p.id === x.pid; }) &&
+            ['scout', 'special', 'general'].indexOf(x.kind) >= 0 && typeof x.note === 'string';
+        });
+        if (!G.intro.list.length) G.intro = null;
+      } else G.intro = null;
     }
     /* v0.13: 月次成長レポートの記録（表示専用のデータ）。形が壊れていたら捨てる */
     if (!G.growAcc || typeof G.growAcc !== 'object' || Array.isArray(G.growAcc) ||
@@ -2361,9 +2375,25 @@ function genScoutCands() {
       cand.sp = clamp(cand.sp + 0.10, 0.15, 0.97);
     }
     cand.blurb = makeBlurb(p, cand.viaOb ? ('OBの' + cand.viaOb + 'さん（' + cand.obYear + '年卒）の紹介で名前が挙がった') : null);
+    /* v0.20: 成功率の内訳（%ポイント、判定式の実在要素のみ）。判定は従来どおり cand.sp で行い、parts は表示専用。
+       基本52／部の格 gi×6／評判 (rep-30)×0.12／候補の実力 -(base-下限)×1.8／OB紹介 +10。
+       sp の丸め（小数第2位）と上下限クランプの残差は adj に集約し、合計が表示成功率と一致するようにする */
+    var r1f = function (v) { return Math.round(v * 10) / 10; };
+    cand.parts = { base: 52, grade: gi * 6, rep: r1f((G.rep - 30) * 0.12), talent: r1f(-(base - gr.fresh) * 1.8), ob: cand.viaOb ? 10 : 0, adj: 0 };
+    cand.parts.adj = r1f(Math.round(cand.sp * 100) - (cand.parts.base + cand.parts.grade + cand.parts.rep + cand.parts.talent + cand.parts.ob));
     cands.push(cand);
   }
   return cands;
+}
+/* v0.20: 旧セーブ（parts を持たない候補）の内訳を復元する。部の格・評判・OB紹介は勧誘フロー中は不変なので正確に再計算でき、
+   候補の実力は合計（表示成功率）からの残差で求める（丸め・クランプ分を含む近似。表示専用） */
+function scoutPartsOf(c) {
+  if (c.parts && typeof c.parts === 'object' && typeof c.parts.base === 'number') return c.parts;
+  var r1f = function (v) { return Math.round(v * 10) / 10; };
+  var parts = { base: 52, grade: gradeIdx() * 6, rep: r1f((G.rep - 30) * 0.12), talent: 0, ob: c.viaOb ? 10 : 0, adj: 0 };
+  parts.talent = r1f(Math.round(c.sp * 100) - (parts.base + parts.grade + parts.rep + parts.ob));
+  c.parts = parts;
+  return parts;
 }
 var CONVERT_SPORTS = [
   { n: 'サッカー', bonus: { spd: 10, kik: 8 }, skill: 'kick' },
@@ -2454,11 +2484,13 @@ function finishRecruit() {
   var R = G.recruit;
   var lines = [];
   var scoutJoined = 0;
+  var newcomers = []; /* v0.20: 新入生紹介画面に渡す入部者リスト（表示専用） */
   if (R) {
     R.cands.forEach(function (c) {
       if (!c.picked) return;
       if (Math.random() < c.sp) {
         G.players.push(c.p); scoutJoined++;
+        newcomers.push({ pid: c.p.id, kind: 'scout', note: c.blurb });
         lines.push('🌸 スカウト成功！ ' + c.p.name + '（' + POSITIONS[c.p.posIdx].p + '）が入部を決めた');
       } else {
         lines.push('スカウト叶わず… ' + c.p.name + ' は他校へ進学した');
@@ -2466,20 +2498,27 @@ function finishRecruit() {
     });
     if (R.special && R.special.accepted) {
       G.players.push(R.special.p);
+      newcomers.push({ pid: R.special.p.id, kind: 'special', note: R.special.desc });
       lines.push('🌸 ' + R.special.title.replace('🌟 ', '') + ' ― ' + R.special.p.name + '（' + POSITIONS[R.special.p.posIdx].p + '・' + R.special.p.year + '年）が入部した');
     }
   }
   var gr = gradeOf();
   var gen = Math.max(0, gr.count - scoutJoined);
-  for (var i = 0; i < gen; i++) G.players.push(makePlayer(scarcePosIdx(), 1, gr.fresh));
+  for (var i = 0; i < gen; i++) {
+    var np = makePlayer(scarcePosIdx(), 1, gr.fresh);
+    G.players.push(np);
+    newcomers.push({ pid: np.id, kind: 'general', note: makeBlurb(np, null) });
+  }
   sortRoster();
   G.inst.focus = G.players[0] ? G.players[0].id : 1;
   lines.push('一般入部で ' + gen + ' 名の新入生が加わった');
   if (G.rivalNews) { lines.push(G.rivalNews); G.rivalNews = null; }
   G.monthLog = lines;
   G.recruit = null;
+  /* v0.20: 入部が確定したら、まず新入生紹介でお披露目してから目標設定へ（卒業演出と対になる見せ場） */
+  G.intro = newcomers.length ? { list: newcomers } : null;
   checkAchievements();
-  screen = 'goal'; save(); render(); /* v0.9: 新年度はまず目標を決める */
+  screen = G.intro ? 'intro' : 'goal'; save(); render(); /* v0.9: 新年度はまず目標を決める（v0.20: 紹介を挟む） */
 }
 
   /* ---------------- 立ち絵(v0.5): パーツ組み合わせ式SVG生成 ----------------
@@ -2756,6 +2795,7 @@ function finishRecruit() {
     if (screen === 'match') return matchScreen();
     if (screen === 'summary') return summaryScreen();
     if (screen === 'recruit') return recruitScreen();
+    if (screen === 'intro') return introScreen(); /* v0.20: 新入生紹介 */
     if (screen === 'records') return recordsScreen();
     return boardScreen();
   }
@@ -2795,7 +2835,7 @@ function finishRecruit() {
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.19'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.20'])]),
       h('div', { class: 'card center title-card' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、1週間ごとに活動を選んで選手を育てよう。世代を超えて、花園の常連校を目指す。']),
         h('button', { class: 'btn primary', onclick: function () { newGame('normal'); screen = 'goal'; render(); } }, ['監督に就任する（ふつう）']),
@@ -2821,7 +2861,7 @@ function finishRecruit() {
      ['③ 週次プランニング', '1か月は4週間。今週の活動をカードから選ぶと、練習の実りや回復、時折イベントが起きる。活動の能力が月の全体方針と一致すると少しお得。「おまかせ」で月末まで自動で進められる'],
      ['④ 試合', '6月=練習試合、10〜12月=花園予選、1月=花園。勝負どころでは采配（選択肢）を選ぶ'],
      ['⑤ シーズン終了', '結果を振り返り、3年生は卒業してOB名鑑へ'],
-     ['⑥ 勧誘', 'スカウト候補・特別枠・一般入部で新チームを作って新年度へ']].forEach(function (r) {
+     ['⑥ 勧誘', 'スカウト候補・特別枠・一般入部で新チームを作って新年度へ。候補は「比較」表示で能力や成功率を見比べられ、成功率の内訳も確認できる。入部した新入生は紹介画面でお披露目される']].forEach(function (r) {
       L.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
     });
     var R = h('div', { class: 'card grow scroll' });
@@ -2849,7 +2889,7 @@ function finishRecruit() {
     var rec = recommendedGoal();
     var cur = goalOf();
     var left = [banner('home', 'grow', 0)];
-    var info = h('div', { class: 'card grow' }, [
+    var info = h('div', { class: 'card grow scroll' }, [ /* v0.20 実機レイアウト修正: 説明カードを内部スクロール化し、縦の短い画面でも左カラムがはみ出さないようにする */
       h('div', { class: 'sec' }, ['🎯 ' + G.year + '年目の目標を決めよう']),
       h('p', null, ['シーズンの物差しになる目標を1つ選ぶ。達成すれば評判が上がり、格上の目標を達成すればなお大きい。届かなくても罰は小さい（評判-3）から、思い切って高い目標を掲げるのも監督の腕の見せどころ。']),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['現在の部の格']), h('span', null, [gradeOf().n])]),
@@ -2994,6 +3034,9 @@ function finishRecruit() {
    * 操作（活動カードとおまかせ）は下段に置き、v0.17 の固定レイアウト原則（HUD 1行・全体スクロールなし）を守る */
   function weeklyScreen() {
     var b = G.board, mo = MONTHS[G.monthIdx];
+    /* v0.20 実機レイアウト修正：場面は「背景として敷く」箱にし、会話は場面の下部バー（半透明）へ移した。
+       旧構造は場面パネル min-height:180px と右カラム（情報＋会話＋ログ）の min-content が、
+       実機の横画面（932×430）で上段を膨らませて活動カード列に重なっていた */
     var scene = h('div', { class: 'wscene' });
     scene.appendChild(banner(mo.match != null ? 'match' : 'train', 'wscenebg', G.monthIdx));
     var sov = h('div', { class: 'wsceneov' });
@@ -3008,27 +3051,28 @@ function finishRecruit() {
       (mo.match != null ? '月末に ' + effOpp(mo.match).name + ' との試合がある。今週の活動を選ぼう' : '今週の活動を選ぼう')
     ]));
     scene.appendChild(sov);
-    var info = h('div', { class: 'card' });
-    info.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['チーム平均疲労']), h('span', null, [String(avgFatigue())])]));
-    info.appendChild(h('div', { class: 'meter' }, [h('div', { style: 'width:' + avgFatigue() + '%' }, [])]));
-    info.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['怪我人']), h('span', null, [String(G.players.filter(function (p) { return p.injured; }).length) + '人'])]));
-    info.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['次の試合']), h('span', null, [nextMatchText()])]));
-    var log = h('div', { class: 'log grow' });
-    (b.log.length ? b.log : ['月が始まった。今週の活動を選ぼう']).forEach(function (ln) { log.appendChild(h('div', null, [ln])); });
-    var rightKids = [info];
     if (b.dlg) {
       var dp = G.players.filter(function (p) { return p.id === b.dlg.pid; })[0];
       if (dp) {
-        var dg = h('div', { class: 'card dlg' });
+        var dg = h('div', { class: 'wdlgbar dlg' });
         dg.appendChild(portraitEl(dp, 'dlg-p'));
-        dg.appendChild(h('div', null, [
-          h('div', null, [h('b', null, [dp.name]), h('span', { class: 'sub' }, ['（' + dp.person + '）'])]),
+        dg.appendChild(h('div', { class: 'wdlgtx' }, [
+          h('div', null, [h('b', null, [dp.name]), h('span', { class: 'wsub2' }, ['（' + dp.person + '）'])]),
           h('div', null, ['「' + b.dlg.text + '」'])
         ]));
-        rightKids.push(dg);
+        scene.appendChild(dg);
       }
     }
-    rightKids.push(log);
+    var info = h('div', { class: 'card winfo' });
+    info.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['チーム平均疲労']), h('span', null, [String(avgFatigue())])]));
+    info.appendChild(h('div', { class: 'meter' }, [h('div', { style: 'width:' + avgFatigue() + '%' }, [])]));
+    info.appendChild(h('div', { class: 'rowline' }, [
+      h('span', { class: 'sub' }, ['怪我人 ' + G.players.filter(function (p) { return p.injured; }).length + '人']),
+      h('span', null, [nextMatchText()])
+    ]));
+    var log = h('div', { class: 'log grow' });
+    (b.log.length ? b.log : ['月が始まった。今週の活動を選ぼう']).forEach(function (ln) { log.appendChild(h('div', null, [ln])); });
+    var rightKids = [info, log];
     var cards = h('div', { class: 'wcards' });
     var recKey = autoWeekKey();
     WEEK_ACTS.forEach(function (a) {
@@ -3379,6 +3423,8 @@ function finishRecruit() {
       kmBox.appendChild(kmCols);
       vs.appendChild(kmBox);
     }
+    /* v0.20 実機レイアウト修正: 戦術とキッカー＆マークを1枚のスクロールカードに統合する。
+       別カードに分けると固定要素の合計が実機の縦幅を超え、カラムを突き抜けて重なっていた */
     var box = h('div', { class: 'card choices grow scroll' });
     box.appendChild(h('div', { class: 'sec' }, ['今日の戦術']));
     TACTICS.forEach(function (tc) {
@@ -3387,7 +3433,7 @@ function finishRecruit() {
       ]));
     });
     /* v0.16: PGキッカーとエースのマークマンの指名（任意・この試合限り）。キッカーの目安は段階表示（◎○△）のみで、成功率は数値で見せない */
-    var prep = h('div', { class: 'card choices' });
+    var prep = box;
     prep.appendChild(h('div', { class: 'sec' }, ['🦵 キッカー＆マーク（任意）']));
     prep.appendChild(h('label', { class: 'lab' }, ['PGキッカー（おまかせ時は自動で最適な選手が蹴る）']));
     var ksel = h('select', null, [h('option', { value: '' }, ['おまかせ'])]
@@ -3403,7 +3449,7 @@ function finishRecruit() {
       msel.onchange = function () { selMarkId = msel.value === '' ? null : +msel.value; };
       prep.appendChild(msel);
     }
-    var rightKids = [box, prep,
+    var rightKids = [box,
       h('button', { class: 'btn', onclick: function () { lineupSlot = null; screen = 'lineup'; render(); } }, ['👥 メンバー編成'])];
     if (canSkip(mo.match)) {
       rightKids.push(h('button', { class: 'btn', onclick: function () { skipMatch(mo.match); } }, ['⏩ 結果のみ表示（スキップ）']));
@@ -3524,7 +3570,7 @@ function finishRecruit() {
   }
   function summaryScreen() {
     var s = G.summary;
-    var result = h('div', { class: 'card center' }, [
+    var result = h('div', { class: 'card center grow scroll' }, [ /* v0.20 実機レイアウト修正: 結果カードを内部スクロール化し、卒業写真の帯化を防ぐ */
       h('div', { class: 'big' }, [G.year + '年目のシーズン終了']),
       h('p', null, [s.result + '（' + s.wins + '勝 ' + s.losses + '敗）']),
       s.goalEval ? h('p', null, [s.goalEval.text]) : h('span', null, []),
@@ -3564,9 +3610,10 @@ function finishRecruit() {
       wrap([hud(), full]);
       return;
     }
-    /* v0.11: 通常のシーズン終了は「卒業の日」イラストをヒーローに（卒業生の送り出しが主役の画面） */
+    /* v0.11: 通常のシーズン終了は「卒業の日」イラストをヒーローに（卒業生の送り出しが主役の画面）
+       v0.20 実機レイアウト修正: バナーは高さ比率を固定（sumhero）し、縦の短い画面でも帯状に潰れないようにする */
     wrap([hud(), h('div', { class: 'lay2' }, [
-      col([photoBanner('graduation', 'grow'), result]),
+      col([photoBanner('graduation', 'sumhero'), result]),
       col([g])
     ]), actionBar([nextBtn])]);
   }
@@ -3581,18 +3628,145 @@ function finishRecruit() {
     ]));
     return d;
   }
+  /* v0.20: %ポイントの符号つき表記（成功率の内訳用） */
+  function fmtPP(v) {
+    var s = String(Math.round(Math.abs(v) * 10) / 10);
+    if (v > 0) return '+' + s;
+    if (v < 0) return '-' + s;
+    return '±0';
+  }
+  /* v0.20: 候補・新入生カードの能力ミニ行（総合＋6能力を v0.15 のランク併記で） */
+  function statMiniRow(p) {
+    var d = h('div', { class: 'statmini' });
+    var ov = h('span', { class: 'smitem ov' });
+    ov.appendChild(document.createTextNode('総合 '));
+    ov.appendChild(rankValEl(overall(p), 'sm'));
+    d.appendChild(ov);
+    STATS.forEach(function (s) {
+      var it = h('span', { class: 'smitem' });
+      it.appendChild(document.createTextNode(s.n.slice(0, 2) + ' '));
+      it.appendChild(rankValEl(p.stats[s.k], 'sm'));
+      d.appendChild(it);
+    });
+    return d;
+  }
+  /* v0.20: 特能・特性・性格のタグ行（選手詳細のタググリッドと同じ様式） */
+  function candTags(p) {
+    var d = h('div', { class: 'hand tagrow' });
+    skillNames(p).forEach(function (n) { d.appendChild(h('span', { class: 'tag good' }, [n])); });
+    if (p.trait) d.appendChild(h('span', { class: 'tag ' + (p.trait.n === '怪我がち' ? 'bad' : 'mid') }, [p.trait.n]));
+    if (p.person) d.appendChild(h('span', { class: 'tag mid' }, [p.person]));
+    return d;
+  }
+  /* v0.20: スカウト成功率の内訳（判定式の実在要素のみ。合計は表示成功率と一致する） */
+  function spBreakEl(c) {
+    var parts = scoutPartsOf(c);
+    var d = h('div', { class: 'spbreak' });
+    function row(label, v) {
+      d.appendChild(h('div', { class: 'rowline spbrow' }, [
+        h('span', { class: 'sub' }, [label]),
+        h('span', { class: 'spbval' }, [fmtPP(v)])
+      ]));
+    }
+    row('基本', parts.base);
+    row('部の格（' + gradeOf().n + '）', parts.grade);
+    row('学校の評判（' + G.rep + '）', parts.rep);
+    row('候補の実力（高いほど届きにくい）', parts.talent);
+    if (c.viaOb) row('OB紹介（' + c.viaOb + 'さん）', parts.ob);
+    if (parts.adj) row('調整（上限・丸め）', parts.adj);
+    return d;
+  }
+  function specialCard(sp) {
+    var sc = h('div', { class: 'card cand' + (sp.accepted ? ' sel' : '') });
+    sc.appendChild(h('div', { class: 'sec' }, [sp.title]));
+    sc.appendChild(candHead(sp.p));
+    sc.appendChild(statMiniRow(sp.p));
+    sc.appendChild(candTags(sp.p));
+    sc.appendChild(h('p', null, [sp.desc]));
+    sc.appendChild(h('div', { class: 'hand' }, [
+      h('button', { class: 'btn small' + (sp.accepted ? ' primary' : ''), onclick: function () { setSpecial(true); } }, ['迎え入れる']),
+      h('button', { class: 'btn small', onclick: function () { setSpecial(false); } }, ['見送る'])
+    ]));
+    return sc;
+  }
+  /* v0.20: スカウト候補の比較表（能力ランク・特能・寸評・成功率を横並びで見比べる） */
+  function recruitCmpEl(R) {
+    var box = h('div', { class: 'card grow scroll cmpcard' });
+    var t = h('table', { class: 'cmp' });
+    function rowEl(label, cells) {
+      var tr = h('tr');
+      tr.appendChild(h('th', { class: 'cmplab' }, [label]));
+      cells.forEach(function (c) { tr.appendChild(c); });
+      t.appendChild(tr);
+    }
+    function tdOf(build) { var td = h('td'); build(td); return td; }
+    rowEl('', R.cands.map(function (c) {
+      return tdOf(function (td) {
+        td.className = 'cmphead' + (c.picked ? ' sel' : '');
+        td.appendChild(portraitEl(c.p, 'cand-p'));
+        td.appendChild(h('div', { class: 'big' }, [c.p.name]));
+        var bd = h('div', { class: 'hand tagrow' });
+        if (c.elite) bd.appendChild(h('span', { class: 'badge' }, ['目玉候補']));
+        if (c.viaOb) bd.appendChild(h('span', { class: 'badge obb' }, ['OB紹介']));
+        if (bd.childNodes.length) td.appendChild(bd);
+      });
+    }));
+    rowEl('ポジション', R.cands.map(function (c) { return tdOf(function (td) { td.textContent = POSITIONS[c.p.posIdx].p; }); }));
+    rowEl('体格', R.cands.map(function (c) { return tdOf(function (td) { td.textContent = c.p.h + 'cm／' + c.p.w + 'kg'; }); }));
+    rowEl('性格', R.cands.map(function (c) { return tdOf(function (td) { td.textContent = c.p.person || '―'; }); }));
+    rowEl('特能', R.cands.map(function (c) {
+      return tdOf(function (td) {
+        var names = skillNames(c.p);
+        if (c.p.trait) names = names.concat([c.p.trait.n]);
+        td.textContent = names.length ? names.join('・') : '―';
+      });
+    }));
+    rowEl('総合', R.cands.map(function (c) { return tdOf(function (td) { td.appendChild(rankValEl(overall(c.p), 'sm')); }); }));
+    STATS.forEach(function (s) {
+      rowEl(s.n, R.cands.map(function (c) { return tdOf(function (td) { td.appendChild(rankValEl(c.p.stats[s.k], 'sm')); }); }));
+    });
+    rowEl('成功率', R.cands.map(function (c) {
+      return tdOf(function (td) {
+        td.appendChild(h('span', { class: 'big' }, [Math.round(c.sp * 100) + '%']));
+        if (c.viaOb) td.appendChild(h('div', { class: 'sub' }, ['OB紹介こみ']));
+      });
+    }));
+    rowEl('寸評', R.cands.map(function (c) { return tdOf(function (td) { td.className = 'cmpblurb'; td.textContent = c.blurb; }); }));
+    rowEl('獲得', R.cands.map(function (c, i) {
+      return tdOf(function (td) {
+        td.appendChild(h('button', { class: 'btn small' + (c.picked ? ' primary' : ''), onclick: (function (ix) { return function () { togglePick(ix); }; })(i) }, [c.picked ? '✔ 獲得リストから外す' : '獲得リストに入れる']));
+      });
+    }));
+    box.appendChild(t);
+    if (R.special) box.appendChild(specialCard(R.special));
+    return box;
+  }
   function recruitScreen() {
     var R = G.recruit;
     if (!R) { wrap([hud(), h('div', { class: 'card' }, ['新入生情報がありません'])]); return; }
     var quota = scoutQuota();
     var pickedN = R.cands.filter(function (c) { return c.picked; }).length;
+    var tabs = h('div', { class: 'tabs' }, [
+      h('button', { class: 'tabbtn' + (recruitView === 'cards' ? ' on' : ''), onclick: function () { recruitView = 'cards'; render(); } }, ['カードで見る']),
+      h('button', { class: 'tabbtn' + (recruitView === 'cmp' ? ' on' : ''), onclick: function () { recruitView = 'cmp'; render(); } }, ['比較で見る'])
+    ]);
+    var action = actionBar([h('button', { class: 'btn primary', onclick: function () { finishRecruit(); } }, ['新年度を始める'])]);
+    if (recruitView === 'cmp') {
+      var strip = h('div', { class: 'card strip' });
+      strip.appendChild(h('span', { class: 'sec' }, ['🌸 ' + G.year + '年目 ― スカウト候補の比較']));
+      strip.appendChild(h('span', { class: 'sub' }, ['部の格 ' + gradeOf().n + ' ／ 獲得枠 ' + quota + '名（選択中 ' + pickedN + '名） ／ 成功率の内訳は「カードで見る」で確認できる']));
+      strip.appendChild(tabs);
+      wrap([hud(), strip, recruitCmpEl(R), action]);
+      return;
+    }
     var leftKids = [
       h('div', { class: 'sec' }, ['🌸 ' + G.year + '年目 ― 新入生を迎える']),
       h('p', null, ['卒業生が巣立ち、新しい世代がやってくる。中学3年生のスカウト候補から、声をかけたい選手を獲得リスト（' + quota + '名まで）に入れよう。']),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['部の格']), h('span', null, [gradeOf().n])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['スカウト獲得枠']), h('span', null, [quota + '名（選択中 ' + pickedN + '名）'])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['OB名鑑']), h('span', null, [G.obs.length + '名が記録に残る'])]),
-      h('p', { class: 'sub' }, ['寸評はOBや中学の指導者からの伝聞。体格と「らしさ」のヒントにしよう。獲得できなくても、残りの枠は一般入部で埋まる。'])
+      tabs,
+      h('p', { class: 'sub' }, ['寸評はOBや中学の指導者からの伝聞。体格と「らしさ」のヒントにしよう。成功率は部の格・評判・候補の実力・OB紹介で決まり、内訳を各カードに示した。獲得できなくても、残りの枠は一般入部で埋まる。'])
     ];
     var newObs = G.obs.filter(function (o) { return o.year === G.year - 1; });
     if (newObs.length) {
@@ -3605,36 +3779,62 @@ function finishRecruit() {
       });
       leftKids.push(h('p', { class: 'sub' }, ['彼らの紹介や息子の入部で、OBはこれからも部に返ってくる。']));
     }
-    var left = h('div', { class: 'card grow' }, leftKids);
+    var left = h('div', { class: 'card grow scroll' }, leftKids);
     var list = h('div', { class: 'stack grow scroll' });
-    if (R.special) {
-      var sp = R.special;
-      var sc = h('div', { class: 'card cand' + (sp.accepted ? ' sel' : '') });
-      sc.appendChild(h('div', { class: 'sec' }, [sp.title]));
-      sc.appendChild(candHead(sp.p));
-      sc.appendChild(h('p', null, [sp.desc]));
-      sc.appendChild(h('div', { class: 'hand' }, [
-        h('button', { class: 'btn small' + (sp.accepted ? ' primary' : ''), onclick: function () { setSpecial(true); } }, ['迎え入れる']),
-        h('button', { class: 'btn small', onclick: function () { setSpecial(false); } }, ['見送る'])
-      ]));
-      list.appendChild(sc);
-    }
+    if (R.special) list.appendChild(specialCard(R.special));
     R.cands.forEach(function (c, i) {
       var card = h('div', { class: 'card cand' + (c.picked ? ' sel' : '') });
       card.appendChild(candHead(c.p));
       if (c.elite) card.appendChild(h('div', null, [h('span', { class: 'badge' }, ['目玉候補'])]));
+      card.appendChild(statMiniRow(c.p));
+      card.appendChild(candTags(c.p));
       card.appendChild(h('p', null, [c.blurb]));
       card.appendChild(h('div', { class: 'rowline' }, [
         h('span', { class: 'sub' }, ['獲得成功率の目安']),
         h('span', null, [Math.round(c.sp * 100) + '%'])
       ]));
+      card.appendChild(spBreakEl(c));
       card.appendChild(h('button', { class: 'btn small' + (c.picked ? ' primary' : ''), onclick: (function (ix) { return function () { togglePick(ix); }; })(i) }, [c.picked ? '✔ 獲得リストから外す' : '獲得リストに入れる']));
       list.appendChild(card);
     });
     wrap([hud(), h('div', { class: 'lay2' }, [
       col([left]),
       col([list])
-    ]), actionBar([h('button', { class: 'btn primary', onclick: function () { finishRecruit(); } }, ['新年度を始める'])])]);
+    ]), action]);
+  }
+  /* v0.20: 新入生紹介。入部が確定した新入生を立ち絵＋寸評＋特能でお披露目する（シーズン締めの卒業演出と対になる見せ場） */
+  function introScreen() {
+    var list = (G.intro && G.intro.list) || [];
+    var byId = {};
+    G.players.forEach(function (p) { byId[p.id] = p; });
+    var items = list.map(function (x) { return { x: x, p: byId[x.pid] }; }).filter(function (o) { return o.p; });
+    if (!items.length) { G.intro = null; screen = 'goal'; save(); render(); return; }
+    var nScout = items.filter(function (o) { return o.x.kind === 'scout'; }).length;
+    var nSp = items.filter(function (o) { return o.x.kind === 'special'; }).length;
+    var nGen = items.filter(function (o) { return o.x.kind === 'general'; }).length;
+    var leftKids = [
+      h('div', { class: 'sec' }, ['🌸 新入生紹介 ― ' + G.year + '年目の春']),
+      h('p', null, [items.length + '名の新入生が桜丘ラグビー部に入部した。卒業生が巣立ったグラウンドに、新しい顔ぶれが加わる。']),
+      h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['スカウト入部']), h('span', null, [nScout + '名'])]),
+      h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['特別枠']), h('span', null, [nSp + '名'])]),
+      h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['一般入部']), h('span', null, [nGen + '名'])]),
+      h('p', { class: 'sub' }, ['まずは顔と名前を覚えよう。彼らの成長の物語は、ここから始まる。'])
+    ];
+    /* 左は情報カード1枚に統一（バナーを縦積みすると実機の縦幅では帯状に潰れるため。主役は右の新入生カード列） */
+    var left = col([h('div', { class: 'card grow scroll' }, leftKids)]);
+    var cards = h('div', { class: 'stack grow scroll' });
+    items.forEach(function (o) {
+      var card = h('div', { class: 'card cand' });
+      card.appendChild(candHead(o.p));
+      var kindLabel = o.x.kind === 'scout' ? '🌸 スカウト入部' : (o.x.kind === 'special' ? '🌟 特別枠' : '一般入部');
+      card.appendChild(h('div', null, [h('span', { class: 'badge' }, [kindLabel])]));
+      card.appendChild(statMiniRow(o.p));
+      card.appendChild(candTags(o.p));
+      card.appendChild(h('p', null, [o.x.note]));
+      cards.appendChild(card);
+    });
+    wrap([hud(), h('div', { class: 'lay2' }, [left, col([cards])]),
+      actionBar([h('button', { class: 'btn primary', onclick: function () { G.intro = null; screen = 'goal'; save(); render(); } }, ['次へ進む'])])]);
   }
   function recordsScreen() {
     var c = h('div', { class: 'card grow scroll' });
@@ -3763,6 +3963,7 @@ function finishRecruit() {
   if (!loadSaved()) G = null;
   if (G) { sanitize(); save(); showDigest = true; } /* マイグレーション結果を即永続化／v0.10: 再開時はあらすじを1回出す */
   if (G && G.recruit) screen = 'recruit';
+  else if (G && G.intro) screen = 'intro'; /* v0.20: 紹介の途中で閉じても紹介から再開する */
   else if (G && G.board) screen = 'board';
   else if (G && G.summary) screen = 'summary';
   else if (G && !G.goalSet && G.monthIdx === 0) screen = 'goal';
