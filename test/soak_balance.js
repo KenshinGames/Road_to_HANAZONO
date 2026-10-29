@@ -47,9 +47,9 @@ async function runCareer(seed, maxYears) {
     if (btn('目標を決めて')) { click('目標を決めて'); await sleep(120); continue; }
     if (btn('確認した')) { click('確認した'); await sleep(5); continue; } /* v0.22 追随: 成長レポートが専用レイアウト表示になり、確認後に指示フォームが出るため、駆動に確認ステップを追加（検証内容は不変） */
     if (btn('指示を確定')) {
-      /* 練習強度は「強め」に寄せる（select は team/unit/focus/level/captain/ethos の順） */
-      const sels = document.querySelectorAll('select');
-      if (sels[3] && sels[3].value !== '1') { sels[3].value = '1'; if (sels[3].onchange) sels[3].onchange(); }
+      /* 練習強度は「強め」に寄せる（v0.27 追随: 強度はセレクトからボタン列 .seg[data-k="level"] になった。選ぶ値は従来と同じ '1'） */
+      const lv = document.querySelector('.seg[data-k="level"] [data-v="1"]');
+      if (lv && !lv.classList.contains('on')) lv.click();
       click('指示を確定'); await sleep(1); continue;
     }
     const pc = document.querySelector('.pcard');

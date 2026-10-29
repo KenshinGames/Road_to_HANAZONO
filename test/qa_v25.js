@@ -78,15 +78,15 @@ async function makeLcgDom(html, seed) {
 (async () => {
   /* ---- 1. バージョン表記 v1.0 とクレジット ---- */
   {
-    check('version: document title is v1.1', HTML.includes('<title>Road to HANAZONO v1.1</title>')); /* v0.26: バージョン表記を v1.1 に追随 */
+    check('version: document title is v1.2', HTML.includes('<title>Road to HANAZONO v1.2</title>')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */
     check('version: no stale v0.24 in document title/hero source', !HTML.includes('Road to HANAZONO v0.24') && !HTML.includes('育成シミュレーション v0.24'));
     const h = await makeDom(HTML, null, 1);
     const x = H(h);
-    check('version: hero shows v1.1', x.text().includes('高校ラグビー育成シミュレーション v1.1')); /* v0.26: バージョン表記を v1.1 に追随 */
+    check('version: hero shows v1.2', x.text().includes('高校ラグビー育成シミュレーション v1.2')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */
     check('credits: title carries the credit line', x.text().includes('制作：Kenshin Takada') && x.text().includes('Muse との共同開発'));
     x.click('📖'); await sleep(20);
     check('credits: guide has a credits section', x.text().includes('クレジット') && x.text().includes('Kenshin Takada') && x.text().includes('Muse（AI）との共同開発'));
-    check('credits: guide credits name the series and version', x.text().includes('100アプリチャレンジ #47') && x.text().includes('v1.1（Web版）')); /* v0.26: バージョン表記を v1.1 に追随 */
+    check('credits: guide credits name the series and version', x.text().includes('100アプリチャレンジ #47') && x.text().includes('v1.2（Web版）')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */
     h.window.close();
   }
 
@@ -150,8 +150,8 @@ async function makeLcgDom(html, seed) {
       if (x.btn('目標を決めて')) { x.click('目標を決めて'); await sleep(30); continue; }
       if (x.btn('確認した')) { x.click('確認した'); await sleep(5); continue; }
       if (x.btn('指示を確定')) {
-        const sels = x.document.querySelectorAll('select');
-        if (sels[3] && sels[3].value !== '1') { sels[3].value = '1'; if (sels[3].onchange) sels[3].onchange(); }
+        const lv = x.document.querySelector('.seg[data-k="level"] [data-v="1"]'); /* v0.27 追随: 強度はボタン列（値は従来と同じ '1'＝強め） */
+        if (lv && !lv.classList.contains('on')) lv.click();
         x.click('指示を確定'); await sleep(5); continue;
       }
       const pc = x.document.querySelector('.pcard');
@@ -203,8 +203,8 @@ async function makeLcgDom(html, seed) {
       if (btn('目標を決めて')) { click('目標を決めて'); await sleep(30); continue; }
       if (btn('確認した')) { click('確認した'); await sleep(3); continue; }
       if (btn('指示を確定')) {
-        const sels = document.querySelectorAll('select');
-        if (sels[3] && sels[3].value !== '1') { sels[3].value = '1'; if (sels[3].onchange) sels[3].onchange(); }
+        const lv = document.querySelector('.seg[data-k="level"] [data-v="1"]'); /* v0.27 追随: 強度はボタン列（値は従来と同じ '1'＝強め） */
+        if (lv && !lv.classList.contains('on')) lv.click();
         click('指示を確定'); await sleep(2); continue;
       }
       /* v0.26 追随: 週次は本命ソーク（soak_v19_ab）と同じゲーム内蔵「おまかせ」で進める。先頭カード固定は偏った参照方針で、

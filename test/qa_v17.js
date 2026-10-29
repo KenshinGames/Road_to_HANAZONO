@@ -59,7 +59,7 @@ async function driveToPreMatch(H) {
 
 (async () => {
   /* ---- 0. 静的チェック ---- */
-  check('static: title is v1.1', html.includes('<title>Road to HANAZONO v1.1</title>')) /* v0.25: バージョン表記を追随 */; /* v0.26: バージョン表記を v1.1 に追随 */
+  check('static: title is v1.2', html.includes('<title>Road to HANAZONO v1.2</title>')) /* v0.25: バージョン表記を追随 */; /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */
   check('static: STORE_KEY unchanged', html.includes("STORE_KEY = 'hanazono.v02'"));
   check('static: play.html size <= 3.5MB', Buffer.byteLength(html, 'utf8') <= 3500000, /* v0.26: 場面イラスト3枚（data URI 約1MB）の追加に伴い上限を 3.5MB に見直し */ 'bytes=' + Buffer.byteLength(html, 'utf8'));
   ['.actionbar', '.heropanel', '.herobg', '.glasscard', '.hudbtn', '.hud .chip', '.tabbtn', '.tabhide', '.laysquad', '.pmb'].forEach(s => {
@@ -117,8 +117,10 @@ async function driveToPreMatch(H) {
     check('inst: confirm button lives in the bottom action bar', !!confirmBtn && confirmBtn.classList.contains('primary'));
     const formCard = [...H.document.querySelectorAll('.card')].find(c => c.textContent.includes('の練習指示'));
     check('inst: form card no longer contains the confirm button', !!formCard && ![...formCard.querySelectorAll('button')].some(b => b.textContent.includes('指示を確定')));
+    /* v0.27 追随: 6項目は「ボタン列4（方針・ユニット・強度・校風）＋セレクト2（重点・キャプテン）」になった */
     const selects = formCard ? formCard.querySelectorAll('select') : [];
-    check('inst: all 6 instruction selects retained', selects.length === 6, 'n=' + selects.length);
+    const segs = formCard ? formCard.querySelectorAll('.seg[data-k]') : [];
+    check('inst: all 6 instruction fields retained (4 button rows + 2 selects)', segs.length === 4 && selects.length === 2, 'segs=' + segs.length + ' selects=' + selects.length);
     H.window.close();
   }
 
@@ -175,13 +177,16 @@ async function driveToPreMatch(H) {
     const H = await makeDom({ 'hanazono.v02': JSON.stringify(st) }, 15);
     const ok = await driveToPreMatch(H);
     check('prematch: reached', ok);
-    const vsCard = [...H.document.querySelectorAll('.card')].find(c => c.textContent.includes('vs 帝都学園'));
+    /* v0.27 追随: 「vs 相手校」は見出し帯（.pmhero のガラス）へ移り、スカウティング等はその下のスクロール枠（.pmcard）に入る */
+    const hero = H.document.querySelector('.pmhero');
+    check('prematch: header band shows the opponent', !!hero && hero.textContent.includes('vs 帝都学園'));
+    const vsCard = H.document.querySelector('.card.pmcard');
     check('prematch: vs card scrolls internally (grow+scroll)', !!vsCard && vsCard.classList.contains('grow') && vsCard.classList.contains('scroll'));
     check('prematch: scouting content retained', H.text().includes('スカウティング') && H.text().includes('弱点ヒント'));
     const bar = H.document.querySelector('.actionbar');
     check('prematch: kickoff button in action bar', !!bar && [...bar.querySelectorAll('button')].some(b => b.textContent.includes('キックオフ')));
     const banner = H.document.querySelector('.banner.pmb');
-    check('prematch: banner uses fixed-ratio class', !!banner);
+    check('prematch: banner uses fixed-ratio class', !!banner && !!banner.closest('.pmhero')); /* v0.27 追随: バナーは見出し帯の背景 */
     H.window.close();
   }
 
