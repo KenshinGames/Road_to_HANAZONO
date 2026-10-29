@@ -19,11 +19,12 @@
 - **Web 版 1.0 完成**（開発版番 v0.25）。push コミット `136ef33b`。
 - **v1.1（開発版番 v0.26）を Claude Code が作成**（2026-10-30、PR #1 で main にマージ済み・Pages 反映済み）。成功率の◎○△表示／おまかせの交互選択／名前100種／場面イラスト3枚。詳細は DESIGN.md の v0.26 と review_v26/。
 - **v1.2（開発版番 v0.27）を Claude Code が作成**（2026-10-30）。月頭指示のボタン列化（方針はスタメン平均ランク併記）／対戦確認の見出し帯＋キーマン先頭／練習ログの合算／選択中タイルの補足文の色／「n年目卒」／icon-180.png の暫定設置。すべて表示のみ（乱数・数値・セーブ形式は不変、v1.1 と同シードで完全一致）。詳細は DESIGN.md の v0.27 と review_v27/。
+- **v1.3（開発版番 v0.28）＋ iOS 版の土台を Claude Code が作成**（2026-10-30）。Web 版に「セーブの引き継ぎコード」（設定 → 📦 引き継ぎ）を追加し、`native/` に Capacitor 8 の Xcode プロジェクトを置いた（横画面のみ・iPhone 専用・音はマナーモードに従う・セーブを Application Support に二重化）。GitHub Actions の「iOS build」が macOS でビルドとシミュレータ起動を確認する。作者向けの手順は **`docs/IOS.md`**。詳細は DESIGN.md の v0.28 と review_v28/。
 - **難易度は決定済み**：v1.1 のおまかせ強化（自動プレイの勝率 0.825→0.856）は再校正しない（作者が Claude Code の判断に委ね、現状維持に決定）。実機で易しすぎると感じたら WK_SCALE の再校正＋ソーク A/B（review_v26/soak_report.md）。
 - 公開先（GitHub Pages）：https://kenshingames.github.io/Road_to_HANAZONO/v02/
 - 最終監査：全61画面 × 932×430／932×380 で「はみ出し・重なり・枠内見切れ」3点ゼロ、コンソールエラー0（v0.27 はダークモードでも同じ61画面を監査）。
 - 長期ソーク（12キャリア×20年＝240シーズン）：勝率 0.825、初花園は全キャリア到達（中央値2年）、初優勝 12/12（中央値9年）。**バランス数値は検証済み。変える場合は必ずソークで A/B すること。**
-- 完成度見積もり：Web版1.0として約90%／当初の完成形全体で約55〜60%／iOSリリース定義で約30%。最大の弱点は立ち絵の質（パーツ式 SVG、作者評価 2/10）と iOS 未着手。
+- 完成度見積もり：Web版1.0として約90%／当初の完成形全体で約55〜60%／iOSリリース定義で約40%（殻・セーブ移行・ビルド確認まで。実機確認・正式アイコン・ストア素材・IAP が残り）。最大の弱点は立ち絵の質（パーツ式 SVG、作者評価 2/10）。
 
 ## 3. ファイル構成
 
@@ -32,13 +33,17 @@
 | `DESIGN.md` | 全設計判断・改訂履歴・ランク表・iOS 移植メモ（完成版）。**判断の正はこれ** |
 | `v02/index.html` / `style.css` / `game.js` | ゲーム本体のソース |
 | `v02/play.html` | 単一ファイル版。**`build_play.py` で生成する。手で編集しない** |
-| `test/qa_v02.js` 〜 `qa_v27.js` | 各バージョンの QA（全パスが現行仕様）。jsdom は `cd test && npm install --no-save jsdom` |
+| `test/qa_v02.js` 〜 `qa_v28.js` | 各バージョンの QA（全パスが現行仕様）。jsdom は `cd test && npm install --no-save jsdom` |
 | `review_vXX/` | 各バージョンの監査記録とスクリーンショット |
 | `v02/img/` | 場面イラストの原画 JPEG 8枚（タイトル・優勝・卒業・合宿・雨・冬・練習場・部室）。ゲームは CSS 内の data URI を使い、ここは原画の保管と QA の実在確認用 |
 | `v02/icons/icon-256.png` | play.html に埋め込むアイコン（icon-512.png が無い時に build_play.py が使う） |
 | `v02/icons/icon-180.png` | index.html（Pages の /v02/）のファビコン兼ホーム画面アイコン。v0.27 で icon-256.png から縮小した暫定版 |
 | `review-tools/` | 監査用 puppeteer-core の置き場（node_modules のみ・git 管理外）。`PUPPETEER_SKIP_DOWNLOAD=1 npm install --prefix review-tools puppeteer-core` |
 | `docs/HIGGSFIELD_PLAN.md` | 立ち絵の生成AI化 試作プラン（§6-2） |
+| `docs/IOS.md` | iOS 版の手順書（Xcode で実機に入れる・TestFlight・引き継ぎ・App Store までの残り・変えてはいけないこと） |
+| `native/` | iOS 版（Capacitor 8）。`ios/App/App.xcodeproj` が Xcode プロジェクト。`v02/` を変えたら `cd native && npm run sync`（Xcode 内の public へ写す）。`web/native-boot.js`・`native.css` は iOS だけに足す起動処理とスタイル |
+| `test/fixtures/save_2slots.json` | QA と iOS のシミュレータ確認で使うセーブ（3年目＋10年目の2スロット） |
+| `.github/workflows/ios-build.yml` | macOS でのビルド確認（署名なし・シミュレータで起動・スクリーンショットは成果物 ios-simulator） |
 
 ## 4. 絶対に守る設計原則（作者の決定事項）
 
@@ -81,9 +86,11 @@
 - `v02/icons/icon-180.png` は v0.27 で暫定版を設置済み（icon-256.png からの縮小。git で push したため置けた）。作者手元の原本（refs/icon-180.png）の方が良ければ GitHub Web から上書きする。`icon-512.png` は引き続き未設置（build_play.py は icon-256.png で代用）。
 - なお現行キービジュアルには Gilbert ボールのロゴが含まれる。**App Store 提出前に差し替え必須**。
 
-## 7. 次フェーズ候補（未着手・作者の指示待ち）
+## 7. 次フェーズ候補
 
-- **iOS 移植**：Capacitor が本命（コード再利用）。詳細は DESIGN.md の iOS 移植メモ（完成版）参照。Apple Developer 年 $99。
+- **iOS 移植 → 着手済み（v0.28、2026-10-30）**。殻（Capacitor 8）・セーブの引き継ぎと二重化・macOS でのビルド確認まで完了。
+  残り：作者の実機確認（docs/IOS.md §8 のチェックリスト）→ TestFlight → 正式アイコン・スクリーンショット・プライバシーポリシー URL・ストア文言 → IAP（v1.0 定義）。
+  **Bundle ID（com.kenshingames.hanazono）と capacitor.config の hostname／iosScheme は変えない**（セーブの置き場所が変わる）。
 - **デザイン作り込みの優先順位**（調査済み）：① ストア／タイトルの顔 ② フォント・デザイントークン統一（埋め込みは OFL の無料フォントのみ。有料フォントは罠）③ 立ち絵パーツキットの外注（推定8〜20万円、Higgsfield 試作の結果次第）④ UI コア3画面 ⑤ 動き（CSS/JS で大半到達可能。Spine／Live2D は自動生成選手に適用できず優先度最低）⑥ 音源の素材化（歓声・笛・BGM。UI 音は WebAudio 継続）。
 
 ## 8. push 手順の注意（事故の教訓）

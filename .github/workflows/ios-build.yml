@@ -53,6 +53,18 @@ jobs:
       - name: Run in Simulator (screenshots and save mirror)
         run: bash native/ci/sim-check.sh
 
+      # 成果物を開けない環境（ブラウザなしのレビュー等）でも画面を確かめられるよう、縮小した JPEG を base64 でログに出す
+      - name: Screenshot thumbnails (base64 in log)
+        if: always()
+        run: |
+          for f in sim-out/*.png; do
+            [ -f "$f" ] || continue
+            sips -s format jpeg -s formatOptions 45 -Z 640 "$f" --out "${f%.png}.thumb.jpg" > /dev/null
+            echo "=== BEGIN THUMB $(basename "$f") ==="
+            base64 -i "${f%.png}.thumb.jpg" | fold -w 160
+            echo "=== END THUMB ==="
+          done
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
