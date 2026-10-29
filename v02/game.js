@@ -1,4 +1,7 @@
-/* Road to HANAZONO v0.24 — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+/* Road to HANAZONO v1.0（Web版 完成版） — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+ * v1.0（v0.25）: 完成版の仕上げ（全画面の最終デザイン監査＝932×430／932×380 の両寸法で3点ゼロ＋設計原則2点の
+ *        合格確認／20シーズン長期ソークによる最終バランス確認／タイトルとガイドへのクレジット表示／
+ *        iOS 移植メモの完成版を DESIGN.md に記録。数値・判定・乱数消費順・セーブ形式は v0.24 から不変）
  * v0.24: はじめての人への仕上げ（セーブスロット＝3枠＋自動継続。アクティブ枠のデータは従来どおり STORE_KEY に置き、
  *        非アクティブ枠は hanazono.slot.<n> へ退避するため、既存セーブはスロット1としてそのまま引き継がれ移行は冪等。
  *        save()/loadSaved() は無変更／チュートリアル＝端末キーの hanazono.tut で進捗を持つ実地ガイド（目標→指示→週次→
@@ -3409,8 +3412,10 @@ function finishRecruit() {
     kids.push(h('div', { class: 'hand', style: 'margin-top:2px;justify-content:center' }, [guideBtn('btn'), soundBtn(), bgmBtn(),
       h('button', { class: 'btn', onclick: function () { openSettings(); } }, ['⚙ 設定'])]));
     kids.push(h('div', { class: 'hand', style: 'margin-top:2px;justify-content:center;align-items:center' }, [h('span', { class: 'sub' }, ['BGM音量'])].concat(bgmVolBtns())));
+    /* v1.0: クレジット（制作表記）。詳細はガイドのクレジット節にも置く */
+    kids.push(h('p', { class: 'sub', style: 'text-align:center;margin-top:2px' }, ['制作：Kenshin Takada ／ Muse との共同開発']));
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.24'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v1.0'])]),
       h('div', { class: 'card center title-card' }, kids)
     ]);
     mount(h('div', { class: 'stack shell' }, [inner]));
@@ -3457,6 +3462,14 @@ function finishRecruit() {
      ['調子', '5段階。顔アイコンの色で分かる（ピンク=絶好調／赤=好調／黄=普通／水色=不調／紫=絶不調）。練習効率と成功率に薄く効く'],
      ['評判', '部の評判を表す数値。勝利と目標達成で上がり、部の格と勧誘の成功率を左右する。部の格は記録室やHUDで確認できる'],
      ['OBネットワーク', '卒業生はOBとして記録に残り、来訪・贈り物・紹介で後輩を支える。OBの子が入部してくることもある']].forEach(function (r) {
+      R.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
+    });
+    /* v1.0: クレジット（制作表記） */
+    R.appendChild(h('div', { class: 'sec' }, ['🏉 クレジット']));
+    [['制作', 'Kenshin Takada'],
+     ['開発', 'Muse（AI）との共同開発'],
+     ['シリーズ', '100アプリチャレンジ #47'],
+     ['バージョン', 'v1.0（Web版）']].forEach(function (r) {
       R.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
     });
     R.appendChild(h('button', { class: 'btn', style: 'margin-top:12px', onclick: function () { tutReplay(guideFrom); back(); } }, ['🎓 チュートリアルをもう一度見る'])); /* v0.24: 実地ガイドの再表示（戻り先の画面のステップから） */
