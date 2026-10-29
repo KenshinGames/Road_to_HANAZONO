@@ -147,3 +147,6 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# 監査スクリーンショットは各 review の shoot.js で再生成する（リポジトリには入れない）
+review_*/screenshots/
