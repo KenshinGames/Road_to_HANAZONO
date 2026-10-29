@@ -487,3 +487,65 @@ table.cmp td.cmpblurb { font-size: 12px; line-height: 1.5; color: var(--sub); mi
   .kmcol.fx-kml, .kmcol.fx-kmr, .kmvs.fx-kmvs, .fxbanner,
   .grrow.fx-grow, .grrow.fx-grow .rkval { animation: none !important; }
 }
+
+/* ===== v0.22: デザイン・スリム化（枠の入れ子解消）＋場面背景の拡大 =====
+ * 方針（2026-10-29 Takada 指摘）: 何でも枠にはめるのをやめ、区切りは余白と最小限の線で作る。
+ * - 全体の余白・カード padding・見出しバー・ボタンを一段詰め、コンテンツの表示面積を取り戻す
+ * - 入れ子になった枠（カード内カード、帯＋カードの2段構え）は外し、.flatbox は「枠なしの面」にする
+ * - 成長レポートは専用レイアウト（.grfull）で全行をスクロールなしに見せる
+ * - ヒーローパネル（場面背景＋ガラス1枚）を月頭指示に加えて目標設定・勧誘・新入生紹介にも使う */
+/* 見出しバーと操作部品を一段スリムに（全画面共通） */
+.sec { padding: 3px 9px; margin: 1px 0 6px; border-radius: 7px; font-size: 14.5px; }
+.btn { padding: 11px 13px; }
+.btn.small { padding: 8px; }
+select { padding: 8px 10px; font-size: 14.5px; }
+label.lab { margin: 6px 0 2px; font-size: 12.5px; }
+.log { padding: 10px 12px; }
+/* 枠なしの面：背景・境界・影を持たず、余白だけで区切る */
+.flatbox { background: transparent; border: none; box-shadow: none; border-radius: 0; padding: 2px 4px; }
+/* 比較ビューの上部帯：カードではなく下端のヘアラインで区切る */
+.flatstrip { background: transparent; border: none; border-bottom: 1px solid var(--line); border-radius: 0; box-shadow: none; padding: 6px 4px; }
+/* ガラスカード内の区切り線と見出し（場面背景の上に置く前提の白文字） */
+.glassdiv { border-top: 1px solid rgba(255, 255, 255, .22); margin: 7px 0 2px; }
+.gtitle { font-weight: 800; font-size: 15px; color: #fff; margin-bottom: 6px; }
+.glasscard.glassfill { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.glassscroll { overflow-y: auto; }
+.glasscard .tabs { margin-bottom: 4px; }
+/* 週次画面の情報欄：枠を外し、下のログとはヘアラインで区切る */
+.winfo { border: none; border-bottom: 1px solid var(--line); border-radius: 0; box-shadow: none; background: transparent; padding: 2px 2px 8px; }
+/* 成長レポート専用レイアウト：画面幅いっぱいのボードに全行を収める（見切れ・スクロールなし） */
+.grboard.grfull { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 7px 14px; border: 1px solid #062b1c; border-radius: 14px; }
+.grhead { display: flex; align-items: baseline; gap: 14px; }
+.grhead .grtitle { flex: 1; margin: 0 0 4px; }
+.grhead .grmore { white-space: nowrap; }
+.grfull .grtitle { font-size: 15px; }
+.grfull .grrow { padding: 2px 0; }
+.grfull .grwho { font-size: 13px; }
+.grfull .grchg { font-size: 12.5px; }
+@media (min-width: 760px) and (orientation: landscape) {
+  /* 固定レイアウトの余白を一段詰める（#app の外周、画面間・カラム間の gap） */
+  #app { padding: calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left)); }
+  .shell { gap: 8px; }
+  .lay2 { gap: 10px; }
+  .col { gap: 8px; }
+  .card { padding: 11px 12px; border-radius: 14px; }
+  /* v0.13 の「左カラム下段に最大46%」ルールは専用レイアウト化で廃止（ボードが flex で全高を使う） */
+  .growreport { flex: 1; max-height: none; overflow: visible; }
+  /* 月頭指示は右（操作フォーム）を少し広げ、セレクトの表示幅を確保する */
+  .lay2.layinst { grid-template-columns: .92fr 1.08fr; }
+  .form2 { gap: 0 12px; }
+  .heropanel { border-radius: 14px; }
+  .herobody { padding: 9px; gap: 7px; }
+  .glasscard { padding: 8px 11px; border-radius: 10px; }
+  .cmpcard { padding: 6px 8px; }
+  .htbox { padding: 7px 9px; }
+  .pname { padding: 6px 11px; margin-bottom: 8px; }
+  .cutin { padding: 7px 10px; }
+  /* 活動カードのアイコンは line box に収め、グリフのはみ出しを作らない */
+  .wcard .wic { line-height: 1.3; }
+}
+@media (min-width: 760px) and (orientation: landscape) and (max-height: 520px) {
+  /* 縦の短い実機寸法ではセレクトとレポート行をさらに詰める */
+  select { padding: 7px 9px; font-size: 14px; }
+  .grfull .grrow { padding: 2px 0; }
+}

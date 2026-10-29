@@ -1,4 +1,8 @@
-/* Road to HANAZONO v0.21 — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.22 — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+ * v0.22: デザイン・スリム化＋場面イラスト拡充（枠の入れ子を解消し、区切りは余白と最小限の線で作る＝全体の余白とカード padding を一段詰め、
+ *        入れ子枠は .flatbox で外す／成長レポートは月頭指示の隅で見切れさせず専用レイアウトで全行表示／最近の出来事はヒーローの
+ *        ガラスカードに統合し潰れない高さを確保／セレクトの選択肢文言とラベルを短縮して文字切れを解消／場面背景（ヒーローパネル）を
+ *        目標設定・勧誘・新入生紹介にも拡大／写真シーンの受け口 PHOTO_SCENES を新設。数値・判定・乱数消費順・セーブ形式は不変）
  * v0.21: 演出と動き（表示専用の FX モジュール＝画面遷移のフェード／試合カットインのスライドイン／得点バナー＋スコアのポップ／
  *        勝利時のスコアボードの金のグロー／対戦確認キーマン対比の両側スライド＋VS バッジ／成長レポートの行ごとのライズと数値ポップ。
  *        いずれも「同じ見せ場では1回だけ」再生し、再描画では繰り返さない。数値・判定・乱数消費・セーブ形式は一切変更しない。
@@ -114,10 +118,11 @@
     { n: '猛特訓', mul: 1.9, fat: 14, inj: 2.4 }
   ];
   /* v0.7: 校風（チーム方針）。g=成長 f=疲労の溜まり t=信頼の伸び r=疲労の抜け */
+  /* v0.22: s はセレクト表示用の短縮表記（d は従来どおり説明文。セレクト内では d が長すぎて文字切れしていた） */
   var ETHOS = [
-    { k: 'discipline', n: '規律', d: '疲労が溜まりにくく、信頼が育ちやすい', g: 1.0, f: 0.9, t: 1.15, r: 1.0 },
-    { k: 'free', n: '自由', d: 'のびのび育てる。疲労が抜けやすく、成長は穏やか', g: 0.96, f: 0.95, t: 0.95, r: 1.3 },
-    { k: 'passion', n: '熱血', d: '成長は速いが、疲労も溜まりやすい', g: 1.08, f: 1.12, t: 1.05, r: 0.9 }
+    { k: 'discipline', n: '規律', d: '疲労が溜まりにくく、信頼が育ちやすい', s: '疲労↓・信頼↑', g: 1.0, f: 0.9, t: 1.15, r: 1.0 },
+    { k: 'free', n: '自由', d: 'のびのび育てる。疲労が抜けやすく、成長は穏やか', s: '疲労が抜けやすい', g: 0.96, f: 0.95, t: 0.95, r: 1.3 },
+    { k: 'passion', n: '熱血', d: '成長は速いが、疲労も溜まりやすい', s: '成長↑・疲労↑', g: 1.08, f: 1.12, t: 1.05, r: 0.9 }
   ];
   var INJ_PARTS = ['左膝', '右肩', '足首', '太ももの裏', '腰', '手首'];
   /* v0.8: 調子（コンディション）。-2..2 の5段階で、場面成功率と練習効率に薄く効く
@@ -2817,8 +2822,15 @@ function finishRecruit() {
    * ここに登録された月だけ、月頭指示などの月次バナー（train/home）が写真に切り替わる。
    * 冬の朝練イラストが追加生成されたら { 9: 'winter', 10: 'winter' } のように足すだけでよい */
   var MONTH_PHOTOS = { 4: 'camp' };
+  /* v0.22: 写真が実在するシーンキーの登録表（受け口）。CSS 側に .photo-<key> の data URI が
+   * 存在するキーだけをここに登録する。未登録のキーが MONTH_PHOTOS 等から参照されても、
+   * photoBanner が SVG バナーへフォールバックするため、存在しない画像への参照にはならない。
+   * 冬・練習場・部室のイラストが生成されたら: ①CSS に写真クラス（data URI）を足す
+   * ②ここに該当キーを足す ③MONTH_PHOTOS に月とキーの対応を足す、の3点で組み込める */
+  var PHOTO_SCENES = { camp: 1, champion: 1, graduation: 1, rain: 1 };
   /* v0.11: 写真バナー（画像は CSS 側に data URI で埋め込み済み。cover で切り取り表示） */
   function photoBanner(key, cls) {
+    if (!PHOTO_SCENES[key]) return banner('train', cls, null); /* v0.22: 未生成の写真キーは SVG バナーで代替する */
     return h('div', { class: 'banner photobanner photo-' + key + (cls ? ' ' + cls : '') });
   }
   function banner(kind, cls, mi) {
@@ -2906,7 +2918,7 @@ function finishRecruit() {
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.21'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.22'])]),
       h('div', { class: 'card center title-card' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、1週間ごとに活動を選んで選手を育てよう。世代を超えて、花園の常連校を目指す。']),
         h('button', { class: 'btn primary', onclick: function () { newGame('normal'); screen = 'goal'; render(); } }, ['監督に就任する（ふつう）']),
@@ -2923,7 +2935,7 @@ function finishRecruit() {
       var t = (guideFrom && guideFrom !== 'guide') ? guideFrom : (G ? (G.recruit ? 'recruit' : (G.summary ? 'summary' : (G.board ? 'board' : 'inst'))) : 'title');
       screen = t; render();
     };
-    var L = h('div', { class: 'card grow scroll' });
+    var L = h('div', { class: 'grow scroll flatbox' }); /* v0.22: ガイドは本文が主役のため外枠を外す */
     L.appendChild(h('div', { class: 'sec' }, ['🎯 目的']));
     L.appendChild(h('p', null, ['弱小公立・桜丘高校ラグビー部の監督として、選手を育て、世代交代を重ねながら花園（全国大会）の常連校を目指す育成シミュレーションです。評判が上がると「部の格」（弱小→そこそこ→中堅→強豪→名門）が上がり、入部してくる新入生の質も上がる好循環が生まれます。記録室では実績（トロフィー）も集まります。']));
     L.appendChild(h('div', { class: 'sec' }, ['📅 1年の流れ']));
@@ -2935,7 +2947,7 @@ function finishRecruit() {
      ['⑥ 勧誘', 'スカウト候補・特別枠・一般入部で新チームを作って新年度へ。候補は「比較」表示で能力や成功率を見比べられ、成功率の内訳も確認できる。入部した新入生は紹介画面でお披露目される']].forEach(function (r) {
       L.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
     });
-    var R = h('div', { class: 'card grow scroll' });
+    var R = h('div', { class: 'grow scroll flatbox' });
     R.appendChild(h('div', { class: 'sec' }, ['👀 画面の見方']));
     R.appendChild(h('p', null, ['左＝情報（実況・週の記録・選手一覧）、右と下段＝操作（選択肢・活動カード・ボタン）が基本配置です。試合は左の実況を読み、右で采配を選んでください。画面上部のバーでは年・月・部の格・総合力・評判がいつでも確認できます。']));
     R.appendChild(h('div', { class: 'sec' }, ['💡 監督のコツ']));
@@ -2959,16 +2971,22 @@ function finishRecruit() {
   function goalScreen() {
     var rec = recommendedGoal();
     var cur = goalOf();
-    var left = [banner('home', 'grow', 0)];
-    var info = h('div', { class: 'card grow scroll' }, [ /* v0.20 実機レイアウト修正: 説明カードを内部スクロール化し、縦の短い画面でも左カラムがはみ出さないようにする */
-      h('div', { class: 'sec' }, ['🎯 ' + G.year + '年目の目標を決めよう']),
+    /* v0.22: 左カラムは月頭指示と同じヒーローパネル（場面背景＋ガラス1枚）に統合する。
+     * v0.20 で入れた「バナー帯＋説明カード」の2段構えは、枠の入れ子で面積を食うため廃止 */
+    var heroPanel = h('div', { class: 'heropanel grow' });
+    heroPanel.appendChild(banner('home', 'herobg', 0));
+    var heroBody = h('div', { class: 'herobody' });
+    var glass = h('div', { class: 'glasscard glassfill' }, [
+      h('div', { class: 'gtitle' }, ['🎯 ' + G.year + '年目の目標を決めよう']),
       h('p', null, ['シーズンの物差しになる目標を1つ選ぶ。達成すれば評判が上がり、格上の目標を達成すればなお大きい。届かなくても罰は小さい（評判-3）から、思い切って高い目標を掲げるのも監督の腕の見せどころ。']),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['現在の部の格']), h('span', null, [gradeOf().n])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['昨季の結果']), h('span', null, [G.history.length ? G.history[G.history.length - 1].result : '―（初年度）'])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['おすすめの目標']), h('span', null, [rec.n])])
     ]);
-    left.push(info);
-    var box = h('div', { class: 'card choices grow scroll' });
+    heroBody.appendChild(glass);
+    heroPanel.appendChild(heroBody);
+    var left = [heroPanel];
+    var box = h('div', { class: 'choices grow scroll flatbox' }); /* v0.22: 外枠を外し、選択ボタン自体を面にする */
     box.appendChild(h('div', { class: 'sec' }, ['今年の目標']));
     GOALS.forEach(function (gl) {
       box.appendChild(h('button', { class: 'btn choice' + (cur.k === gl.k ? ' primary' : ''), onclick: function () { G.goal = gl.k; save(); render(); } }, [
@@ -2982,106 +3000,71 @@ function finishRecruit() {
   }
   function instScreen() {
     var mo = MONTHS[G.monthIdx];
+    /* v0.22: 先月の成長レポートがある月は、まずレポート専用レイアウトで見せる。
+     * v0.21 までは左カラム下段の枠（最大高さ46%）に押し込んでいたため、932×430 では
+     * ボード内容の約1/4しか見えず行の途中で見切れていた（Takada 指摘）。レポートは
+     * 「確認した」で消えて通常の指示画面になる。データと消去の仕組みは従来どおり */
+    if (G.growReport && G.growReport.rows && G.growReport.rows.length) return growReportScreen(mo);
     /* v0.17: 左カラムは「月のバナーを背景に敷き、半透明カードを重ねる」ヒーローパネルに統合する
      * （タイトル画面 v0.9.1 で実績のある手法）。バラ積みカードをやめ、バナーの帯状潰れと、
-     * ラベルが縦に割れる問題（設備など）を解消する。表示内容（目標・設備・難易度・最近の出来事）は従来どおり */
+     * ラベルが縦に割れる問題（設備など）を解消する。表示内容（目標・設備・難易度・最近の出来事）は従来どおり
+     * v0.22: ガラスカードは2枚（要約／最近の出来事）に分けず1枚に統合し、区切りはヘアラインにする。
+     * 2枚に分けると出来事ログの表示高さが約48px（本文は実質1行未満）まで潰れていた */
     var gObj = goalOf();
     var heroPanel = h('div', { class: 'heropanel grow' });
     heroPanel.appendChild(banner('train', 'herobg', G.monthIdx));
     var heroBody = h('div', { class: 'herobody' });
-    var glass = h('div', { class: 'glasscard' });
+    var hasLog = !!(G.monthLog && G.monthLog.length);
+    var glass = h('div', { class: 'glasscard' + (hasLog ? ' glassfill' : '') });
     glass.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'glab' }, ['🎯 今年の目標']), h('span', { class: 'gval' }, [gObj.n])]));
     glass.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'glab' }, ['🏟 設備']), h('span', { class: 'gval' }, [FACILITIES.filter(function (f) { return hasFacility(f.k); }).map(function (f) { return f.n; }).join('・') || 'なし'])]));
     if (G.difficulty === 'challenge') glass.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'glab' }, ['難易度']), h('span', { class: 'gval' }, ['チャレンジ'])]));
-    heroBody.appendChild(glass);
-    if (G.monthLog && G.monthLog.length) {
-      var glog = h('div', { class: 'glasscard herolog' });
+    if (hasLog) {
+      glass.appendChild(h('div', { class: 'glassdiv' }, []));
+      var glog = h('div', { class: 'herolog' });
       glog.appendChild(h('div', { class: 'sub' }, ['最近の出来事']));
       G.monthLog.forEach(function (l) { glog.appendChild(h('div', null, [l])); });
-      heroBody.appendChild(glog);
+      glass.appendChild(glog);
     }
+    heroBody.appendChild(glass);
     heroPanel.appendChild(heroBody);
     var left = [heroPanel];
-    /* v0.15: 先月の成長レポートを作り替え。濃緑ボード＋色つき名前プレート＋「ランク 数値 → ランク 数値」形式
-     * （データは v0.13 の growReport をそのまま使用し、様式のみ変更）。変化後の数値は現在の能力から
-     * レポートの伸び分を差し引いて逆算し、矢印の幅がレポートの伸び分と一致するようにする。
-     * 選手が見つからない場合は伸び分のみ表示。特能はプレイ中の獲得・変化が存在しない
-     * （生成時にのみ決まる）ため、このレポートには含めない */
-    if (G.growReport && G.growReport.rows && G.growReport.rows.length) {
-      var gr = h('div', { class: 'card growreport grboard' });
-      gr.appendChild(h('div', { class: 'grtitle' }, ['〜 ' + G.growReport.label + 'の成長レポート 〜']));
-      var lineupNow = lineupIds();
-      /* v0.21: その月のレポートを初めて表示する時だけ、行を上から順にライズさせ数値をポップさせる
-       * （月頭指示の再描画では繰り返さない。遅延は CSS 変数 --fxd で行と子要素に共有する） */
-      var grFresh = fxOnce('gr:' + G.year + ':' + G.growReport.label);
-      G.growReport.rows.slice(0, 10).forEach(function (r, ri) {
-        var pl = G.players.filter(function (p) { return p.name === r.name; })[0];
-        var rowEl = h('div', { class: 'grrow' });
-        if (grFresh) { rowEl.classList.add('fx-grow'); rowEl.style.setProperty('--fxd', (ri * 70) + 'ms'); }
-        var who = h('div', { class: 'grwho' });
-        who.appendChild(h('span', { class: 'grrole' }, [r.focus ? '重点' : (pl && lineupNow.indexOf(pl.id) >= 0 ? 'スタメン' : '控え')]));
-        who.appendChild(h('span', { class: 'grplate', style: 'background:' + plateColor(r.name) }, [r.name]));
-        if (pl) who.appendChild(h('span', { class: 'gryear' }, [pl.year + '年']));
-        rowEl.appendChild(who);
-        var chg = h('div', { class: 'grchg' });
-        STATS.filter(function (s) { return r.stats[s.k]; }).forEach(function (s) {
-          var item = h('span', { class: 'gritem' });
-          item.appendChild(document.createTextNode(s.n + ' '));
-          if (pl) {
-            var after = pl.stats[s.k];
-            item.appendChild(rankValEl(after - r.stats[s.k], null, true));
-            item.appendChild(h('span', { class: 'grarrow' }, ['➡']));
-            item.appendChild(rankValEl(after, null, true));
-          } else {
-            item.appendChild(document.createTextNode('+' + r.stats[s.k]));
-          }
-          chg.appendChild(item);
-        });
-        if (r.trust > 0) {
-          var ti = h('span', { class: 'gritem grtrust' });
-          ti.appendChild(document.createTextNode('信頼度 '));
-          ti.appendChild(h('span', { class: 'grarrow' }, [r.trust >= 8 ? '↑↑↑' : (r.trust >= 4 ? '↑↑' : '↑')]));
-          chg.appendChild(ti);
-        }
-        rowEl.appendChild(chg);
-        gr.appendChild(rowEl);
-      });
-      if (G.growReport.rows.length > 10) {
-        gr.appendChild(h('div', { class: 'sub' }, ['ほか ' + (G.growReport.rows.length - 10) + ' 名も成長した']));
-      }
-      gr.appendChild(h('button', { class: 'btn small grcheck', onclick: function () { G.growReport = null; save(); render(); } }, ['確認した']));
-      left.push(gr);
-    }
     var card = h('div', { class: 'card grow scroll' });
     card.appendChild(h('div', { class: 'sec' }, [mo.m + 'の練習指示' + (mo.camp ? '（合宿月：実り1.5倍）' : '') + (mo.match != null ? ' ／ 月末に試合あり' : '')]));
     var form = h('div', { class: 'form2' });
     function field(label, sel) { var d = h('div', null, [h('label', { class: 'lab' }, [label]), sel]); return d; }
     var s1 = h('select', null, STATS.map(function (s) { return h('option', { value: s.k }, [s.n]); }));
     s1.value = G.inst.team; s1.onchange = function () { G.inst.team = s1.value; save(); };
+    /* v0.22: セレクトの選択肢文言は、932×430 のフォーム幅（約190px）で選択中の値が
+     * 切り捨てられない長さに短縮した（実測で従来文言は 240〜330px あり全て切れていた）。
+     * 値そのもの（value）と変更時の保存内容は従来どおり */
     var s2 = h('select', null, Object.keys(UNIT_STAT).map(function (u) {
-      return h('option', { value: u }, [UNIT_NAME[u] + ' → ' + STATS.filter(function (s) { return s.k === UNIT_STAT[u]; })[0].n + 'アップ']);
+      return h('option', { value: u }, [UNIT_NAME[u] + '→' + STATS.filter(function (s) { return s.k === UNIT_STAT[u]; })[0].n]);
     }));
     s2.value = G.inst.unit; s2.onchange = function () { G.inst.unit = s2.value; save(); };
     var s3 = h('select', null, G.players.map(function (p) {
-      return h('option', { value: String(p.id) }, [POSITIONS[p.posIdx].no + ' ' + p.name + '（' + p.year + '年・' + POSITIONS[p.posIdx].p + '・' + p.person + '・' + p.trait.n + '）']);
+      return h('option', { value: String(p.id) }, [POSITIONS[p.posIdx].no + ' ' + p.name + '（' + p.year + '年・' + POSITIONS[p.posIdx].p + '）']);
     }));
     if (!G.players.some(function (p) { return p.id === G.inst.focus; })) G.inst.focus = G.players[0].id;
     s3.value = String(G.inst.focus); s3.onchange = function () { G.inst.focus = +s3.value; save(); };
-    var s4 = h('select', null, LEVELS.map(function (lv, i) { return h('option', { value: String(i) }, [lv.n + '（成長×' + lv.mul + '）']); }));
+    var s4 = h('select', null, LEVELS.map(function (lv, i) { return h('option', { value: String(i) }, [lv.n + '（×' + lv.mul + '）']); }));
     s4.value = String(G.inst.level); s4.onchange = function () { G.inst.level = +s4.value; save(); };
     /* v0.7: キャプテン任命（信頼度トップを推奨表示）と校風 */
     var byTrust = G.players.slice().sort(function (a, b) { return (b.trust || 0) - (a.trust || 0); });
     var s5 = h('select', null, byTrust.map(function (p, i) {
-      return h('option', { value: String(p.id) }, [(i === 0 ? '⭐推奨 ' : '') + p.name + '（' + p.year + '年・' + POSITIONS[p.posIdx].p + '・信頼 ' + p.trust + '）']);
+      /* v0.22: ⭐＝信頼トップの推奨。学年は重点セレクトと選手データで確認できるため省き、判断材料の信頼度を残す */
+      return h('option', { value: String(p.id) }, [(i === 0 ? '⭐' : '') + p.name + '（信頼' + p.trust + '）']);
     }));
     s5.value = String(G.captainId); s5.onchange = function () { G.captainId = +s5.value; recordCaptain(); save(); render(); }; /* v0.14: 任命はその場で歴代キャプテンに記録してから保存 */
-    var s6 = h('select', null, ETHOS.map(function (e) { return h('option', { value: e.k }, [e.n + ' ― ' + e.d]); }));
+    var s6 = h('select', null, ETHOS.map(function (e) { return h('option', { value: e.k }, [e.n + '（' + e.s + '）']); }));
     s6.value = G.ethos; s6.onchange = function () { G.ethos = s6.value; save(); };
-    form.appendChild(field('全体方針（チーム全員の底上げ）', s1));
+    /* v0.22: ラベルも1行に収まる長さへ短縮（従来は2行に折り返して縦幅を食っていた）。
+     * 補足説明は遊び方ガイド側に寄せ、ここでは選択に必要な情報だけを残す */
+    form.appendChild(field('全体方針（全員の底上げ）', s1));
     form.appendChild(field('ユニット練習', s2));
     form.appendChild(field('重点育成する選手', s3));
-    form.appendChild(field('練習強度（成長と疲労・ケガのバランス）', s4));
-    form.appendChild(field('キャプテン（檄の効きと信頼の集まりやすさに影響）', s5));
+    form.appendChild(field('練習強度（成長と疲労）', s4));
+    form.appendChild(field('キャプテン', s5));
     form.appendChild(field('校風（チーム方針）', s6));
     card.appendChild(form);
     var right = [];
@@ -3090,8 +3073,57 @@ function finishRecruit() {
       right.push(h('div', { class: 'card hintcard' }, ['💡 まずは全体方針と重点育成する選手を選んで、月を始めよう。練習で選手が育ち、月末には試合が待っている']));
     }
     right.push(card);
-    wrap([hud(), h('div', { class: 'lay2' }, [col(left), col(right)]),
+    wrap([hud(), h('div', { class: 'lay2 layinst' }, [col(left), col(right)]),
       actionBar([h('button', { class: 'btn primary', onclick: function () { startMonth(); } }, ['指示を確定して月を始める'])])]);
+  }
+  /* v0.22: 成長レポート専用レイアウト。画面幅いっぱいの濃緑ボードに、全行（上限10名＋
+   * 「ほか n 名」は見出し行に併記）をスクロールなしで収める。行の様式は v0.15 の
+   * 「ランク 数値 → ランク 数値」、初出時のライズ演出は v0.21 の fxOnce をそのまま使う。
+   * データ（v0.13 の growReport）は従来どおりで、変化後の数値は現在の能力から逆算する */
+  function growReportScreen(mo) {
+    var gr = h('div', { class: 'growreport grboard grfull' });
+    var head = h('div', { class: 'grhead' });
+    head.appendChild(h('div', { class: 'grtitle' }, ['〜 ' + G.growReport.label + 'の成長レポート 〜']));
+    if (G.growReport.rows.length > 10) head.appendChild(h('div', { class: 'sub grmore' }, ['ほか ' + (G.growReport.rows.length - 10) + ' 名も成長した']));
+    gr.appendChild(head);
+    var lineupNow = lineupIds();
+    /* v0.21: その月のレポートを初めて表示する時だけ、行を上から順にライズさせ数値をポップさせる
+     * （月頭指示の再描画では繰り返さない。遅延は CSS 変数 --fxd で行と子要素に共有する） */
+    var grFresh = fxOnce('gr:' + G.year + ':' + G.growReport.label);
+    G.growReport.rows.slice(0, 10).forEach(function (r, ri) {
+      var pl = G.players.filter(function (p) { return p.name === r.name; })[0];
+      var rowEl = h('div', { class: 'grrow' });
+      if (grFresh) { rowEl.classList.add('fx-grow'); rowEl.style.setProperty('--fxd', (ri * 70) + 'ms'); }
+      var who = h('div', { class: 'grwho' });
+      who.appendChild(h('span', { class: 'grrole' }, [r.focus ? '重点' : (pl && lineupNow.indexOf(pl.id) >= 0 ? 'スタメン' : '控え')]));
+      who.appendChild(h('span', { class: 'grplate', style: 'background:' + plateColor(r.name) }, [r.name]));
+      if (pl) who.appendChild(h('span', { class: 'gryear' }, [pl.year + '年']));
+      rowEl.appendChild(who);
+      var chg = h('div', { class: 'grchg' });
+      STATS.filter(function (s) { return r.stats[s.k]; }).forEach(function (s) {
+        var item = h('span', { class: 'gritem' });
+        item.appendChild(document.createTextNode(s.n + ' '));
+        if (pl) {
+          var after = pl.stats[s.k];
+          item.appendChild(rankValEl(after - r.stats[s.k], null, true));
+          item.appendChild(h('span', { class: 'grarrow' }, ['➡']));
+          item.appendChild(rankValEl(after, null, true));
+        } else {
+          item.appendChild(document.createTextNode('+' + r.stats[s.k]));
+        }
+        chg.appendChild(item);
+      });
+      if (r.trust > 0) {
+        var ti = h('span', { class: 'gritem grtrust' });
+        ti.appendChild(document.createTextNode('信頼度 '));
+        ti.appendChild(h('span', { class: 'grarrow' }, [r.trust >= 8 ? '↑↑↑' : (r.trust >= 4 ? '↑↑' : '↑')]));
+        chg.appendChild(ti);
+      }
+      rowEl.appendChild(chg);
+      gr.appendChild(rowEl);
+    });
+    wrap([hud(), gr,
+      actionBar([h('button', { class: 'btn primary', onclick: function () { G.growReport = null; save(); render(); } }, ['確認した（' + mo.m + 'の指示へ）'])])]);
   }
   /* v0.19: 次の試合の案内（週次画面の情報欄とステータスバーで使う） */
   function nextMatchText() {
@@ -3138,7 +3170,7 @@ function finishRecruit() {
         scene.appendChild(dg);
       }
     }
-    var info = h('div', { class: 'card winfo' });
+    var info = h('div', { class: 'winfo' }); /* v0.22: 枠を外し、下のログとはヘアラインで区切る（スリム化） */
     info.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['チーム平均疲労']), h('span', null, [String(avgFatigue())])]));
     info.appendChild(h('div', { class: 'meter' }, [h('div', { style: 'width:' + avgFatigue() + '%' }, [])]));
     info.appendChild(h('div', { class: 'rowline' }, [
@@ -3416,9 +3448,10 @@ function finishRecruit() {
       h('div', { class: 'rowline' }, [h('span', null, ['相手の総合力']), h('span', { class: 'big' }, [String(oppPower(mo.match))])]),
       h('div', { class: 'rowline' }, [h('span', null, ['スタメン編成']), h('span', null, [Array.isArray(G.lineup) ? 'カスタム編成' : '自動選出（総合力順）'])])
     ]);
-    /* v0.6: スカウティング（相手の傾向・総合力・エース） */
+    /* v0.6: スカウティング（相手の傾向・総合力・エース）
+     * v0.22: vs カードの中のカード（入れ子）をやめ、ヘアライン区切りの節にする */
     if (opp.style || opp.ace) {
-      var sc = h('div', { class: 'card scout' });
+      var sc = h('div', { class: 'scout' });
       sc.appendChild(h('div', { class: 'sec' }, ['🔍 スカウティング']));
       if (opp.style && OPP_STYLES[opp.style]) {
         sc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['戦術傾向']), h('span', null, [OPP_STYLES[opp.style].n])]));
@@ -3786,7 +3819,7 @@ function finishRecruit() {
   }
   /* v0.20: スカウト候補の比較表（能力ランク・特能・寸評・成功率を横並びで見比べる） */
   function recruitCmpEl(R) {
-    var box = h('div', { class: 'card grow scroll cmpcard' });
+    var box = h('div', { class: 'grow scroll cmpcard flatbox' }); /* v0.22: 表自体の罫線が区切りのため外枠は外す */
     var t = h('table', { class: 'cmp' });
     function rowEl(label, cells) {
       var tr = h('tr');
@@ -3847,34 +3880,41 @@ function finishRecruit() {
     ]);
     var action = actionBar([h('button', { class: 'btn primary', onclick: function () { finishRecruit(); } }, ['新年度を始める'])]);
     if (recruitView === 'cmp') {
-      var strip = h('div', { class: 'card strip' });
+      var strip = h('div', { class: 'strip flatstrip' }); /* v0.22: 帯は枠ではなくヘアラインで区切る */
       strip.appendChild(h('span', { class: 'sec' }, ['🌸 ' + G.year + '年目 ― スカウト候補の比較']));
       strip.appendChild(h('span', { class: 'sub' }, ['部の格 ' + gradeOf().n + ' ／ 獲得枠 ' + quota + '名（選択中 ' + pickedN + '名） ／ 成功率の内訳は「カードで見る」で確認できる']));
       strip.appendChild(tabs);
       wrap([hud(), strip, recruitCmpEl(R), action]);
       return;
     }
+    /* v0.22: 左カラムはヒーローパネル（場面背景＋ガラス1枚）に統合し、場面背景の適用範囲を広げる。
+     * ガラス内が長くなる場合（巣立った卒業生リスト）に備え、ガラス自体をスクロール可能にする */
     var leftKids = [
-      h('div', { class: 'sec' }, ['🌸 ' + G.year + '年目 ― 新入生を迎える']),
-      h('p', null, ['卒業生が巣立ち、新しい世代がやってくる。中学3年生のスカウト候補から、声をかけたい選手を獲得リスト（' + quota + '名まで）に入れよう。']),
+      h('div', { class: 'gtitle' }, ['🌸 ' + G.year + '年目 ― 新入生を迎える']),
+      h('p', null, ['中学3年生のスカウト候補から、声をかけたい選手を獲得リスト（' + quota + '名まで）に入れよう。']), /* v0.22: ガラス内に初期表示で収まるよう冒頭の味付け文を省いた（卒業生の話は下段の「巣立った卒業生」が担う） */
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['部の格']), h('span', null, [gradeOf().n])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['スカウト獲得枠']), h('span', null, [quota + '名（選択中 ' + pickedN + '名）'])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['OB名鑑']), h('span', null, [G.obs.length + '名が記録に残る'])]),
       tabs,
-      h('p', { class: 'sub' }, ['寸評はOBや中学の指導者からの伝聞。体格と「らしさ」のヒントにしよう。成功率は部の格・評判・候補の実力・OB紹介で決まり、内訳を各カードに示した。獲得できなくても、残りの枠は一般入部で埋まる。'])
+      h('p', { class: 'sub' }, ['寸評は伝聞。体格と「らしさ」のヒントに。成功率の内訳は各カードに示した。失敗しても枠は一般入部で埋まる。']) /* v0.22: 成功率の決まり方は内訳表示とガイドが担い、ここは2行に収まる要約にした */
     ];
     var newObs = G.obs.filter(function (o) { return o.year === G.year - 1; });
     if (newObs.length) {
-      leftKids.push(h('div', { class: 'sec' }, ['巣立った卒業生']));
+      leftKids.push(h('div', { class: 'gtitle' }, ['巣立った卒業生']));
       newObs.slice(-5).forEach(function (o) {
         var os = h('span', { class: 'sub' }, []);
         os.appendChild(document.createTextNode(o.pos + '・総合 '));
-        os.appendChild(rankValEl(o.avg, 'sm')); /* v0.15: ランク併記 */
+        os.appendChild(rankValEl(o.avg, 'sm', true)); /* v0.15: ランク併記／v0.22: ガラス（暗背景）上なので濃色背景用のランク色を使う */
         leftKids.push(h('div', { class: 'rowline' }, [h('span', null, [o.name]), os]));
       });
       leftKids.push(h('p', { class: 'sub' }, ['彼らの紹介や息子の入部で、OBはこれからも部に返ってくる。']));
     }
-    var left = h('div', { class: 'card grow scroll' }, leftKids);
+    var heroPanel = h('div', { class: 'heropanel grow' });
+    heroPanel.appendChild(banner('home', 'herobg', G.monthIdx));
+    var heroBody = h('div', { class: 'herobody' });
+    heroBody.appendChild(h('div', { class: 'glasscard glassfill glassscroll' }, leftKids));
+    heroPanel.appendChild(heroBody);
+    var left = heroPanel;
     var list = h('div', { class: 'stack grow scroll' });
     if (R.special) list.appendChild(specialCard(R.special));
     R.cands.forEach(function (c, i) {
@@ -3908,15 +3948,21 @@ function finishRecruit() {
     var nSp = items.filter(function (o) { return o.x.kind === 'special'; }).length;
     var nGen = items.filter(function (o) { return o.x.kind === 'general'; }).length;
     var leftKids = [
-      h('div', { class: 'sec' }, ['🌸 新入生紹介 ― ' + G.year + '年目の春']),
+      h('div', { class: 'gtitle' }, ['🌸 新入生紹介 ― ' + G.year + '年目の春']),
       h('p', null, [items.length + '名の新入生が桜丘ラグビー部に入部した。卒業生が巣立ったグラウンドに、新しい顔ぶれが加わる。']),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['スカウト入部']), h('span', null, [nScout + '名'])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['特別枠']), h('span', null, [nSp + '名'])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['一般入部']), h('span', null, [nGen + '名'])]),
       h('p', { class: 'sub' }, ['まずは顔と名前を覚えよう。彼らの成長の物語は、ここから始まる。'])
     ];
-    /* 左は情報カード1枚に統一（バナーを縦積みすると実機の縦幅では帯状に潰れるため。主役は右の新入生カード列） */
-    var left = col([h('div', { class: 'card grow scroll' }, leftKids)]);
+    /* v0.22: 左はヒーローパネル（場面背景＋ガラス1枚）に統合する。v0.20 で避けたのは
+     * 「バナーを帯として縦積みする」形で、パネル全面を背景にする形は帯化しない（主役は右の新入生カード列のまま） */
+    var heroPanel = h('div', { class: 'heropanel grow' });
+    heroPanel.appendChild(banner('home', 'herobg', G.monthIdx));
+    var heroBody = h('div', { class: 'herobody' });
+    heroBody.appendChild(h('div', { class: 'glasscard glassfill' }, leftKids));
+    heroPanel.appendChild(heroBody);
+    var left = col([heroPanel]);
     var cards = h('div', { class: 'stack grow scroll' });
     items.forEach(function (o) {
       var card = h('div', { class: 'card cand' });
@@ -3932,7 +3978,7 @@ function finishRecruit() {
       actionBar([h('button', { class: 'btn primary', onclick: function () { G.intro = null; screen = 'goal'; save(); render(); } }, ['次へ進む'])])]);
   }
   function recordsScreen() {
-    var c = h('div', { class: 'card grow scroll' });
+    var c = h('div', { class: 'grow scroll flatbox' }); /* v0.22: 記録は区切り（見出しバーと余白）で読ませ、外枠は外す */
     c.appendChild(h('div', { class: 'sec' }, ['監督の記録']));
     c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['在任']), h('span', null, [G.year + '年目'])]));
     c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['難易度']), h('span', null, [G.difficulty === 'challenge' ? 'チャレンジ' : 'ふつう'])]));
@@ -4025,7 +4071,7 @@ function finishRecruit() {
         h('span', { class: 'sub' }, [a.d])
       ]));
     });
-    var o = h('div', { class: 'card scroll', style: 'height:100%' });
+    var o = h('div', { class: 'scroll flatbox', style: 'height:100%' });
     o.appendChild(h('div', { class: 'sec' }, ['OB名鑑（' + G.obs.length + '人）']));
     if (!G.obs.length) o.appendChild(h('div', { class: 'sub' }, ['まだ卒業生がいない']));
     G.obs.slice().reverse().forEach(function (x) {
