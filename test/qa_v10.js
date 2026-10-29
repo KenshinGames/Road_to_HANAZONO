@@ -95,7 +95,7 @@ async function driveToSummary(H, maxSteps) {
   {
     const H = await makeDom(null, 111);
     check('env: jsdom has no AudioContext (no-sound safety env)', typeof H.window.AudioContext === 'undefined');
-    check('title: shows current version (v1.2; v0.25 でバージョン表記を追随)', H.text().includes('v1.2')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */
+    check('title: shows current version (v1.3; v0.25 でバージョン表記を追随)', H.text().includes('v1.3')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.3 に追随 */
     check('title: no digest without a save', H.document.getElementById('digest') === null);
     check('title: guide button exists', !!H.btn('遊び方'));
     H.click('遊び方'); await sleep(15);

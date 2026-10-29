@@ -691,3 +691,24 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
   .pmglass .pmnum { font-size: 19px; }
   .pmhero .herobody { padding: 6px; }
 }
+
+/* ===== v0.28: 引き継ぎコード（設定 → 引き継ぎ）。左＝書き出し（情報）、右＝読み込み（操作）。
+ * コード欄は残りの高さいっぱいに伸ばし、中だけスクロールする。文字は 16px（iOS で入力欄の自動拡大を起こさない大きさ） ===== */
+.xferbox { display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+.xferbox .sec { margin-bottom: 2px; }
+.xferslot { font-size: 13px; padding: 1px 0; }
+.xfercode {
+  flex: 1; min-height: 52px; width: 100%; resize: none; margin: 2px 0;
+  font: 16px/1.3 ui-monospace, Menlo, Consolas, monospace; word-break: break-all;
+  color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px;
+}
+.xfercode[readonly] { color: var(--sub); }
+.xferinfo { flex: none; min-height: 0; }
+.xfermsg { font-size: 13px; font-weight: 700; }
+.xfermsg.ok { color: var(--ok); }
+.xfermsg.ng { color: var(--ng); }
+.btn:disabled { opacity: .45; cursor: default; }
+@media (min-width: 760px) and (orientation: landscape) and (max-height: 400px) {
+  .xferslot { font-size: 12px; padding: 0; }
+  .xfercode { min-height: 44px; }
+}

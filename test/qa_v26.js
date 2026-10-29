@@ -104,9 +104,9 @@ async function playOmakase(html, seed, maxYear, onWeek) {
 (async () => {
   /* ---- 1. バージョン表記 ---- */
   {
-    check('version: document title is v1.2', HTML.includes('<title>Road to HANAZONO v1.2</title>')); /* v0.27: バージョン表記を v1.2 に追随 */
+    check('version: document title is v1.3', HTML.includes('<title>Road to HANAZONO v1.3</title>')); /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.3 に追随 */
     const h = await makeDom(HTML, null, 1);
-    check('version: hero shows v1.2', H(h).text().includes('高校ラグビー育成シミュレーション v1.2')); /* v0.27: バージョン表記を v1.2 に追随 */
+    check('version: hero shows v1.3', H(h).text().includes('高校ラグビー育成シミュレーション v1.3')); /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.3 に追随 */
     h.window.close();
   }
 

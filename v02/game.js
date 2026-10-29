@@ -1,4 +1,7 @@
-/* Road to HANAZONO v1.2（Web版） — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+/* Road to HANAZONO v1.3（Web版） — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+ * v1.3（v0.28）: セーブの引き継ぎコード（設定 → 引き継ぎ。3スロット分を1つの文字列に書き出し、別の端末や iOS 版で読み込む。
+ *        検査値つきで、途中で切れたコードは読み込まない）。iOS 版（native/、Capacitor）も同じゲーム本体を使う。
+ *        ゲームの数値・判定・乱数消費・セーブ形式・localStorage キーは不変）
  * v1.2（v0.27）: 操作画面の手直し（月頭指示の4項目〈方針・ユニット・強度・校風〉をセレクトからタップのボタン列に＝方針はスタメン平均の
  *        ランクを併記／対戦確認は飾りのバナーを「vs 相手校＋総合力比較」の見出し帯に畳み、キーマン対比とスカウティングを上へ／
  *        練習ログの同一選手・同一能力の伸びを合算表示／選択中の目標・戦術の補足文の色／OB の「n年卒」を「n年目卒」に。
@@ -592,6 +595,7 @@
     if (!G) return 'title';
     if (screen === 'guide') return BGM.playing;
     if (screen === 'settings') return BGM.playing; /* v0.24: 設定画面でも現在の曲を維持 */
+    if (screen === 'transfer') return BGM.playing; /* v0.28: 引き継ぎ画面も同じ */
     if (screen === 'title') return 'title';        /* v0.24: 進行中にタイトルへ戻った場合もタイトル曲 */
     if (screen === 'match') return (M && M.oppIdx >= 4) ? 'big' : 'match';
     if (screen === 'preMatch') { var mi2 = MONTHS[G.monthIdx] ? MONTHS[G.monthIdx].match : null; return (mi2 != null && mi2 >= 4) ? 'big' : 'match'; }
@@ -709,8 +713,9 @@
     try { return i === slotMeta().active ? localStorage.getItem(STORE_KEY) : localStorage.getItem(slotArchiveKey(i)); } catch (e) { return null; }
   }
   /* スロットの概要（表示専用。壊れたデータは null＝空きとして扱う） */
-  function slotInfo(i) {
-    var raw = slotRaw(i); if (!raw) return null;
+  function slotInfo(i) { return slotInfoRaw(slotRaw(i)); }
+  function slotInfoRaw(raw) { /* v0.28: 引き継ぎコードの中身の確認にも使うため、生データから作る形に分けた */
+    if (!raw) return null;
     try {
       var g = JSON.parse(raw);
       if (!g || !Array.isArray(g.players) || !g.players.length) return null;
@@ -793,6 +798,137 @@
     if (!t || t === 'settings' || t === 'guide' || t === 'title') return G ? resumeScreenName() : 'title';
     return t;
   }
+  /* ===== v0.28: セーブの引き継ぎコード（機種変更・Web 版 → iOS 版）=====
+   * 3スロット分のセーブ（STORE_KEY・hanazono.slot.<n>・hanazono.slots）を1つの文字列にまとめる。
+   * 形式：'HANAZONO1:' + base64（UTF-8 の JSON {v:1, at:書き出し日時, k:{キー:値}}）+ '.' + JSON の FNV-1a（16進8桁）。
+   * キーと値は変換せずにそのまま運ぶ（読み込み後は通常の起動と同じ sanitize が移行を補う）。音・BGM・時短の設定は
+   * 端末ごとのものとして運ばない。読み込みは検査（形式・検査値・セーブとして読めるか）を通ったものだけを、
+   * 2段階の確認のうえで全スロットごと置き換える。乱数には触れない */
+  var XFER_HEAD = 'HANAZONO1:';
+  var xferOut = '', xferIn = '', xferConfirm = false, xferCopied = false;
+  function xferKeys() {
+    var ks = [STORE_KEY, SLOT_META_KEY];
+    for (var i = 1; i <= SLOT_COUNT; i++) ks.push(slotArchiveKey(i));
+    return ks;
+  }
+  function fnv1a(str) {
+    var x = 0x811c9dc5;
+    for (var i = 0; i < str.length; i++) { x ^= str.charCodeAt(i); x = Math.imul(x, 0x01000193) >>> 0; }
+    return ('0000000' + x.toString(16)).slice(-8);
+  }
+  function xferExport() {
+    var k = {};
+    xferKeys().forEach(function (key) { try { var v = localStorage.getItem(key); if (v !== null) k[key] = v; } catch (e) {} });
+    var json = JSON.stringify({ v: 1, at: new Date().toISOString(), k: k });
+    return XFER_HEAD + btoa(unescape(encodeURIComponent(json))) + '.' + fnv1a(json);
+  }
+  /* コードを検査して中身を返す。読めない時は err に理由（空欄は err=''） */
+  function xferParse(code) {
+    var str = String(code || '').replace(/\s+/g, '');
+    if (!str) return { err: '' };
+    if (str.indexOf(XFER_HEAD) !== 0) return { err: '引き継ぎコードではない（HANAZONO1: で始まる文字列を貼り付ける）' };
+    var body = str.slice(XFER_HEAD.length), dot = body.lastIndexOf('.');
+    var broken = { err: 'コードが途中で切れているか、書き換わっている' };
+    if (dot < 0) return broken;
+    var json;
+    try { json = decodeURIComponent(escape(atob(body.slice(0, dot)))); } catch (e) { return broken; }
+    if (fnv1a(json) !== body.slice(dot + 1)) return broken;
+    var o = null; try { o = JSON.parse(json); } catch (e) {}
+    if (!o || o.v !== 1 || !o.k || typeof o.k !== 'object') return { err: 'このバージョンでは読めないコード' };
+    var allowed = xferKeys(), k = {};
+    Object.keys(o.k).forEach(function (key) { if (allowed.indexOf(key) >= 0 && typeof o.k[key] === 'string') k[key] = o.k[key]; });
+    var meta = null; try { meta = JSON.parse(k[SLOT_META_KEY] || 'null'); } catch (e) {}
+    var act = (meta && (meta.active === 1 || meta.active === 2 || meta.active === 3)) ? meta.active : 1;
+    var slots = [1, 2, 3].map(function (i) { return slotInfoRaw(i === act ? k[STORE_KEY] : k[slotArchiveKey(i)]); });
+    if (!slots.some(function (x) { return !!x; })) return { err: 'このコードにはセーブが入っていない' };
+    return { err: null, k: k, at: typeof o.at === 'string' ? o.at : '', slots: slots };
+  }
+  /* 全スロットを置き換える。書き込みに失敗したら元の内容に戻す */
+  function xferApply(p) {
+    var keys = xferKeys(), old = {};
+    try { keys.forEach(function (key) { old[key] = localStorage.getItem(key); }); } catch (e) { return false; }
+    try {
+      keys.forEach(function (key) { localStorage.removeItem(key); });
+      Object.keys(p.k).forEach(function (key) { localStorage.setItem(key, p.k[key]); });
+    } catch (e) {
+      try { keys.forEach(function (key) { if (old[key] === null) localStorage.removeItem(key); else localStorage.setItem(key, old[key]); }); } catch (e2) {}
+      return false;
+    }
+    G = null; M = null; showDigest = false;
+    slotMeta();
+    if (loadSaved()) { sanitize(); save(); showDigest = true; }
+    tutDone = true; tutSave(); /* 引き継いだ監督は経験者として扱い、最初の案内を出さない */
+    selSlot = null; confirmDelSlot = 0; confirmDelAll = false;
+    return true;
+  }
+  function openTransfer() { xferOut = [1, 2, 3].some(function (i) { return !!slotInfo(i); }) ? xferExport() : ''; xferIn = ''; xferConfirm = false; xferCopied = false; screen = 'transfer'; render(); }
+  function xferSlotLine(i, info) {
+    return h('div', { class: 'rowline xferslot' }, [h('b', null, ['スロット' + i]),
+      h('span', { class: 'sub' }, [info ? (info.year + '年目 ・ ' + info.month + ' ／ 部の格 ' + info.grade) : 'あき'])]);
+  }
+  function xferDate(iso) {
+    var d = new Date(iso); if (!iso || isNaN(d.getTime())) return '';
+    return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2);
+  }
+  function transferScreen() {
+    var L = h('div', { class: 'grow flatbox xferbox' });
+    L.appendChild(h('div', { class: 'sec' }, ['📤 この端末のセーブを書き出す']));
+    [1, 2, 3].forEach(function (i) { L.appendChild(xferSlotLine(i, slotInfo(i))); });
+    var out = h('textarea', { class: 'xfercode', readonly: 'readonly', placeholder: 'この端末にはまだセーブがない', 'aria-label': '引き継ぎコード（書き出し）' });
+    out.value = xferOut;
+    L.appendChild(out);
+    if (xferOut) L.appendChild(h('div', { class: 'sub' }, ['メモやメール、AirDrop で新しい端末へ送る（' + xferOut.length + '文字）']));
+    var R = h('div', { class: 'grow flatbox xferbox' });
+    R.appendChild(h('div', { class: 'sec' }, ['📥 引き継ぎコードを読み込む']));
+    var inp = h('textarea', { class: 'xfercode', placeholder: 'ここに引き継ぎコードを貼り付ける', 'aria-label': '引き継ぎコード（読み込み）', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
+    inp.value = xferIn;
+    var info = h('div', { class: 'xferinfo' });
+    var loadBtn = h('button', { class: 'btn', onclick: function () {
+      var p = xferParse(xferIn);
+      if (p.err !== null) return;
+      if (!xferConfirm) { xferConfirm = true; render(); return; }
+      if (xferApply(p)) { xferIn = ''; xferConfirm = false; screen = 'title'; render(); showToast('📥 セーブを引き継いだ'); }
+      else { xferConfirm = false; render(); showToast('読み込めなかった（保存できなかった）'); }
+    } });
+    function refresh() {
+      var p = xferParse(xferIn);
+      info.innerHTML = '';
+      if (p.err) info.appendChild(h('div', { class: 'xfermsg ng' }, [p.err]));
+      else if (p.err === null) {
+        var when = xferDate(p.at);
+        info.appendChild(h('div', { class: 'xfermsg ok' }, ['読み込めるコード' + (when ? '（' + when + ' 書き出し）' : '')]));
+        p.slots.forEach(function (x, ix) { info.appendChild(xferSlotLine(ix + 1, x)); });
+        if (xferConfirm) info.appendChild(h('div', { class: 'xfermsg ng' }, ['この端末の3スロットは、コードの中身に置き換わる']));
+      }
+      loadBtn.disabled = p.err !== null;
+      loadBtn.className = 'btn' + (p.err === null ? (xferConfirm ? ' danger' : ' primary') : '');
+      loadBtn.textContent = xferConfirm ? '本当に置き換える' : '📥 読み込む';
+    }
+    inp.oninput = function () { xferIn = inp.value; xferConfirm = false; refresh(); };
+    R.appendChild(inp);
+    R.appendChild(info);
+    refresh();
+    var copyBtn = h('button', { class: 'btn', onclick: function () {
+      var done = function () { xferCopied = true; copyBtn.textContent = '✅ コピーした'; };
+      var fallback = function () {
+        try { out.focus(); out.select(); out.setSelectionRange(0, out.value.length); if (document.execCommand('copy')) done(); } catch (e) {}
+      };
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(xferOut).then(done, fallback);
+        else fallback();
+      } catch (e) { fallback(); }
+    } }, [xferCopied ? '✅ コピーした' : '📋 コードをコピー']);
+    copyBtn.disabled = !xferOut;
+    var bar = [copyBtn, loadBtn];
+    if (xferConfirm) bar.push(h('button', { class: 'btn', onclick: function () { xferConfirm = false; render(); } }, ['やめる']));
+    else bar.push(h('button', { class: 'btn', onclick: function () { screen = 'settings'; render(); } }, ['◀ 戻る']));
+    var kids = [];
+    if (G) kids.push(hud());
+    kids.push(h('div', { class: 'sec' }, ['📦 引き継ぎ（機種変更・アプリ版へ）']));
+    kids.push(h('div', { class: 'lay2' }, [col([L]), col([R])]));
+    kids.push(actionBar(bar));
+    wrap(kids);
+  }
   function setRow(label, desc, ctrl) {
     var lab = h('div', { class: 'setlab' }, [h('b', null, [label])]);
     if (desc) lab.appendChild(h('span', { class: 'sub setdesc' }, [desc]));
@@ -834,6 +970,8 @@
       }
       R.appendChild(h('div', { class: 'rowline setrow' }, [lab, ctrls]));
     });
+    R.appendChild(setRow('引き継ぎコード', '全スロットを文字列で書き出し、別の端末やアプリ版で読み込む',
+      h('button', { class: 'hudbtn', onclick: function () { openTransfer(); } }, ['📦 引き継ぎ']))); /* v0.28 */
     R.appendChild(h('div', { class: 'sec' }, ['🗑 データ削除']));
     var delCtrl;
     if (!confirmDelAll) {
@@ -3381,6 +3519,7 @@ function finishRecruit() {
     FX.lastKey = fxKey;
     if (screen === 'guide') return guideScreen();
     if (screen === 'settings') return settingsScreen(); /* v0.24: 設定画面（ゲーム未開始でも開ける） */
+    if (screen === 'transfer') return transferScreen(); /* v0.28: 引き継ぎコード（ゲーム未開始でも開ける） */
     if (screen === 'title') return titleScreen();       /* v0.24: スロット選択のため、進行中でもタイトルへ戻れる */
     if (!G) return titleScreen();
     if (screen === 'goal') return goalScreen();
@@ -3477,7 +3616,7 @@ function finishRecruit() {
     /* v1.0: クレジット（制作表記）。詳細はガイドのクレジット節にも置く */
     kids.push(h('p', { class: 'sub', style: 'text-align:center;margin-top:2px' }, ['制作：Kenshin Takada ／ Muse との共同開発']));
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v1.2'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v1.3'])]),
       h('div', { class: 'card center title-card' }, kids)
     ]);
     mount(h('div', { class: 'stack shell' }, [inner]));
@@ -3532,7 +3671,7 @@ function finishRecruit() {
     [['制作', 'Kenshin Takada'],
      ['開発', 'Muse（AI）との共同開発'],
      ['シリーズ', '100アプリチャレンジ #47'],
-     ['バージョン', 'v1.2（Web版）']].forEach(function (r) {
+     ['バージョン', 'v1.3（Web版）']].forEach(function (r) {
       R.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
     });
     R.appendChild(h('button', { class: 'btn', style: 'margin-top:12px', onclick: function () { tutReplay(guideFrom); back(); } }, ['🎓 チュートリアルをもう一度見る'])); /* v0.24: 実地ガイドの再表示（戻り先の画面のステップから） */
