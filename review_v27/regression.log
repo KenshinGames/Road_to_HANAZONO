@@ -1,0 +1,37 @@
+qa_proto rc=0 NG=0 ALL PASS 6s
+qa_v02 rc=0 NG=0 ALL PASS 9s
+qa_v03 rc=0 NG=0 ALL PASS 15s
+qa_v04 rc=0 NG=0 ALL PASS 30s
+qa_v05 rc=0 NG=0 ALL PASS 16s
+qa_v06 rc=0 NG=0 ALL PASS 11s
+qa_v07 rc=0 NG=0 ALL PASS 20s
+qa_v08 rc=0 NG=0 ALL PASS 26s
+qa_v09 rc=1 NG=4 *** 3 FAILURES *** (51 checks) 34s
+qa_v10 rc=0 NG=0 ALL PASS 19s
+qa_v11 rc=0 NG=0 ALL PASS 19s
+qa_v12 rc=0 NG=0 ALL PASS 29s
+qa_v13 rc=0 NG=0 ALL PASS 61s
+qa_v14 rc=0 NG=0 ALL PASS 22s
+qa_v15 rc=0 NG=0 ALL PASS 18s
+qa_v16 rc=0 NG=0 ALL PASS 118s
+qa_v17 rc=0 NG=0 ALL PASS 15s
+qa_v18 rc=0 NG=0 ALL PASS 34s
+qa_v19 rc=0 NG=0 ALL PASS 27s
+qa_v20 rc=0 NG=0 ALL PASS 14s
+qa_v21 rc=0 NG=0 qa_v21: ALL PASS 17s
+qa_v22 rc=0 NG=0 ALL PASS 16s
+qa_v23 rc=0 NG=0 ALL PASS 223s
+qa_v24 rc=0 NG=0 qa_v24: 68 passed, 0 failed 30s
+qa_v25 rc=0 NG=0 qa_v25: 18 passed, 0 failed 18s
+qa_v26 rc=0 NG=0 qa_v26: 35 passed, 0 failed 68s
+qa_v27 rc=0 NG=0 ALL PASS 15s
+REGRESSION DONE
+SOAK DONE rc=0
+AUDIT LIGHT rc=2 ERROR Error: Failed to launch the browser process:  Code: null
+AUDIT DARK rc=2 ERROR Error: Failed to launch the browser process:  Code: null
+ALL DONE
+--- 追記（同じ最終ビルドでの再実行）---
+qa_v09 再実行（相手の総合力を見出し帯の数値から読むよう追随した後）: ALL PASS (51 checks)
+AUDIT LIGHT 再実行（TMPDIR を既定に戻して Chromium を起動）: errors: 0 | screens: 61 | clip kinds: {} | screens with issues: none
+AUDIT DARK 再実行: errors: 0 | screens: 61 | clip kinds: {} | screens with issues: none
+SOAK 同値性: soak_v27_2x20.log の先頭2キャリア（4行）は review_v26/soak_v26_20y.log の先頭4行と行単位で完全一致
