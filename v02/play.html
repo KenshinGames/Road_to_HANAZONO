@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Road to HANAZONO v0.12</title>
-<meta name="description" content="高校ラグビー育成ゲーム v0.12。監督として世代を超えて花園を目指す。">
+<title>Road to HANAZONO v0.13</title>
+<meta name="description" content="高校ラグビー育成ゲーム v0.13。監督として世代を超えて花園を目指す。">
 <meta name="theme-color" content="#f4f7f2" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#101410" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -265,12 +265,20 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
 .formface { display: inline-flex; width: 20px; height: 20px; flex: none; vertical-align: -4px; line-height: 0; }
 .formface svg { display: block; }
 
+/* v0.13: 月次成長レポートのカードと数値列／選手詳細の調子推移（顔アイコンの列） */
+.growreport .rowline + .rowline { margin-top: 4px; }
+.grstats { text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
+.formhist { display: inline-flex; gap: 2px; align-items: center; }
+@media (min-width: 760px) and (orientation: landscape) {
+  .growreport { flex: 0 1 auto; max-height: 46%; overflow-y: auto; }
+}
+
 </style>
 </head>
 <body>
 <div id="app" aria-live="polite"></div>
 <script>
-/* Road to HANAZONO v0.12 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.13 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
  * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示
  * v0.4: 新入生3層の完成(スカウト＋特別枠) + OB連携
  * v0.5: 立ち絵表現(パーツ組み合わせ式の自動生成) + 試合カットイン + 会話劇 + 季節感
@@ -282,7 +290,9 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
  * v0.10: 効果音（WebAudio合成）／実績（トロフィー）13種／遊び方ガイド／再開時あらすじ
  * v0.11: シーンイラスト4枚（ChatGPT生成：優勝・卒業・合宿・雨）を組み込み／調子の色分け表示
  * v0.12: 試合の読み応え（実況バリエーション拡充＋試合内の重複回避／スカウティング弱点ヒント／ハーフタイム形勢サマリー／敗因・勝因の相対バー表示）
- *        ＋調子表示を固定サイズの顔アイコンのみに見直し（ユーザー提示の参照画像に基づく配色、ラベル廃止） */
+ *        ＋調子表示を固定サイズの顔アイコンのみに見直し（ユーザー提示の参照画像に基づく配色、ラベル廃止）
+ * v0.13: 育成の手触り（月次成長レポート＝盤面の練習で実際に伸びた分の内訳を次の月頭指示画面にカード表示／
+ *        選手詳細に調子の推移＝直近最大6件を顔アイコンの列で表示／信頼度イベントに復帰・キャプテン・上級生指導・進路の続きを追加） */
 (function () {
   'use strict';
   var STORE_KEY = 'hanazono.v02';
@@ -368,8 +378,10 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
   function formOf(p) { return FORMS.filter(function (x) { return x.v === (p.form || 0); })[0] || FORMS[2]; }
   /* v0.12: 調子の顔アイコン（SVG・固定サイズ・ラベルなし）。表情は段階ごとに変える：
    * 絶好調=口を開けた大笑顔 / 好調=笑顔 / 普通=真顔（直線の口） / 不調=困り顔（眉＋下がった口） / 絶不調=落ち込んだ顔（閉じ目＋下がった口） */
-  function formFace(p) {
-    var f = formOf(p);
+  function formFace(p) { return formFaceVal(formOf(p).v); }
+  /* v0.13: 調子の値そのものから顔アイコンを作る（選手詳細の「調子の推移」で過去の段階を並べるため） */
+  function formFaceVal(v) {
+    var f = FORMS.filter(function (x) { return x.v === v; })[0] || FORMS[2];
     var eyes = '<g fill="#33302e"><ellipse cx="14" cy="17" rx="1.7" ry="2.4"/><ellipse cx="26" cy="17" rx="1.7" ry="2.4"/></g>';
     var inner;
     if (f.v === 2) inner = eyes + '<path d="M12.5 21 Q20 33.5 27.5 21 Q20 25.5 12.5 21 Z" fill="#6b2237"/><path d="M15.8 26.4 Q20 28.8 24.2 26.4 Q20 30.2 15.8 26.4 Z" fill="#e56b7f"/>';
@@ -382,6 +394,20 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
     return el;
   }
   function rollForm() { var r = Math.random(); return r < 0.12 ? -1 : (r < 0.24 ? 1 : 0); }
+  /* v0.13: 調子の推移の記録。各選手の formHist（直近最大6件・古い順）に、現在の調子が前回記録と違えば積む。
+   * 調子が更新されるタイミング（月替わりの driftForm／盤面マスの解決／試合後／セーブ読み込み時）に
+   * syncFormHist を呼び、差分だけを残す。調子の変動ロジック自体には一切関与しない */
+  function syncFormHist() {
+    if (!G || !Array.isArray(G.players)) return;
+    G.players.forEach(function (p) {
+      if (!Array.isArray(p.formHist)) p.formHist = [];
+      var cur = clamp(Math.round(p.form || 0), -2, 2);
+      if (!p.formHist.length || p.formHist[p.formHist.length - 1] !== cur) {
+        p.formHist.push(cur);
+        if (p.formHist.length > 6) p.formHist = p.formHist.slice(-6);
+      }
+    });
+  }
   /* v0.9: シーズン目標（年初に1つ選ぶ。rank が達成判定の物差し） */
   var GOALS = [
     { k: 'win1', n: '予選でまず1勝', rank: 1, d: '花園予選の初戦を突破する' },
@@ -678,7 +704,9 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
       h: sz.h, w: sz.w, person: opts.person || pick(PERSONS).n,
       skills: opts.skills ? opts.skills.slice() : rollSkills(pos),
       trust: typeof opts.trust === 'number' ? opts.trust : (year >= 2 ? ri(35, 60) : ri(22, 45)),
-      srec: { tries: 0, plays: 0 }, crec: { tries: 0, plays: 0 }
+      srec: { tries: 0, plays: 0 }, crec: { tries: 0, plays: 0 },
+      /* v0.13: 調子の推移（空で開始し、更新のたびに積まれる）／復帰イベント用フラグ／進路イベント既見フラグ */
+      formHist: [], backMark: false, futureSeen: false
     };
     STATS.forEach(function (s) {
       var v = base + ri(-6, 6) + (s.k === pos.main ? 8 : 0) + (s.k === 'sta' ? 3 : 0)
@@ -728,6 +756,8 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
       captainId: null, ethos: 'discipline', lineup: null,
       board: null, qualified: false, tactic: 'fw', nextBonus: 0,
       monthLog: [], summary: null,
+      /* v0.13: 月次成長レポートの記録（当月の蓄積と、前月のスナップショット） */
+      growAcc: null, growReport: null,
       /* v0.9: 難易度・シーズン目標・ライバル・歴代チーム・設備 */
       difficulty: diff === 'challenge' ? 'challenge' : 'normal',
       goal: null, goalSet: false,
@@ -769,6 +799,12 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
       if (typeof p.injPart !== 'string' || !p.injPart) p.injPart = '負傷';
     } else { p.injSev = null; p.injPart = null; }
     migratePlayer(p);
+    /* v0.13: 調子履歴（数値 -2..2 の配列・最大6件に丸める）とイベント用フラグの検証 */
+    if (!Array.isArray(p.formHist)) p.formHist = [];
+    p.formHist = p.formHist.filter(function (v) { return typeof v === 'number' && isFinite(v); })
+      .map(function (v) { return clamp(Math.round(v), -2, 2); }).slice(-6);
+    if (typeof p.backMark !== 'boolean') p.backMark = !!p.backMark;
+    if (typeof p.futureSeen !== 'boolean') p.futureSeen = !!p.futureSeen;
   }
   function sanitize() {
     if (!G || !G.players) return;
@@ -849,6 +885,14 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
         else if (G.recruit.special && !G.recruit.special.p) G.recruit.special = null;
       }
     }
+    /* v0.13: 月次成長レポートの記録（表示専用のデータ）。形が壊れていたら捨てる */
+    if (!G.growAcc || typeof G.growAcc !== 'object' || Array.isArray(G.growAcc) ||
+        typeof G.growAcc.y !== 'number' || typeof G.growAcc.m !== 'number' ||
+        !G.growAcc.by || typeof G.growAcc.by !== 'object' || Array.isArray(G.growAcc.by)) G.growAcc = null;
+    if (!G.growReport || typeof G.growReport !== 'object' || Array.isArray(G.growReport) ||
+        typeof G.growReport.label !== 'string' || !Array.isArray(G.growReport.rows) || !G.growReport.rows.length) G.growReport = null;
+    /* v0.13: 読み込み時点の調子を推移の起点として記録する */
+    syncFormHist();
   }
   function gradeOf() {
     var g = GRADES[0];
@@ -940,7 +984,8 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
     G.players.forEach(function (p) {
       if (p.injured > 0) {
         p.injured--;
-        if (p.injured === 0) { p.injSev = null; p.injPart = null; recovered.push(p.name); }
+        /* v0.13: ケガ（体調不良を除く）から復帰したら、復帰イベント用フラグを立てる */
+        if (p.injured === 0) { if (p.injPart !== '体調不良') p.backMark = true; p.injSev = null; p.injPart = null; recovered.push(p.name); }
       }
     });
     return recovered;
@@ -996,6 +1041,7 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
   }
   function startMonth() {
     driftForm();
+    syncFormHist(); /* v0.13: 月替わりの調子変動を推移に記録 */
     var mo = MONTHS[G.monthIdx];
     var tpl = mo.cells >= 12 ? ['pS', 'pS', 'pS', 'pS', 'pB', 'pB', 'ev', 'ev', 'rec', 'free', 'meet'] : ['pS', 'pS', 'pB', 'ev', 'rec', 'free'];
     var cells = shuffle(tpl.slice()).map(function (t) { return { t: t, done: false }; });
@@ -1023,6 +1069,7 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
     var cell = b.cells[b.pos];
     cell.done = true;
     resolveCell(cell.t);
+    syncFormHist(); /* v0.13: マス解決で動いた調子を推移に記録 */
     sfx('steps', v);
     checkAchievements();
     save(); render();
@@ -1043,7 +1090,7 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
       var inj = G.players.filter(function (p) { return p.injured > 0; }).sort(function (a, c) { return c.injured - a.injured; })[0];
       if (inj) {
         inj.injured--;
-        if (inj.injured === 0) { inj.injSev = null; inj.injPart = null; b.log.push('💊 ケアの日。疲労が抜け、' + inj.name + ' が復帰した'); }
+        if (inj.injured === 0) { if (inj.injPart !== '体調不良') inj.backMark = true; inj.injSev = null; inj.injPart = null; b.log.push('💊 ケアの日。疲労が抜け、' + inj.name + ' が復帰した'); }
         else b.log.push('💊 ケアの日。疲労が抜け、' + inj.name + ' の回復が進んだ（復帰まであと' + inj.injured + 'か月）');
       }
       else b.log.push('💊 ケアの日。全員の疲労が回復した');
@@ -1062,6 +1109,37 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
   function softDecay(cur) {
     if (cur < 85) return 1;
     return Math.max(0.1, 1 - (cur - 85) / 14 * 0.9);
+  }
+  /* v0.13: 月次成長レポート用の記録（表示専用。成長計算そのものには一切関与しない）。
+   * 盤面の練習マスで実際に伸びた分（99で頭打ちした分は実際に増えた分だけ）を当月分として貯め、
+   * 月末に snapshotGrowth で確定させ、次の月頭指示画面にカードで出す。誰も伸びなかった月はレポートなし */
+  function growAcc() {
+    if (!G.growAcc || G.growAcc.y !== G.year || G.growAcc.m !== G.monthIdx) {
+      G.growAcc = { y: G.year, m: G.monthIdx, by: {} };
+    }
+    return G.growAcc;
+  }
+  function accGrowEntry(p) {
+    var a = growAcc(), e = a.by[p.id];
+    if (!e) e = a.by[p.id] = { name: p.name, stats: {}, trust: 0, focus: false };
+    if (p.id === G.inst.focus) e.focus = true;
+    return e;
+  }
+  function accGrow(p, stat, delta) { if (delta > 0) { var e = accGrowEntry(p); e.stats[stat] = (e.stats[stat] || 0) + delta; } }
+  function accTrust(p, amt) { if (amt > 0) accGrowEntry(p).trust += amt; }
+  function snapshotGrowth() {
+    G.growReport = null;
+    var a = G.growAcc;
+    if (a && a.y === G.year && a.m === G.monthIdx) {
+      var rows = Object.keys(a.by).map(function (id) {
+        var e = a.by[id], tot = 0;
+        STATS.forEach(function (s) { tot += e.stats[s.k] || 0; });
+        return { name: e.name, stats: e.stats, trust: e.trust, total: tot, focus: !!e.focus };
+      }).filter(function (r) { return r.total > 0 || r.trust > 0; })
+        .sort(function (x, y) { return (y.total - x.total) || (y.trust - x.trust); });
+      if (rows.length) G.growReport = { label: MONTHS[G.monthIdx].m, rows: rows };
+    }
+    G.growAcc = null;
   }
   function applyPractice(big) {
     var inst = G.inst, lvl = LEVELS[inst.level];
@@ -1090,6 +1168,7 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
         if (g > 0 && cur < 99) {
           p.stats[stat] = Math.min(99, cur + g);
           gains.push({ name: p.name, stat: stat, g: g, focus: p.id === inst.focus });
+          accGrow(p, stat, p.stats[stat] - cur); /* v0.13: レポート用に実際に増えた分を記録 */
         }
       }
       gain(inst.team, big ? ri(1, 3) : ri(0, 2));
@@ -1097,7 +1176,9 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
       if (p.id === inst.focus) gain(inst.team, ri(2, 4));
       if (surplus >= 1.5) {
         var tg = Math.max(1, Math.round(surplus * 0.8));
+        var trustBefore = p.trust || 50;
         gainTrust(p, tg);
+        accTrust(p, (p.trust || 50) - trustBefore); /* v0.13: レポート用に実際に増えた信頼度を記録 */
         surplusNotes.push(p.name + ' 信頼+' + tg);
       }
       p.fatigue = Math.min(100, p.fatigue + Math.round(lvl.fat * (big ? 1.3 : 1) * per.fat * eth.f));
@@ -1121,10 +1202,26 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
     var seniors = G.players.filter(function (p) { return p.year === 3; });
     var lowTrust = G.players.filter(function (p) { return (p.trust || 50) < 35; });
     var highTrust = G.players.filter(function (p) { return (p.trust || 50) >= 70; });
+    /* v0.13: ケガから復帰した選手の一言。復帰フラグ（backMark）が立っている間は最優先で拾い、拾ったら下げる */
+    var backs = G.players.filter(function (p) { return p.backMark; });
+    if (backs.length) {
+      var bp = backs[0];
+      bp.backMark = false;
+      gainTrust(bp, 5);
+      bp.form = clamp((bp.form || 0) + 1, -2, 2);
+      return { t: 'ケガから復帰した ' + bp.name + ' が全体練習に合流。「もう大丈夫です」と笑顔を見せた。本人の信頼と調子が上向いた', dlg: { pid: bp.id, text: dlgLine(bp, 'comeback') } };
+    }
     var r = Math.random();
     if (seniors.length && r < 0.35) {
       var s = pick(seniors);
       gainTrust(s, 5);
+      /* v0.13: 進路イベントを経験した3年生には「その後」の続きが出る（信頼+2・次の試合+1の控えめな効果） */
+      if (s.futureSeen) {
+        gainTrust(s, 2);
+        G.nextBonus = Math.min(bonusCap(), G.nextBonus + 1);
+        return { t: '進路のその後。3年 ' + s.name + '（' + s.person + '）が「進路のことは決めました。あとは花園だけです」と言い切った。チームが引き締まった（次の試合 +1）', dlg: { pid: s.id, text: dlgLine(s, 'future2') } };
+      }
+      s.futureSeen = true;
       G.nextBonus = Math.min(bonusCap(), G.nextBonus + 2);
       var path = pick([
         '卒業後は大学でもラグビーを続ける決意を固めた',
@@ -1138,6 +1235,22 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
       gainTrust(v, 10);
       v.form = clamp((v.form || 0) + 1, -2, 2);
       return { t: '面談：' + v.name + '（' + v.person + '・信頼度が低め）の本音を聞けた。監督への信頼が深まり、調子も上向いた', dlg: { pid: v.id, text: dlgLine(v, 'honest') } };
+    }
+    /* v0.13: キャプテンの声かけ（信頼の厚いキャプテンがいる時だけ。効果は既存イベントの範囲内） */
+    var cap = captainOf();
+    if (cap && (cap.trust || 50) >= 60 && Math.random() < 0.5) {
+      gainTrust(cap, 3);
+      G.nextBonus = Math.min(bonusCap(), G.nextBonus + 2);
+      return { t: 'キャプテン ' + cap.name + ' が練習前に全員を集めて声をかけた。チームの空気が引き締まった（次の試合 +2）', dlg: { pid: cap.id, text: dlgLine(cap, 'captain') } };
+    }
+    /* v0.13: 上級生が下級生を指導（信頼の厚い上級生と1年生がいる時だけ） */
+    var seniorMentors = G.players.filter(function (p) { return p.year >= 2 && (p.trust || 50) >= 60; });
+    var juniors = G.players.filter(function (p) { return p.year === 1; });
+    if (seniorMentors.length && juniors.length && Math.random() < 0.5) {
+      var sm = pick(seniorMentors);
+      gainTrust(sm, 2);
+      juniors.forEach(function (p) { gainTrust(p, 3); });
+      return { t: '上級生の ' + sm.name + '（' + sm.person + '）が練習後に1年生を残して基礎を指導。後輩たちの信頼が育った', dlg: { pid: sm.id, text: dlgLine(sm, 'senior') } };
     }
     if (highTrust.length) {
       var m = pick(highTrust);
@@ -1163,7 +1276,7 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
     if (r < 0.54) { G.rep += repGain(5); return { t: '地域の小学生向けラグビー体験会を開催。部の評判が上がった（評判 +' + repGain(5) + '）' }; }
     if (r < 0.64) {
       var anyInj = G.players.some(function (p) { return p.injured > 0; });
-      G.players.forEach(function (p) { if (p.injured > 0) { p.injured--; if (!p.injured) { p.injSev = null; p.injPart = null; } } });
+      G.players.forEach(function (p) { if (p.injured > 0) { p.injured--; if (!p.injured) { if (p.injPart !== '体調不良') p.backMark = true; p.injSev = null; p.injPart = null; } } });
       return { t: anyInj ? 'マネージャーが入部！ ケアが行き届き、負傷者の回復が早まった（離脱期間が1か月短くなった）' : 'マネージャーが入部！ ケア体制が整い、選手のコンディションが安定した' };
     }
     if (r < 0.74) { G.nextBonus = Math.min(bonusCap(), G.nextBonus + 4); return { t: 'ライバル校の試合映像を入手。弱点が見えた（次の試合 +4）' }; }
@@ -1182,6 +1295,7 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
     var mo = MONTHS[G.monthIdx];
     G.monthLog = G.board ? G.board.log.slice(-6) : [];
     G.board = null;
+    snapshotGrowth(); /* v0.13: この月の成長内訳をレポートとして確定（次の月頭指示画面で表示） */
     if (mo.match != null) {
       if (mo.needWin && !G.qualified) { seasonEnd(); return; }
       screen = 'preMatch'; save(); render(); return;
@@ -1701,6 +1815,7 @@ function finishMatch() {
   fieldPlayers().forEach(function (p) { p.fatigue = Math.min(100, p.fatigue + 8); });
   if (res === 'win') sfx('win'); else sfx('lose');
   checkAchievements();
+  syncFormHist(); /* v0.13: 試合後の調子変動を推移に記録 */
   save();
 }
 function growFromMatch(prob) {
@@ -1793,6 +1908,7 @@ function advanceMonth() {
 
 /* ---------------- 年度末と世代交代 ---------------- */
 function seasonEnd() {
+G.growReport = null; /* v0.13: シーズン終了時はサマリーが締めになるため、月次成長レポートは持ち越さない */
 var grads = G.players.filter(function (p) { return p.year === 3;});
 /* v0.9: シーズン目標の達成判定（達成で評判ボーナス、格上達成は大きめ。未達は小幅減にとどめる） */
 var goalObj = goalOf();
@@ -2121,7 +2237,12 @@ function finishRecruit() {
       honest: { 'クール': '…実は、監督にだけは言おうと思ってました', '自由人': '正直、練習はキツいっす。でも辞める気はないですよ', 'マイペース': '焦らなくていいって言われて、少し楽になりました', 'default': '本当は…少し悩んでました。聞いてくれて助かりました' },
       mentor: { 'リーダー気質': '後輩は俺たちに任せてください', '熱血': '1年、ついてこい！ 一緒に強くなろう！', 'default': '後輩に教えることで、自分も伸びています' },
       rest: { '自由人': '休むのも練習のうち、ってやつですよ', 'マイペース': 'しっかり寝ました。もう大丈夫です', 'default': 'いい気分転換になりました' },
-      ob: { 'default': '先輩、ありがとうございます！ 次の試合、絶対に勝ちます' }
+      ob: { 'default': '先輩、ありがとうございます！ 次の試合、絶対に勝ちます' },
+      /* v0.13: 追加イベントのセリフ */
+      comeback: { '熱血': '待たせました！ もう全開でいけます！', 'クール': '…復帰した。ここから取り返す', '真面目': 'リハビリで学んだことを、プレーで返します', 'default': 'ご心配をおかけしました。もう大丈夫です' },
+      captain: { 'リーダー気質': '最後まで声を出し続けよう。それが桜丘のラグビーだ', '熱血': '俺が引っ張る！ 全員ついてこい！', 'default': 'みんなで声を掛け合っていこう' },
+      senior: { 'リーダー気質': '基礎が一番大事だ。焦らなくていい', '真面目': '分からないことは何でも聞いて。去年の自分を見ているようだ', '熱血': '1年、遠慮するな！ ガンガンいけ！', 'default': '教えることで、自分の基礎も固まります' },
+      future2: { '熱血': '進路は決めた。あとは花園で全部出すだけです！', '真面目': 'やるべきことは終わりました。最後の冬に集中します', 'default': '決めました。あとはこのチームで勝つだけです' }
     };
     var m = T[kind] || {};
     return m[p.person] || m['default'] || '';
@@ -2289,7 +2410,7 @@ function finishRecruit() {
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.12'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.13'])]),
       h('div', { class: 'card center title-card' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
         h('button', { class: 'btn primary', onclick: function () { newGame('normal'); screen = 'goal'; render(); } }, ['監督に就任する（ふつう）']),
@@ -2373,6 +2494,25 @@ function finishRecruit() {
     ]));
     if (G.monthLog && G.monthLog.length) {
       left.push(h('div', { class: 'card grow scroll' }, [h('div', { class: 'sub' }, ['最近の出来事'])].concat(G.monthLog.map(function (l) { return h('div', null, [l]); }))));
+    }
+    /* v0.13: 先月の成長レポート。盤面フロー内のカードとして左カラムに出す（モーダルではないので進行は妨げない） */
+    if (G.growReport && G.growReport.rows && G.growReport.rows.length) {
+      var gr = h('div', { class: 'card growreport' });
+      gr.appendChild(h('div', { class: 'sec' }, ['📈 ' + G.growReport.label + 'の成長レポート']));
+      G.growReport.rows.slice(0, 10).forEach(function (r) {
+        var parts = STATS.filter(function (s) { return r.stats[s.k]; }).map(function (s) { return s.n + '+' + r.stats[s.k]; });
+        var txt = (parts.length ? parts.join('・') + ' ' : '') + '（合計+' + r.total + '）';
+        if (r.trust > 0) txt += ' ／ 信頼度+' + r.trust;
+        gr.appendChild(h('div', { class: 'rowline' }, [
+          h('span', null, [(r.focus ? '⭐' : '') + r.name]),
+          h('span', { class: 'grstats' }, [txt])
+        ]));
+      });
+      if (G.growReport.rows.length > 10) {
+        gr.appendChild(h('div', { class: 'sub' }, ['ほか ' + (G.growReport.rows.length - 10) + ' 名も成長した']));
+      }
+      gr.appendChild(h('button', { class: 'btn small', style: 'margin-top:8px', onclick: function () { G.growReport = null; save(); render(); } }, ['確認した']));
+      left.push(gr);
     }
     var card = h('div', { class: 'card grow' });
     card.appendChild(h('div', { class: 'sec' }, [mo.m + 'の練習指示' + (mo.camp ? '（合宿月：実り1.5倍）' : '') + (mo.match != null ? ' ／ 月末に試合あり' : '')]));
@@ -2504,6 +2644,11 @@ function finishRecruit() {
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['今季の記録']), h('span', null, ['トライ ' + (sel.srec ? sel.srec.tries : 0) + ' ／ 好プレー ' + (sel.srec ? sel.srec.plays : 0)])]));
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['キャリア通算']), h('span', null, ['トライ ' + (sel.crec ? sel.crec.tries : 0) + ' ／ 好プレー ' + (sel.crec ? sel.crec.plays : 0)])]));
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['調子']), h('span', null, [formFace(sel), '（成功率と練習効率に影響）'])]));
+      /* v0.13: 調子の推移。直近最大6件を v0.12 の顔アイコン（固定サイズ・ラベルなし）の列で、古い順→最新で並べる */
+      var histSpan = h('span', { class: 'formhist' }, []);
+      if (sel.formHist && sel.formHist.length) sel.formHist.forEach(function (v) { histSpan.appendChild(formFaceVal(v)); });
+      else histSpan.appendChild(document.createTextNode('―'));
+      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['調子の推移']), histSpan]));
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['信頼度']), h('span', null, [String(sel.trust) + '（采配の成功率に影響）'])]));
       detail.appendChild(h('div', { class: 'meter' }, [h('div', { style: 'width:' + sel.trust + '%' }, [])]));
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['疲労']), h('span', null, [String(sel.fatigue)])]));

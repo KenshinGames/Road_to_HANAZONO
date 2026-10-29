@@ -248,3 +248,11 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
 /* v0.12: 調子の顔アイコン。寸法は JS 側の FORM_FACE_PX（20px）と一致させ、どの選手・どの画面でも固定にする */
 .formface { display: inline-flex; width: 20px; height: 20px; flex: none; vertical-align: -4px; line-height: 0; }
 .formface svg { display: block; }
+
+/* v0.13: 月次成長レポートのカードと数値列／選手詳細の調子推移（顔アイコンの列） */
+.growreport .rowline + .rowline { margin-top: 4px; }
+.grstats { text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
+.formhist { display: inline-flex; gap: 2px; align-items: center; }
+@media (min-width: 760px) and (orientation: landscape) {
+  .growreport { flex: 0 1 auto; max-height: 46%; overflow-y: auto; }
+}
