@@ -1,11 +1,12 @@
-/* Road to HANAZONO v0.9 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.9.1 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
  * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示
  * v0.4: 新入生3層の完成(スカウト＋特別枠) + OB連携
  * v0.5: 立ち絵表現(パーツ組み合わせ式の自動生成) + 試合カットイン + 会話劇 + 季節感
  * v0.6: 花園トーナメント化(初戦→決勝) + 相手校の個性(戦術傾向・エース) + スカウティング + 時短スキップ + 個人スタッツ
  * v0.7: キャプテン任命と校風 + 選手イベント拡充(性格×信頼度・進路) + ケガの段階化(軽症/重症・欠場期間) + 成長のソフトキャップ化
  * v0.8: メンバー編成(スタメン15名を試合前に編成) + 選手交代(停止点で交代・負傷交代) + 調子(コンディション5段階)
- * v0.9: シーズン目標 + ライバル校の物語(帝都のエース代替わり) + 記録室拡張(通算スタッツ・歴代チーム) + 難易度選択 + 設備解放 */
+ * v0.9: シーズン目標 + ライバル校の物語(帝都のエース代替わり) + 記録室拡張(通算スタッツ・歴代チーム) + 難易度選択 + 設備解放
+ * v0.9.1: タイトル画面に夕景イラスト（ChatGPT生成）を全面背景として採用（見た目のみ） */
 (function () {
   'use strict';
   var STORE_KEY = 'hanazono.v02';
@@ -1609,10 +1610,9 @@ function finishRecruit() {
   }
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
-    var inner = h('div', { class: 'titlewrap' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.9'])]),
-      banner('home', null, 0),
-      h('div', { class: 'card center' }, [
+    var inner = h('div', { class: 'titlewrap titlephoto' }, [
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.9.1'])]),
+      h('div', { class: 'card center title-card' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
         h('button', { class: 'btn primary', onclick: function () { newGame('normal'); screen = 'goal'; render(); } }, ['監督に就任する（ふつう）']),
         h('button', { class: 'btn', onclick: function () { newGame('challenge'); screen = 'goal'; render(); } }, ['監督に就任する（チャレンジ）']),
