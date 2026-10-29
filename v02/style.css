@@ -357,3 +357,33 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
 .kmcol .rowline { width: 100%; }
 .kmhead { font-weight: 800; font-size: 13px; color: var(--sub); }
 .kmname { font-weight: 800; font-size: 15px; white-space: nowrap; }
+
+/* ===== v0.19: 週次プランニング画面（練習メニュー様式：場面背景＋大きな活動カード列＋最下部のステータスバー） ===== */
+.lay2.wtop { grid-template-columns: 1.3fr .7fr; }
+.wscene { position: relative; flex: 1; min-height: 180px; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); }
+.wscene .wscenebg { position: absolute; inset: 0; border: none; border-radius: 0; box-shadow: none; min-height: 0; }
+.wsceneov { position: absolute; left: 14px; top: 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.wtitlerow { display: flex; align-items: center; gap: 12px; }
+.wtitle { font-size: 26px; font-weight: 800; color: #fff; text-shadow: 0 2px 8px rgba(0, 0, 0, .55); }
+.wsub { font-size: 13px; color: #fff; background: rgba(10, 20, 16, .45); padding: 3px 10px; border-radius: 99px; }
+.wdots { display: flex; gap: 6px; }
+.wdot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255, 255, 255, .35); border: 1px solid rgba(255, 255, 255, .7); }
+.wdot.done { background: var(--brand); }
+.wdot.now { background: #fff; box-shadow: 0 0 0 3px rgba(255, 255, 255, .35); }
+.wcards { display: flex; gap: 8px; }
+.wcard {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 4px 8px; border-radius: 14px; cursor: pointer; text-align: center;
+  border: 2px solid var(--line); background: var(--card); color: var(--ink);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, .12), var(--shadow); font-family: inherit;
+}
+.wcard .wic { font-size: 27px; line-height: 1.1; }
+.wcard .wnm { font-size: 14.5px; font-weight: 800; }
+.wcard .wdsc { font-size: 10.5px; color: var(--sub); line-height: 1.3; min-height: 27px; }
+.wcard .wbadge { font-size: 10.5px; font-weight: 700; color: var(--brand); min-height: 14px; }
+.wcard.rec { border-color: var(--brand); }
+.wcard:active { transform: scale(.97); }
+.wstatus { display: flex; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 8px 14px; }
+.wstatus .wstext { font-size: 13.5px; font-weight: 700; white-space: nowrap; }
+.wstatus .wstext.sub { color: var(--sub); font-weight: 400; }
+.wstatus .wauto { margin-left: auto; }

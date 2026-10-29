@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Road to HANAZONO v0.18</title>
-<meta name="description" content="高校ラグビー育成ゲーム v0.18。監督として世代を超えて花園を目指す。">
+<title>Road to HANAZONO v0.19</title>
+<meta name="description" content="高校ラグビー育成ゲーム v0.19。監督として週ごとに活動を選び、世代を超えて花園を目指す。">
 <meta name="theme-color" content="#f4f7f2" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#101410" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -374,12 +374,42 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
 .kmhead { font-weight: 800; font-size: 13px; color: var(--sub); }
 .kmname { font-weight: 800; font-size: 15px; white-space: nowrap; }
 
+/* ===== v0.19: 週次プランニング画面（練習メニュー様式：場面背景＋大きな活動カード列＋最下部のステータスバー） ===== */
+.lay2.wtop { grid-template-columns: 1.3fr .7fr; }
+.wscene { position: relative; flex: 1; min-height: 180px; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); }
+.wscene .wscenebg { position: absolute; inset: 0; border: none; border-radius: 0; box-shadow: none; min-height: 0; }
+.wsceneov { position: absolute; left: 14px; top: 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.wtitlerow { display: flex; align-items: center; gap: 12px; }
+.wtitle { font-size: 26px; font-weight: 800; color: #fff; text-shadow: 0 2px 8px rgba(0, 0, 0, .55); }
+.wsub { font-size: 13px; color: #fff; background: rgba(10, 20, 16, .45); padding: 3px 10px; border-radius: 99px; }
+.wdots { display: flex; gap: 6px; }
+.wdot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255, 255, 255, .35); border: 1px solid rgba(255, 255, 255, .7); }
+.wdot.done { background: var(--brand); }
+.wdot.now { background: #fff; box-shadow: 0 0 0 3px rgba(255, 255, 255, .35); }
+.wcards { display: flex; gap: 8px; }
+.wcard {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 4px 8px; border-radius: 14px; cursor: pointer; text-align: center;
+  border: 2px solid var(--line); background: var(--card); color: var(--ink);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, .12), var(--shadow); font-family: inherit;
+}
+.wcard .wic { font-size: 27px; line-height: 1.1; }
+.wcard .wnm { font-size: 14.5px; font-weight: 800; }
+.wcard .wdsc { font-size: 10.5px; color: var(--sub); line-height: 1.3; min-height: 27px; }
+.wcard .wbadge { font-size: 10.5px; font-weight: 700; color: var(--brand); min-height: 14px; }
+.wcard.rec { border-color: var(--brand); }
+.wcard:active { transform: scale(.97); }
+.wstatus { display: flex; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 8px 14px; }
+.wstatus .wstext { font-size: 13.5px; font-weight: 700; white-space: nowrap; }
+.wstatus .wstext.sub { color: var(--sub); font-weight: 400; }
+.wstatus .wauto { margin-left: auto; }
+
 </style>
 </head>
 <body>
 <div id="app" aria-live="polite"></div>
 <script>
-/* Road to HANAZONO v0.18 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.19 — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
  * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示
  * v0.4: 新入生3層の完成(スカウト＋特別枠) + OB連携
  * v0.5: 立ち絵表現(パーツ組み合わせ式の自動生成) + 試合カットイン + 会話劇 + 季節感
@@ -414,7 +444,18 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
  *        対戦確認に両軍キーマンの対比カード（立ち絵・特能・主要能力のランク表示）を追加／
  *        因縁の深化＝対戦校ごとの現在の連勝・連敗ストリーク career.streaks を記録し、ストリークで変わる実況と
  *        ライバル専用イベント（月次イベント枠に排他で割り込む）を追加）。エースの能力は学校の既存の強さ oppPower から
- *        導出する表示専用の数字で、試合の数式への影響は従来の skill 経由の補正のみ（新規の強さの源泉は作らない） */
+ *        導出する表示専用の数字で、試合の数式への影響は従来の skill 経由の補正のみ（新規の強さの源泉は作らない）
+ * v0.19: 週次プランニング（Takada の提案「サイコロ（すごろく）より1週間ずつ何やるか決める方がいいかも」を実装）。
+ *        月の進行を「1か月＝4週、各週の頭に今週の活動をカードから選ぶ」方式に置き換える。月頭指示（全体方針・
+ *        ユニット・重点・強度）は月の層として残し、活動カードの能力が全体方針と一致すると小さなボーナスが付く。
+ *        週の解決は従来の盤面マスの解決（練習＝applyPractice／作戦会議／ケア）を週単位に再配分したもので、
+ *        1か月あたりの期待成長・疲労・イベント頻度（イベント抽選は週あたり24%＝月約0.96回）が従来と等しくなるよう
+ *        練習の実りは月のマス数に連動した投与量（wkScale）で調整し、総量を増やさない（配分だけが選択で変わる）。「おまかせ」で残りの週を方針に沿って
+ *        自動選択でき、1シーズン30分前後の目安を維持する。画面はパワプロの練習メニュー様式（場面背景＋
+ *        下部に大きな活動カード列＋最下部のステータスバー）で作り、「ゲーム感」強化の本命とする。
+ *        セーブ移行：盤面の途中で保存された旧セーブは読み込み時に週次方式へ変換する（盤面の進行割合を
+ *        経過週数に換算し、ログと会話は引き継ぐ。選手・指示・記録は盤面の外にあるため失われない）。
+ *        旧すごろく方式は WEEKLY_MODE フラグで切り替えられる形で残す（false で従来動作に完全に戻る） */
 (function () {
   'use strict';
   var STORE_KEY = 'hanazono.v02';
@@ -609,6 +650,50 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
     free: { n: '休み', ic: '😴', cls: 'c-free' }, meet: { n: '作戦会議', ic: '📋', cls: 'c-meet' },
     end: { n: '月末', ic: '🏁', cls: 'c-end' }
   };
+  /* ===== v0.19: 週次プランニング =====
+   * WEEKLY_MODE=true で月の進行が「1か月＝4週・週ごとに活動カードを選ぶ」方式になる。
+   * false にすると旧すごろく方式（盤面＋進行カード）がそのまま動く（戻せる余地として温存）。
+   * G.board は両方式で「その月の進行コンテナ」を兼ねる：週次では { weekly:true, week:0..3, log:[], dlg, picks:[] }。
+   * 1週の練習の実りは wkScale() 倍にし、おまかせ標準政策で進めたときの月総量が従来の盤面と
+   * 等しくなるよう調整してある（配分は選択で変わるが、標準政策での総量は増やさない）。
+   * 小イベントの抽選は週あたり WK_EV_CHANCE で、月あたりの期待回数が従来のイベントマスと等しい */
+  var WEEKLY_MODE = true;
+  var WEEKS_PER_MONTH = 4;
+  /* WK_SCALE はソーク A/B（v0.18 実測との比較）で校正した「12マス月の1週あたりの投与量」。
+   * 盤面方式は月に約6.5回解決し、作戦会議・ケア等の付随効果が練習回数を置き換えない。
+   * 週次は4回しか解決がなく、ビデオ分析や休養の週が練習を置き換える分だけ1週の実りを
+   * 厚くしないと月総量が従来比で2割ほど不足する（A/B の切り分けで判明）。月のマス数にも
+   * 連動させる（8マス月は盤面の解決回数自体が少ないため WK_SHORT_MUL で抑える）。
+   * 手動で練習だけを選ぶと従来平均より伸びるが、それは「配分が選択で変わる」設計の範囲内
+   * （疲労とケガのリスクが対価になる）。おまかせ標準政策での総量が従来と等しくなるよう調整。
+   * 最終校正（48キャリア×10年ソーク A/B・2バッチ合算）: 勝率 0.810 vs 0.800、初花園 avg 1.96 vs 2.15年、
+   * 優勝 30 vs 24キャリア、10年目総合力 61.2 vs 61.2 ―― 全指標がバッチ間ノイズの範囲に収まった。
+   * 校正の過程で効いたのは投与量そのものより「ユニット追加分を盤面と同じ UNIT_STAT で伸ばす」
+   * 構造の一致と、疲労倍率（WK_FAT_MUL）・おまかせのビデオ蓄積条件の調整だった */
+  var WK_SCALE = 1.05;
+  var WK_SHORT_MUL = 0.50;
+  /* 疲労は成長とは別に強める。盤面方式では回復マスがランダムにしか来ず、試合開始時の
+   * 平均疲労（fat0）が高めに残るのが実測上の常態だった。週次では休養を最適に選べて
+   * fat0 が下がりすぎ、場面成功率の疲労ペナルティ差で強豪戦が系統的に楽になってしまった。
+   * 週次練習の疲労コストを WK_FAT_MUL 倍にし、休養週の必要性ごと従来の水準に寄せる */
+  var WK_FAT_MUL = 1.5;
+  /* イベント抽選: 盤面は ev マス着地が月約1回＋rollEvent の非null率 0.76 で月約0.76回。
+   * 週次は 4週 × 0.24 × 0.76 ≒ 0.73回でほぼ等しくなるよう設定 */
+  var WK_EV_CHANCE = 0.24;
+  function wkScale() { return WK_SCALE * (MONTHS[G.monthIdx].cells >= 12 ? 1 : WK_SHORT_MUL); }
+  var WK_ALIGN_MUL = 1.15; /* 活動カードの能力が月の全体方針（inst.team）と一致した週の小さなボーナス */
+  var WEEK_ACTS = [
+    { k: 'scrum', n: 'スクラム強化', ic: '🏉', stat: 'pow', unit: 'FW', d: 'FWと全体のパワー' },
+    { k: 'lineout', n: 'ラインアウト', ic: '🎯', stat: 'pas', unit: 'SP', d: 'セットピースと全体のパス' },
+    { k: 'kick', n: 'キック練習', ic: '🦵', stat: 'kik', unit: 'SP', d: 'キッカー陣と全体のキック' },
+    { k: 'bk', n: 'BK展開', ic: '🏃', stat: 'spd', unit: 'BK', d: 'BKと全体のスピード' },
+    { k: 'fitness', n: 'フィットネス', ic: '💪', stat: 'sta', unit: null, fatMul: 1.25, d: '全員のスタミナ（疲労多め）' },
+    { k: 'defense', n: 'ディフェンス', ic: '🛡', stat: 'tak', unit: null, d: '全員のタックル' },
+    { k: 'video', n: 'ビデオ分析', ic: '📋', cell: 'meet', d: '作戦会議。次の試合の準備が進む' },
+    { k: 'mental', n: 'メンタル', ic: '🧘', d: '調子を整え、信頼を深める' },
+    { k: 'rest', n: '休養・ケア', ic: '💊', cell: 'rec', d: '疲労とケガを回復' }
+  ];
+  function weekAct(key) { return WEEK_ACTS.filter(function (a) { return a.k === key; })[0] || WEEK_ACTS[0]; }
 
   /* ---------------- 状態 ---------------- */
   var G = null, M = null;
@@ -1016,6 +1101,29 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
       if (a.met && !G.career.achv[a.id]) { var okA = false; try { okA = !!a.met(); } catch (e) {} if (okA) G.career.achv[a.id] = G.year; }
     });
     if (typeof G.monthIdx !== 'number' || G.monthIdx < 0 || G.monthIdx >= MONTHS.length) G.monthIdx = 0;
+    /* v0.19: 盤面（すごろく）途中セーブの週次方式への移行と、週次状態の検証。
+     * 旧盤面が残っていたら、進行割合（現在マスの位置／全マス数）を経過週数に換算して週次状態に変換する。
+     * ログと会話（dlg）は引き継ぎ、選手・指示・記録は盤面の外のデータなので一切触れない。
+     * WEEKLY_MODE=false の間は変換しない（旧方式でそのまま続きを遊べる） */
+    if (G.board && typeof G.board === 'object') {
+      if (WEEKLY_MODE && Array.isArray(G.board.cells)) {
+        var totB = Math.max(1, G.board.cells.length);
+        var fracB = clamp(((typeof G.board.pos === 'number' ? G.board.pos : -1) + 1) / totB, 0, 1);
+        G.board = {
+          weekly: true, week: Math.min(WEEKS_PER_MONTH - 1, Math.floor(fracB * WEEKS_PER_MONTH)),
+          log: Array.isArray(G.board.log) ? G.board.log.slice() : [],
+          dlg: (G.board.dlg && typeof G.board.dlg === 'object') ? G.board.dlg : null,
+          picks: []
+        };
+      }
+      if (G.board.weekly) {
+        if (typeof G.board.week !== 'number' || !isFinite(G.board.week)) G.board.week = 0;
+        G.board.week = clamp(Math.round(G.board.week), 0, WEEKS_PER_MONTH - 1);
+        if (!Array.isArray(G.board.log)) G.board.log = [];
+        if (!Array.isArray(G.board.picks)) G.board.picks = [];
+        if (G.board.dlg != null && typeof G.board.dlg !== 'object') G.board.dlg = null;
+      }
+    }
     /* v0.7: 校風とキャプテンの検証（キャプテンが卒業・不在なら信頼度トップを自動で引き継ぐ） */
     if (!ETHOS.some(function (e) { return e.k === G.ethos; })) G.ethos = 'discipline';
     /* v0.8: 編成（スタメン15名のID列）の検証。壊れていたら自動選出に戻す */
@@ -1408,10 +1516,15 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
     syncFormHist(); /* v0.13: 月替わりの調子変動を推移に記録 */
     G.hintSeen = true; /* v0.15: 初回ヒントは最初の月を始めたら二度と出さない */
     var mo = MONTHS[G.monthIdx];
-    var tpl = mo.cells >= 12 ? ['pS', 'pS', 'pS', 'pS', 'pB', 'pB', 'ev', 'ev', 'rec', 'free', 'meet'] : ['pS', 'pS', 'pB', 'ev', 'rec', 'free'];
-    var cells = shuffle(tpl.slice()).map(function (t) { return { t: t, done: false }; });
-    cells.push({ t: 'end', done: false });
-    G.board = { cells: cells, pos: -1, hand: drawCards(3), log: [] };
+    if (WEEKLY_MODE) {
+      /* v0.19: 週次方式の月は「4週のプランニング」から始まる。盤面は作らない */
+      G.board = { weekly: true, week: 0, log: [], dlg: null, picks: [] };
+    } else {
+      var tpl = mo.cells >= 12 ? ['pS', 'pS', 'pS', 'pS', 'pB', 'pB', 'ev', 'ev', 'rec', 'free', 'meet'] : ['pS', 'pS', 'pB', 'ev', 'rec', 'free'];
+      var cells = shuffle(tpl.slice()).map(function (t) { return { t: t, done: false }; });
+      cells.push({ t: 'end', done: false });
+      G.board = { cells: cells, pos: -1, hand: drawCards(3), log: [] };
+    }
     if (mo.camp) G.board.log.push('夏合宿の月。練習の実りが1.5倍になる');
     /* v0.9: 部の格が上がって新たに解放された設備を知らせる */
     var newFac = FACILITIES.filter(function (f) { return hasFacility(f.k) && (G.facSeen || []).indexOf(f.k) < 0; });
@@ -1469,6 +1582,79 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
     if (t === 'meet') { G.nextBonus = Math.min(bonusCap(), G.nextBonus + (hasFacility('video') ? 4 : 3)); G.players.forEach(function (p) { p.fatigue = Math.max(0, p.fatigue - 4); }); b.log.push('📋 作戦会議。次の試合の準備が整った（次の試合 +' + G.nextBonus + '）'); return; }
     if (t === 'end') return monthEnd();
   }
+  /* ===== v0.19: 週次プランニングの解決 =====
+   * 1週＝活動カード1タップで解決する。練習系は applyPractice の週次版、ビデオ分析と休養・ケアは
+   * 盤面マス（作戦会議／ケア）の解決をそのまま使う。どの週にも小イベントの抽選（WK_EV_CHANCE）が付き、
+   * 月あたりのイベント期待回数は従来の盤面（月約0.96回）と等しくなるよう調整してある */
+  function resolveMental() {
+    var b = G.board;
+    var upN = 0;
+    G.players.forEach(function (p) { if ((p.form || 0) < 0 && Math.random() < 0.55) { p.form++; upN++; } });
+    G.players.forEach(function (p) {
+      var before = p.trust || 50;
+      gainTrust(p, 2);
+      accTrust(p, (p.trust || 50) - before); /* 信頼の伸びは成長レポートにも出す（v0.13 の記録経路） */
+      p.fatigue = Math.max(0, p.fatigue - 3);
+    });
+    b.log.push('🧘 メンタル調整。チームの空気を整えた' + (upN ? '（' + upN + ' 名の調子が上向いた）' : ''));
+  }
+  function resolveWeek(key) {
+    var b = G.board; if (!b || !b.weekly) return;
+    var act = weekAct(key);
+    b.picks.push(act.k);
+    if (act.cell) resolveCell(act.cell); /* ビデオ分析＝作戦会議マス／休養・ケア＝ケアマスと同一の解決 */
+    else if (act.k === 'mental') resolveMental();
+    else {
+      applyPractice(false, {
+        stat: act.stat, unit: act.unit, fatMul: act.fatMul || 1, n: act.n, ic: act.ic,
+        scale: wkScale() * (act.stat === G.inst.team ? WK_ALIGN_MUL : 1),
+        fatScale: wkScale() * WK_FAT_MUL
+      });
+    }
+    if (Math.random() < WK_EV_CHANCE) {
+      var e = rollEvent();
+      if (e) { b.log.push('🎲 ' + e.t); if (e.dlg) b.dlg = e.dlg; }
+    }
+    syncFormHist(); /* v0.13: 週の解決で動いた調子を推移に記録（盤面の useCard と同じ位置） */
+  }
+  function pickWeek(key) {
+    var b = G.board; if (!b || !b.weekly) return;
+    resolveWeek(key);
+    b.week++;
+    checkAchievements();
+    if (b.week >= WEEKS_PER_MONTH) { monthEnd(); return; }
+    save(); render();
+  }
+  /* おまかせの自動選択：平均疲労が限界に近ければ休養、試合月の後半で準備ボーナスが不足して
+   * いればビデオ分析、それ以外は月の全体方針（inst.team）に合う練習カードを週ごとに回す。
+   * v0.19 校正: 盤面方式は1か月に練習・回復・作戦会議が自然に混ざる（練習が約55%）うえ、
+   * 疲労が60〜70あっても練習を続けるのが実測上の常態だった。週次で週ごとに休養を挟みすぎると
+   * 練習週の絶対数が足りなくなり、夏以降の総合力が系統的に遅れる（ソーク A/B の切り分けで確認）。
+   * そのため休養は本当に高い時だけに絞り、調子を崩した選手が多い月はメンタルを1度入れる
+   * （盤面の休みマスの相当分）。準備ボーナスの蓄積（ビデオ分析）も盤面の平均に合わせて入れる */
+  function autoWeekKey() {
+    var b = G.board, mo = MONTHS[G.monthIdx];
+    if (avgFatigue() >= 62) return 'rest';
+    /* 試合月のビデオ分析は「銀行がほぼ空のとき」だけ。毎月上限まで貯めると、盤面の
+     * 作戦会議マス（ランダム着地・期待値 月+1.7程度）より準備ボーナスが系統的に厚くなり、
+     * 強豪戦の成功率が上がりすぎることが後半キャリアの実測で判明したため */
+    if (mo.match != null && b.week >= 2 && G.nextBonus < 3 && b.picks.indexOf('video') < 0) return 'video';
+    if (mo.match != null && b.week === WEEKS_PER_MONTH - 1 && avgFatigue() >= 70) return 'rest';
+    /* ビデオ分析の蓄積は「翌月が試合月」の月だけにする。盤面では作戦会議マスが練習と
+     * 両立して落ちてくるが、週次では1週を丸ごと使うため、入れすぎると練習週が不足する */
+    if (mo.match == null && b.week >= 1 && G.nextBonus < 3 && b.picks.indexOf('video') < 0 &&
+        (MONTHS[G.monthIdx + 1] || {}).match != null) return 'video';
+    if (b.week >= 1 && b.picks.indexOf('mental') < 0 &&
+        G.players.filter(function (p) { return (p.form || 0) < 0; }).length >= 7) return 'mental';
+    var prac = WEEK_ACTS.filter(function (a) { return !!a.stat; });
+    var aligned = prac.filter(function (a) { return a.stat === G.inst.team; });
+    var pool = aligned.length ? aligned : prac;
+    return pool[b.week % pool.length].k;
+  }
+  function autoMonth() {
+    var guard = 0;
+    while (G.board && G.board.weekly && guard++ < WEEKS_PER_MONTH + 1) pickWeek(autoWeekKey());
+  }
   /* v0.7: 成長のソフトキャップ。85から逓減し、99に近いほど小さくなるが完全には止まらない。
    * 減衰で失われた「余剰」の一部は信頼度に変換され、無駄にならない */
   function softDecay(cur) {
@@ -1506,7 +1692,9 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
     }
     G.growAcc = null;
   }
-  function applyPractice(big) {
+  /* wk（v0.19）: 週次練習のときだけ渡る { stat, unit, fatMul, scale, n, ic }。
+   * 未指定（盤面の練習マス）では従来どおりの計算で一切変えない */
+  function applyPractice(big, wk) {
     var inst = G.inst, lvl = LEVELS[inst.level];
     var campMul = MONTHS[G.monthIdx].camp ? 1.5 : 1;
     var eth = ethosOf();
@@ -1520,6 +1708,7 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
         var cur = p.stats[stat];
         /* バランス調整(v0.7): 練習の伸びは ×0.8 に抑え、相手の梯子を引き上げた */
         var raw = base * 0.8 * lvl.mul * p.trait.growth * per.growth * campMul * eff * eth.g * rnd(0.7, 1.3);
+        if (wk) raw *= wk.scale; /* v0.19: 週次は月あたりの総量が従来と等しくなる倍率（方針一致ボーナス込み） */
         if (p.id === G.captainId) raw *= 1.1;
         /* v0.8: 調子が良い選手は練習の実りも良い */
         raw *= 1 + (p.form || 0) * 0.05;
@@ -1536,9 +1725,24 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
           accGrow(p, stat, p.stats[stat] - cur); /* v0.13: レポート用に実際に増えた分を記録 */
         }
       }
-      gain(inst.team, big ? ri(1, 3) : ri(0, 2));
-      if (unitOf(p) === inst.unit) gain(UNIT_STAT[inst.unit], big ? ri(1, 2) : ri(0, 1));
-      if (p.id === inst.focus) gain(inst.team, ri(2, 4));
+      if (wk) {
+        /* v0.19: 週次練習。活動カードの能力を全体に鍛え、ユニットには盤面と同じく
+         * UNIT_STAT（FW=パワー／BK=パス／SP=キック）を追加で鍛える。対象ユニットはカードの
+         * 指定を優先し、無指定のカード（フィットネス／ディフェンス）は月のユニット指示に従う。
+         * （当初は追加分もカードの能力に寄せていたが、それだと盤面が自然に伸ばす第2能力
+         * ――既定では FW のパワー――が週次では伸びず、セットピース勝負になる強豪戦で
+         * 系統的に劣ることがソーク A/B の切り分けで判明したため、盤面の2能力構造に合わせた） */
+        gain(wk.stat, ri(0, 2));
+        var wUnit = wk.unit || inst.unit;
+        /* 追加分の基礎は盤面の期待値（pS ri(0,1) と pB ri(1,2) の混合で平均約0.83/回）に
+         * 週次倍率と週数で割り戻した ri(0,2)。ri(1,2) だと FW のパワーが盤面より伸びすぎた */
+        if (unitOf(p) === wUnit) gain(UNIT_STAT[wUnit], wUnit === inst.unit ? ri(0, 2) : ri(0, 1));
+        if (p.id === inst.focus) gain(wk.stat, ri(2, 4));
+      } else {
+        gain(inst.team, big ? ri(1, 3) : ri(0, 2));
+        if (unitOf(p) === inst.unit) gain(UNIT_STAT[inst.unit], big ? ri(1, 2) : ri(0, 1));
+        if (p.id === inst.focus) gain(inst.team, ri(2, 4));
+      }
       if (surplus >= 1.5) {
         var tg = Math.max(1, Math.round(surplus * 0.8));
         var trustBefore = p.trust || 50;
@@ -1546,7 +1750,7 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
         accTrust(p, (p.trust || 50) - trustBefore); /* v0.13: レポート用に実際に増えた信頼度を記録 */
         surplusNotes.push(p.name + ' 信頼+' + tg);
       }
-      p.fatigue = Math.min(100, p.fatigue + Math.round(lvl.fat * (big ? 1.3 : 1) * per.fat * eth.f));
+      p.fatigue = Math.min(100, p.fatigue + Math.round(lvl.fat * (big ? 1.3 : 1) * per.fat * eth.f * (wk ? wk.fatScale * (wk.fatMul || 1) : 1)));
       var injMul = hasSkill(p, 'tough') ? 0.35 : 1;
       if (!p.injured && Math.random() < 0.010 * lvl.inj * p.trait.inj * injMul * (p.fatigue >= 70 ? 2 : 1)) {
         var heavy = Math.random() < (p.trait.n === '怪我がち' ? 0.35 : 0.22);
@@ -1559,7 +1763,7 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
     var top = gains.slice(0, 3).map(function (g) {
       return (g.focus ? '⭐' : '') + g.name + '（' + STATS.filter(function (s) { return s.k === g.stat; })[0].n + '+' + g.g + '）';
     });
-    G.board.log.push((big ? '🔥 特訓！ ' : '💪 練習。') + (top.length ? top.join('、') : '大きな伸びはなし') +
+    G.board.log.push((wk ? wk.ic + ' ' + wk.n + '。' : (big ? '🔥 特訓！ ' : '💪 練習。')) + (top.length ? top.join('、') : '大きな伸びはなし') +
       (surplusNotes.length ? '（限界に近い能力の余剰が信頼に変わった：' + surplusNotes.slice(0, 2).join('、') + '）' : ''));
   }
   /* v0.14: 進路の選択肢。進路イベントの文面（text）と OB 名鑑の進路ラベル（label）は同じ組を使い、表現を矛盾させない */
@@ -3002,9 +3206,9 @@ function finishRecruit() {
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.18'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.19'])]),
       h('div', { class: 'card center title-card' }, [
-        h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
+        h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、1週間ごとに活動を選んで選手を育てよう。世代を超えて、花園の常連校を目指す。']),
         h('button', { class: 'btn primary', onclick: function () { newGame('normal'); screen = 'goal'; render(); } }, ['監督に就任する（ふつう）']),
         h('button', { class: 'btn', onclick: function () { newGame('challenge'); screen = 'goal'; render(); } }, ['監督に就任する（チャレンジ）']),
         h('p', { class: 'sub' }, ['難易度は開始時だけの選択。チャレンジは相手が少し強く（全校+3）、評判の伸びが渋い（×0.7）']),
@@ -3025,7 +3229,7 @@ function finishRecruit() {
     L.appendChild(h('div', { class: 'sec' }, ['📅 1年の流れ']));
     [['① 年初の目標', 'シーズン目標を決める。達成で評判ボーナス、未達でも小さなペナルティのみ'],
      ['② 月頭指示', '全体方針・ユニット練習・重点育成・練習強度・キャプテン・校風を決める'],
-     ['③ すごろく進行', '進行カードでマスを進む。止まったマスで練習・イベント・回復などが起きる'],
+     ['③ 週次プランニング', '1か月は4週間。今週の活動をカードから選ぶと、練習の実りや回復、時折イベントが起きる。活動の能力が月の全体方針と一致すると少しお得。「おまかせ」で月末まで自動で進められる'],
      ['④ 試合', '6月=練習試合、10〜12月=花園予選、1月=花園。勝負どころでは采配（選択肢）を選ぶ'],
      ['⑤ シーズン終了', '結果を振り返り、3年生は卒業してOB名鑑へ'],
      ['⑥ 勧誘', 'スカウト候補・特別枠・一般入部で新チームを作って新年度へ']].forEach(function (r) {
@@ -3033,9 +3237,9 @@ function finishRecruit() {
     });
     var R = h('div', { class: 'card grow scroll' });
     R.appendChild(h('div', { class: 'sec' }, ['👀 画面の見方']));
-    R.appendChild(h('p', null, ['左＝情報（実況・盤面・選手一覧）、右＝操作（選択肢・ボタン）が基本配置です。試合は左の実況を読み、右で采配を選んでください。画面上部のバーでは年・月・部の格・総合力・評判がいつでも確認できます。']));
+    R.appendChild(h('p', null, ['左＝情報（実況・週の記録・選手一覧）、右と下段＝操作（選択肢・活動カード・ボタン）が基本配置です。試合は左の実況を読み、右で采配を選んでください。画面上部のバーでは年・月・部の格・総合力・評判がいつでも確認できます。']));
     R.appendChild(h('div', { class: 'sec' }, ['💡 監督のコツ']));
-    [['疲労管理', '疲労70以上で練習効率も試合の成功率も大きく落ちる。ケア（💊）と休み（😴）のマス、強度「通常」を織り交ぜよう'],
+    [['疲労管理', '疲労70以上で練習効率も試合の成功率も大きく落ちる。「休養・ケア」の週と強度「通常」を織り交ぜよう'],
      ['信頼度', '試合の出場と活躍で上がり、采配の成功率に効く。重点育成と起用でエースを育てよう'],
      ['ケガ予防', '強度を上げるほどケガのリスクも上がる。疲労をためないことが一番の予防になる'],
      ['スカウト', '寸評は体格・特能・性格のヒント。成功率とOB紹介の有無を見て枠を使おう'],
@@ -3185,9 +3389,76 @@ function finishRecruit() {
     wrap([hud(), h('div', { class: 'lay2' }, [col(left), col(right)]),
       actionBar([h('button', { class: 'btn primary', onclick: function () { startMonth(); } }, ['指示を確定して月を始める'])])]);
   }
+  /* v0.19: 次の試合の案内（週次画面の情報欄とステータスバーで使う） */
+  function nextMatchText() {
+    for (var j = 0; j < MONTHS.length - G.monthIdx; j++) {
+      var mm = MONTHS[G.monthIdx + j];
+      if (mm.match != null) {
+        var nm = effOpp(mm.match).name;
+        return j === 0 ? '今月末：' + nm + '戦' : mm.m + '：' + nm + '戦';
+      }
+    }
+    return '今季の試合は終了';
+  }
+  /* v0.19: 週次プランニング画面。パワプロの練習メニュー様式（場面背景＋下部の大きな活動カード列＋
+   * 最下部のステータスバー）で作る「ゲーム感」強化の本命画面。情報は右カラム（状況＋会話＋ログ）、
+   * 操作（活動カードとおまかせ）は下段に置き、v0.17 の固定レイアウト原則（HUD 1行・全体スクロールなし）を守る */
+  function weeklyScreen() {
+    var b = G.board, mo = MONTHS[G.monthIdx];
+    var scene = h('div', { class: 'wscene' });
+    scene.appendChild(banner(mo.match != null ? 'match' : 'train', 'wscenebg', G.monthIdx));
+    var sov = h('div', { class: 'wsceneov' });
+    var dots = h('div', { class: 'wdots' });
+    for (var di = 0; di < WEEKS_PER_MONTH; di++) dots.appendChild(h('span', { class: 'wdot' + (di < b.week ? ' done' : (di === b.week ? ' now' : '')) }, []));
+    var titlerow = h('div', { class: 'wtitlerow' });
+    titlerow.appendChild(h('div', { class: 'wtitle' }, [mo.m + ' 第' + (b.week + 1) + '週']));
+    titlerow.appendChild(dots);
+    sov.appendChild(titlerow);
+    sov.appendChild(h('div', { class: 'wsub' }, [
+      mo.camp ? '夏合宿の月。練習の実りが1.5倍になる' :
+      (mo.match != null ? '月末に ' + effOpp(mo.match).name + ' との試合がある。今週の活動を選ぼう' : '今週の活動を選ぼう')
+    ]));
+    scene.appendChild(sov);
+    var info = h('div', { class: 'card' });
+    info.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['チーム平均疲労']), h('span', null, [String(avgFatigue())])]));
+    info.appendChild(h('div', { class: 'meter' }, [h('div', { style: 'width:' + avgFatigue() + '%' }, [])]));
+    info.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['怪我人']), h('span', null, [String(G.players.filter(function (p) { return p.injured; }).length) + '人'])]));
+    info.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['次の試合']), h('span', null, [nextMatchText()])]));
+    var log = h('div', { class: 'log grow' });
+    (b.log.length ? b.log : ['月が始まった。今週の活動を選ぼう']).forEach(function (ln) { log.appendChild(h('div', null, [ln])); });
+    var rightKids = [info];
+    if (b.dlg) {
+      var dp = G.players.filter(function (p) { return p.id === b.dlg.pid; })[0];
+      if (dp) {
+        var dg = h('div', { class: 'card dlg' });
+        dg.appendChild(portraitEl(dp, 'dlg-p'));
+        dg.appendChild(h('div', null, [
+          h('div', null, [h('b', null, [dp.name]), h('span', { class: 'sub' }, ['（' + dp.person + '）'])]),
+          h('div', null, ['「' + b.dlg.text + '」'])
+        ]));
+        rightKids.push(dg);
+      }
+    }
+    rightKids.push(log);
+    var cards = h('div', { class: 'wcards' });
+    var recKey = autoWeekKey();
+    WEEK_ACTS.forEach(function (a) {
+      var kids = [h('span', { class: 'wic' }, [a.ic]), h('span', { class: 'wnm' }, [a.n]), h('span', { class: 'wdsc' }, [a.d])];
+      var badge = a.k === recKey ? '⭐おすすめ' : (a.stat && a.stat === G.inst.team ? '方針一致' : null);
+      kids.push(h('span', { class: 'wbadge' }, [badge || '']));
+      cards.appendChild(h('button', { class: 'wcard pcard' + (a.k === recKey ? ' rec' : ''), onclick: (function (k) { return function () { pickWeek(k); }; })(a.k) }, kids));
+    });
+    var sbar = h('div', { class: 'wstatus' });
+    sbar.appendChild(h('span', { class: 'wstext' }, [G.year + '年目 ' + mo.m + ' 第' + (b.week + 1) + '週（あと' + (WEEKS_PER_MONTH - b.week) + '週で月末）']));
+    sbar.appendChild(h('span', { class: 'wstext sub' }, [nextMatchText()]));
+    sbar.appendChild(h('button', { class: 'btn primary wauto', onclick: function () { autoMonth(); } }, ['⏩ おまかせ（月末まで自動）']));
+    wrap([hud(), h('div', { class: 'lay2 wtop' }, [col([scene]), col(rightKids)]), cards, sbar]);
+    var lg = document.querySelector('.log'); if (lg) lg.scrollTop = lg.scrollHeight;
+  }
   function boardScreen() {
     var b = G.board;
     if (!b) { wrap([hud(), h('div', { class: 'card' }, ['盤面がありません'])]); return; }
+    if (b.weekly) return weeklyScreen();
     var boardEl = h('div', { class: 'board' });
     b.cells.forEach(function (c, i) {
       var meta = CELL_META[c.t];
