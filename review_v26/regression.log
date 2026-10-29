@@ -1,0 +1,81 @@
+qa_proto rc=0 ok=0 NG=0 7s
+qa_v02 rc=0 ok=0 NG=0 9s
+qa_v03 rc=0 ok=0 NG=0 18s
+qa_v04 rc=0 ok=0 NG=0 30s
+qa_v05 rc=0 ok=0 NG=0 18s
+qa_v06 rc=0 ok=0 NG=0 12s
+qa_v07 rc=0 ok=0 NG=0 21s
+qa_v08 rc=0 ok=0 NG=0 27s
+qa_v09 rc=0 ok=0 NG=0 35s
+qa_v10 rc=0 ok=0 NG=0 20s
+qa_v11 rc=0 ok=0 NG=0 19s
+qa_v12 rc=0 ok=0 NG=0 21s
+qa_v13 rc=0 ok=0 NG=0 60s
+qa_v14 rc=0 ok=0 NG=0 22s
+qa_v15 rc=0 ok=0 NG=0 19s
+qa_v16 rc=0 ok=0 NG=0 119s
+qa_v17 rc=0 ok=0 NG=0 17s
+qa_v18 rc=0 ok=0 NG=0 35s
+qa_v19 rc=0 ok=0 NG=0 28s
+qa_v20 rc=0 ok=0 NG=0 14s
+qa_v21 rc=0 ok=0 NG=0 15s
+qa_v22 rc=0 ok=0 NG=0 15s
+qa_v23 rc=0 ok=0 NG=0 218s
+qa_v24 rc=0 ok=68 NG=0 30s
+qa_v25 rc=0 ok=18 NG=0 20s
+qa_v26 rc=0 ok=35 NG=0 74s
+===== qa_proto =====
+ALL PASS
+===== qa_v02 =====
+ALL PASS
+===== qa_v03 =====
+ALL PASS
+===== qa_v04 =====
+ALL PASS
+===== qa_v05 =====
+ALL PASS
+===== qa_v06 =====
+ALL PASS
+===== qa_v07 =====
+ALL PASS
+===== qa_v08 =====
+ALL PASS
+===== qa_v09 =====
+ALL PASS (51 checks)
+===== qa_v10 =====
+ALL PASS
+===== qa_v11 =====
+ALL PASS
+===== qa_v12 =====
+ALL PASS
+===== qa_v13 =====
+ALL PASS
+===== qa_v14 =====
+ALL PASS
+===== qa_v15 =====
+ALL PASS
+===== qa_v16 =====
+ALL PASS
+===== qa_v17 =====
+ALL PASS
+===== qa_v18 =====
+ALL PASS
+===== qa_v19 =====
+ALL PASS
+===== qa_v20 =====
+ALL PASS
+===== qa_v21 =====
+PASS | fx: identical final score with FX on/off (no RNG consumed) | 46-12 vs 46-12
+qa_v21: ALL PASS
+===== qa_v22 =====
+ALL PASS
+===== qa_v23 =====
+PASS | ob-event: never fires without OBs (material gate, no RNG drawn)
+ALL PASS
+===== qa_v24 =====
+qa_v24: 68 passed, 0 failed
+===== qa_v25 =====
+  ok  flow: summary and recruit were passed through
+qa_v25: 18 passed, 0 failed
+===== qa_v26 =====
+qa_v26: 35 passed, 0 failed
