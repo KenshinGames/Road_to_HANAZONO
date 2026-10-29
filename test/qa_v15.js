@@ -58,7 +58,7 @@ const STATKEYS = ['spd', 'pow', 'pas', 'kik', 'tak', 'sta'];
 (async () => {
   const baseSave = await freshSave(777);
   const base = JSON.parse(baseSave);
-  check('version: title is v1.0 (v0.25 でバージョン表記を追随)', html.includes('<title>Road to HANAZONO v1.0</title>'));
+  check('version: title is v1.1 (v0.25 でバージョン表記を追随)', html.includes('<title>Road to HANAZONO v1.1</title>')); /* v0.26: バージョン表記を v1.1 に追随 */
   check('save: fresh roster has >= 3 players', base.players.length >= 3, 'n=' + base.players.length);
 
   /* ---- 1. ランク境界値（一覧テーブルの描画で検証） ---- */

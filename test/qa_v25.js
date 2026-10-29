@@ -78,15 +78,15 @@ async function makeLcgDom(html, seed) {
 (async () => {
   /* ---- 1. バージョン表記 v1.0 とクレジット ---- */
   {
-    check('version: document title is v1.0', HTML.includes('<title>Road to HANAZONO v1.0</title>'));
+    check('version: document title is v1.1', HTML.includes('<title>Road to HANAZONO v1.1</title>')); /* v0.26: バージョン表記を v1.1 に追随 */
     check('version: no stale v0.24 in document title/hero source', !HTML.includes('Road to HANAZONO v0.24') && !HTML.includes('育成シミュレーション v0.24'));
     const h = await makeDom(HTML, null, 1);
     const x = H(h);
-    check('version: hero shows v1.0', x.text().includes('高校ラグビー育成シミュレーション v1.0'));
+    check('version: hero shows v1.1', x.text().includes('高校ラグビー育成シミュレーション v1.1')); /* v0.26: バージョン表記を v1.1 に追随 */
     check('credits: title carries the credit line', x.text().includes('制作：Kenshin Takada') && x.text().includes('Muse との共同開発'));
     x.click('📖'); await sleep(20);
     check('credits: guide has a credits section', x.text().includes('クレジット') && x.text().includes('Kenshin Takada') && x.text().includes('Muse（AI）との共同開発'));
-    check('credits: guide credits name the series and version', x.text().includes('100アプリチャレンジ #47') && x.text().includes('v1.0（Web版）'));
+    check('credits: guide credits name the series and version', x.text().includes('100アプリチャレンジ #47') && x.text().includes('v1.1（Web版）')); /* v0.26: バージョン表記を v1.1 に追随 */
     h.window.close();
   }
 
@@ -165,7 +165,7 @@ async function makeLcgDom(html, seed) {
       const opts = [...x.document.querySelectorAll('.choices .btn.choice')];
       if (opts.length && t.includes('成功率の目安')) {
         let best = opts[0], bp = -1;
-        opts.forEach(o => { const m = o.textContent.match(/(\d+)%/); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
+        opts.forEach(o => { const m = (o.dataset.p ? [0, o.dataset.p] : o.textContent.match(/(\d+)%/)); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
         best.click(); await sleep(2); continue;
       }
       if (x.btn('試合を進める')) { x.click('試合を進める'); await sleep(2); continue; }
@@ -207,6 +207,9 @@ async function makeLcgDom(html, seed) {
         if (sels[3] && sels[3].value !== '1') { sels[3].value = '1'; if (sels[3].onchange) sels[3].onchange(); }
         click('指示を確定'); await sleep(2); continue;
       }
+      /* v0.26 追随: 週次は本命ソーク（soak_v19_ab）と同じゲーム内蔵「おまかせ」で進める。先頭カード固定は偏った参照方針で、
+       * 名前生成の乱数経路が変わると同じシードでも花園到達が9年目にずれた（v1.0 でも10年かかるシードがある）。導線の検証が目的のため最適寄りに揃える */
+      if (btn('おまかせ（月末まで自動）')) { click('おまかせ（月末まで自動）'); await sleep(0); continue; }
       const pc = document.querySelector('.pcard');
       if (pc) { pc.click(); await sleep(0); continue; }
       const wc = document.querySelector('.wcard');
@@ -217,7 +220,7 @@ async function makeLcgDom(html, seed) {
       const opts = [...document.querySelectorAll('.choices .btn.choice')];
       if (opts.length && t.includes('成功率の目安')) {
         let best = opts[0], bp = -1;
-        opts.forEach(o => { const m = o.textContent.match(/(\d+)%/); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
+        opts.forEach(o => { const m = (o.dataset.p ? [0, o.dataset.p] : o.textContent.match(/(\d+)%/)); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
         best.click(); await sleep(0); continue;
       }
       if (btn('試合を進める')) { click('試合を進める'); await sleep(0); continue; }

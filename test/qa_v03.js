@@ -139,7 +139,7 @@ async function makeDom(seedValue, seed) {
           scenesThisMatch++; sceneTotal++;
           SCENE_TITLES.forEach(x => { if (t.includes(x)) seenScenes.add(x); });
           let best = opts[0], bp = -1;
-          opts.forEach(o => { const mm = o.textContent.match(/(\d+)%/); const p = mm ? +mm[1] : 0; if (p > bp) { bp = p; best = o; } });
+          opts.forEach(o => { const mm = (o.dataset.p ? [0, o.dataset.p] : o.textContent.match(/(\d+)%/)); const p = mm ? +mm[1] : 0; if (p > bp) { bp = p; best = o; } });
           best.click(); await sleep(4); continue;
         }
         if (btn('やった！次へ') || btn('次へ')) {

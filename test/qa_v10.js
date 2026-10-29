@@ -56,7 +56,7 @@ async function stepOnce(H) {
   const opts = [...H.document.querySelectorAll('.choices .btn.choice')];
   if (opts.length && t.includes('成功率の目安')) {
     let best = opts[0], bp = -1;
-    opts.forEach(o => { const mm = o.textContent.match(/(\d+)%/); const p = mm ? +mm[1] : 0; if (p > bp) { bp = p; best = o; } });
+    opts.forEach(o => { const mm = (o.dataset.p ? [0, o.dataset.p] : o.textContent.match(/(\d+)%/)); const p = mm ? +mm[1] : 0; if (p > bp) { bp = p; best = o; } });
     best.click(); await sleep(2); return true;
   }
   if (H.btn('試合を進める')) { H.click('試合を進める'); await sleep(2); return true; }
@@ -80,7 +80,7 @@ async function driveToSummary(H, maxSteps) {
     const opts = [...H.document.querySelectorAll('.choices .btn.choice')];
     if (opts.length && t.includes('成功率の目安')) {
       let best = opts[0], bp = -1;
-      opts.forEach(o => { const mm = o.textContent.match(/(\d+)%/); const p = mm ? +mm[1] : 0; if (p > bp) { bp = p; best = o; } });
+      opts.forEach(o => { const mm = (o.dataset.p ? [0, o.dataset.p] : o.textContent.match(/(\d+)%/)); const p = mm ? +mm[1] : 0; if (p > bp) { bp = p; best = o; } });
       best.click(); await sleep(2); continue;
     }
     if (H.btn('試合を進める')) { H.click('試合を進める'); await sleep(2); continue; }
@@ -95,7 +95,7 @@ async function driveToSummary(H, maxSteps) {
   {
     const H = await makeDom(null, 111);
     check('env: jsdom has no AudioContext (no-sound safety env)', typeof H.window.AudioContext === 'undefined');
-    check('title: shows current version (v1.0; v0.25 でバージョン表記を追随)', H.text().includes('v1.0'));
+    check('title: shows current version (v1.1; v0.25 でバージョン表記を追随)', H.text().includes('v1.1')); /* v0.26: バージョン表記を v1.1 に追随 */
     check('title: no digest without a save', H.document.getElementById('digest') === null);
     check('title: guide button exists', !!H.btn('遊び方'));
     H.click('遊び方'); await sleep(15);

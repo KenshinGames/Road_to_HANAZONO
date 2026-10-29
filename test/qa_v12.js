@@ -88,7 +88,7 @@ const FORM_COLORS = { '-2': '#9d5bd6', '-1': '#56b4e7', '0': '#f2c531', '1': '#e
   /* ---- 1. タイトル：バージョン ---- */
   {
     const H = await makeDom(null, 111);
-    check('title: shows v1.0 (v0.25 でバージョン表記を追随)', H.text().includes('v1.0'));
+    check('title: shows v1.1 (v0.25 でバージョン表記を追随)', H.text().includes('v1.1')); /* v0.26: バージョン表記を v1.1 に追随 */
     H.window.close();
   }
 

@@ -59,14 +59,14 @@ async function driveToPreMatch(H) {
 
 (async () => {
   /* ---- 0. 静的チェック ---- */
-  check('static: title is v1.0', html.includes('<title>Road to HANAZONO v1.0</title>')) /* v0.25: バージョン表記を追随 */;
+  check('static: title is v1.1', html.includes('<title>Road to HANAZONO v1.1</title>')) /* v0.25: バージョン表記を追随 */; /* v0.26: バージョン表記を v1.1 に追随 */
   check('static: STORE_KEY unchanged', html.includes("STORE_KEY = 'hanazono.v02'"));
-  check('static: play.html size <= 2.5MB', Buffer.byteLength(html, 'utf8') <= 2500000, 'bytes=' + Buffer.byteLength(html, 'utf8'));
+  check('static: play.html size <= 3.5MB', Buffer.byteLength(html, 'utf8') <= 3500000, /* v0.26: 場面イラスト3枚（data URI 約1MB）の追加に伴い上限を 3.5MB に見直し */ 'bytes=' + Buffer.byteLength(html, 'utf8'));
   ['.actionbar', '.heropanel', '.herobg', '.glasscard', '.hudbtn', '.hud .chip', '.tabbtn', '.tabhide', '.laysquad', '.pmb'].forEach(s => {
     check('static: play.html contains ' + s, html.includes(s));
   });
   const uriCount = (html.match(/data:image\/jpeg;base64,\/9j\//g) || []).length;
-  check('static: photo data URIs untouched (5 jpegs)', uriCount === 5, 'count=' + uriCount);
+  check('static: photo data URIs = 5 originals + 3 added in v0.26', uriCount === 8, 'count=' + uriCount); /* v0.26 追随: 冬・練習場・部室の3枚を追加（既存5枚の不変は qa_v26 と review_v26 で確認） */
 
   const base = await freshSave(777);
 

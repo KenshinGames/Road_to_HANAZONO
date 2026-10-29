@@ -82,7 +82,8 @@ function helpers(window, document) {
 
   /* ---- 3. 季節感：4月=桜がバナーSVGに反映される（8月は v0.11 で合宿写真バナーに差し替え済み） ---- */
   {
-    const mk = (mi) => { const s = JSON.parse(baseSave); s.monthIdx = mi; s.board = null; s.summary = null; s.recruit = null; return JSON.stringify(s); };
+    /* v0.26 追随: 年初の目標画面は部室の写真になったため、goalSet を立てて月頭指示画面の月次バナーを検証する（検証の趣旨は不変） */
+    const mk = (mi) => { const s = JSON.parse(baseSave); s.monthIdx = mi; s.goalSet = true; s.board = null; s.summary = null; s.recruit = null; return JSON.stringify(s); };
     const dA = await makeDom(mk(0), 1);
     const svgA = dA.document.querySelector('.banner').innerHTML;
     check('season: April banner has cherry petals', svgA.includes('#ffb7cd'));
@@ -92,8 +93,8 @@ function helpers(window, document) {
     check('season: August banner is the camp photo (v0.11)', dB.document.querySelector('.banner').classList.contains('photo-camp'));
     dB.window.close();
     const dC = await makeDom(mk(8), 1);
-    const svgC = dC.document.querySelector('.banner').innerHTML;
-    check('season: December banner has winter tint', svgC.includes('#dfe9f2'));
+    /* v0.26: 12月の月次バナーは SVG（冬の色味）から冬の早朝練習イラストに差し替わったため、新仕様を検証する */
+    check('season: December banner is the winter photo (v0.26)', dC.document.querySelector('.banner').classList.contains('photo-winter'));
     dC.window.close();
   }
 
@@ -123,7 +124,7 @@ function helpers(window, document) {
         sceneSeen++;
         if (document.querySelector('.cutin')) cutinSeen++;
         let best = opts[0], bp = -1;
-        opts.forEach(o => { const m = o.textContent.match(/(\d+)%/); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
+        opts.forEach(o => { const m = (o.dataset.p ? [0, o.dataset.p] : o.textContent.match(/(\d+)%/)); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
         best.click(); await sleep(3); continue;
       }
       if (btn('試合を進める')) { click('試合を進める'); await sleep(3); continue; }

@@ -61,7 +61,7 @@ async function driveSeason(H, d) {
     const opts = [...d.document.querySelectorAll('.choices .btn.choice')];
     if (opts.length && t.includes('成功率の目安')) {
       let best = opts[0], bp = -1;
-      opts.forEach(o => { const m = o.textContent.match(/(\d+)%/); const p2 = m ? +m[1] : 0; if (p2 > bp) { bp = p2; best = o; } });
+      opts.forEach(o => { const m = (o.dataset.p ? [0, o.dataset.p] : o.textContent.match(/(\d+)%/)); const p2 = m ? +m[1] : 0; if (p2 > bp) { bp = p2; best = o; } });
       best.click(); await sleep(2); continue;
     }
     if (H.btn('試合を進める')) { H.click('試合を進める'); await sleep(2); continue; }
@@ -82,7 +82,7 @@ const STAT_KEYS = ['spd', 'pow', 'pas', 'kik', 'tak', 'sta'];
   });
   {
     const H = await makeDom(null, 111);
-    check('title: shows v1.0 (v0.25 でバージョン表記を追随)', H.text().includes('v1.0'));
+    check('title: shows v1.1 (v0.25 でバージョン表記を追随)', H.text().includes('v1.1')); /* v0.26: バージョン表記を v1.1 に追随 */
     H.window.close();
   }
 
@@ -110,10 +110,11 @@ const STAT_KEYS = ['spd', 'pow', 'pas', 'kik', 'tak', 'sta'];
     const caps2 = H2.state().career.captains;
     check('captain: appointment of another player adds an entry', caps2.length === 2 && caps2.some(c => c.id === other.id && c.name === other.name),
       JSON.stringify(caps2.map(c => c.name)));
+    const st3 = H2.state(); /* v0.26 追随: 新しい jsdom は close 後の localStorage 参照で例外になるため、close 前に読む（検証内容は不変） */
     H2.window.close();
 
     /* 同じキャプテンが翌年も務めると years に年が併記される（行は増えない） */
-    const st3 = H2.state(); st3.year = 2; /* H2 で保存された台帳（2名とも years=[1]）を翌年として読み直す */
+    st3.year = 2; /* H2 で保存された台帳（2名とも years=[1]）を翌年として読み直す */
     const H3 = await makeDom({ 'hanazono.v02': JSON.stringify(st3) }, 444);
     const caps3 = H3.state().career.captains;
     const eOther = caps3.find(c => c.id === other.id);

@@ -158,7 +158,7 @@ async function gotoPreMatch(h, d, monthIdx, seed) {
     check('subs: panel shows remaining count 5', h.text().includes('選手交代（残り5回）'));
     const cutinB = dd.document.querySelector('.cutin b');
     const keyName = cutinB ? cutinB.textContent.trim() : null;
-    const firstPct = (h.text().match(/成功率の目安 (\d+)%/) || [])[1];
+    const firstPct = (dd.document.querySelector('.choices .btn.choice') || { dataset: {} }).dataset.p || (h.text().match(/成功率の目安 (\d+)%/) || [])[1]; /* v0.26 追随: 成功率は段階表示になり数値は data-p に移った */
     /* キーマンを最弱の控えと交代させる */
     const outBtn = h.btnAll('OUT ').find(b => keyName && b.textContent.includes(keyName));
     check('subs: key player has an OUT button', !!outBtn, 'key=' + keyName);
@@ -176,7 +176,7 @@ async function gotoPreMatch(h, d, monthIdx, seed) {
     check('subs: remaining count now 4', tAfter.includes('選手交代（残り4回）'));
     const cutinB2 = dd.document.querySelector('.cutin b');
     const keyAfter = cutinB2 ? cutinB2.textContent.trim() : null;
-    const pctAfter = (tAfter.match(/成功率の目安 (\d+)%/) || [])[1];
+    const pctAfter = (dd.document.querySelector('.choices .btn.choice') || { dataset: {} }).dataset.p || (tAfter.match(/成功率の目安 (\d+)%/) || [])[1]; /* v0.26 追随（同上） */
     check('subs: scene recalculated with new field (key or probability changed)',
       (keyName && keyAfter && keyAfter !== keyName) || (firstPct && pctAfter && pctAfter !== firstPct),
       'key ' + keyName + '->' + keyAfter + ' / pct ' + firstPct + '->' + pctAfter);
@@ -333,7 +333,7 @@ async function gotoPreMatch(h, d, monthIdx, seed) {
         }
         const opts2 = [...document.querySelectorAll('.choices .btn.choice')];
         let best = opts2[0], bp = -1;
-        opts2.forEach(o => { const m = o.textContent.match(/(\d+)%/); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
+        opts2.forEach(o => { const m = (o.dataset.p ? [0, o.dataset.p] : o.textContent.match(/(\d+)%/)); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
         if (best) { best.click(); await sleep(2); }
         continue;
       }

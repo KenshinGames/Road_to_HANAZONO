@@ -74,11 +74,11 @@ function weeklyState(st) {
 
 (async () => {
   /* ===== 1. バージョン ===== */
-  check('version: <title> is v1.0', html.includes('<title>Road to HANAZONO v1.0</title>'));
+  check('version: <title> is v1.1', html.includes('<title>Road to HANAZONO v1.1</title>')); /* v0.26: バージョン表記を v1.1 に追随 */
   {
     const H = load(null, 1);
     await sleep(15);
-    check('version: title screen shows v1.0', H.text().includes('v1.0'));
+    check('version: title screen shows v1.1', H.text().includes('v1.1')); /* v0.26: バージョン表記を v1.1 に追随 */
     H.window.close();
   }
 
@@ -304,8 +304,14 @@ function weeklyState(st) {
   }
 
   /* ===== 7. 場面イラストの受け口（未生成ファイルへの参照なし） ===== */
-  check('photo: registry holds only existing scenes', html.includes('PHOTO_SCENES = { camp: 1, champion: 1, graduation: 1, rain: 1 }'));
-  check('photo: no reference to ungenerated winter/practice/clubroom photos', !html.includes('photo-winter') && !html.includes('scene-winter') && !html.includes('scene-practice') && !html.includes('scene-clubroom'));
+  /* v0.26 追随: 冬・練習場・部室のイラストが実在するようになったため、「登録キー＝実在ファイル」の検証に置き換える（未生成への参照を作らない趣旨は不変） */
+  {
+    const reg = (html.match(/var PHOTO_SCENES = \{([^}]*)\}/) || [])[1] || '';
+    const keys = Array.from(reg.matchAll(/(\w+):/g)).map(m => m[1]);
+    const imgDir = require('path').join(__dirname, '..', 'v02', 'img');
+    check('photo: registry holds only existing scenes', keys.length >= 4 && keys.every(k => fs.existsSync(require('path').join(imgDir, 'scene-' + k + '.jpg'))), keys.join(','));
+    check('photo: every photo class in CSS is registered', Array.from(html.matchAll(/\.photo-(\w+) \{ background-image/g)).every(m => keys.includes(m[1])));
+  }
 
   /* ===== 8. v0.22 実セーブの移行 ===== */
   {

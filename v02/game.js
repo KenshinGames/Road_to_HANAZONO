@@ -1,4 +1,8 @@
-/* Road to HANAZONO v1.0（Web版 完成版） — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+/* Road to HANAZONO v1.1（Web版） — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+ * v1.1（v0.26）: 実プレイの指摘を受けた手直し（勝負どころの成功率を数値ではなく段階の目安◎○△×で表示＝判定は不変／
+ *        おまかせの練習選択を「方針一致」と「チームの弱点」の交互に変更＝能力の極端な偏りを防ぐ・ソーク A/B で確認／
+ *        名字・名前を各100種に拡充し部内で名字が重ならないように＝乱数消費は1試行2回のまま／場面イラスト3枚
+ *        〈冬の早朝練習・練習場・部室〉を組み込み＝12〜1月と5・7・9月の月次バナー、年初の目標画面。セーブ形式は不変）
  * v1.0（v0.25）: 完成版の仕上げ（全画面の最終デザイン監査＝932×430／932×380 の両寸法で3点ゼロ＋設計原則2点の
  *        合格確認／20シーズン長期ソークによる最終バランス確認／タイトルとガイドへのクレジット表示／
  *        iOS 移植メモの完成版を DESIGN.md に記録。数値・判定・乱数消費順・セーブ形式は v0.24 から不変）
@@ -90,8 +94,24 @@
     { no: 15, p: 'FB', g: 'BK', main: 'kik' }
   ];
   var SP_POS = { PR: 1, HO: 1, LO: 1, SH: 1 };   // セットピースユニットに含むポジション
-  var SURNAMES = ['佐藤', '鈴木', '高橋', '田中', '伊藤', '渡辺', '山本', '中村', '小林', '加藤', '吉田', '山田', '佐々木', '山口', '松本', '井上', '木村', '林', '斎藤', '清水'];
-  var GIVEN = ['蓮', '颯太', '大和', '陽翔', '陸', '翼', '健太', '翔', '悠真', '蒼', '龍之介', '圭', '一真', '海斗', '拓海', '慎', '亮太', '豪', '誠', '仁'];
+  /* v0.26: 名字・名前とも 20→100 に拡充（18人の部員に同じ名字が4人並ぶ事態が実機で出た）。
+   * 先頭20個は従来の並びのまま残す。相手校エースの代替わり名（genOppAce）は先頭 ACE_NAME_N 個だけを使い、
+   * 既存セーブと同じシードで同じ名前になるようにする。相手校の固定エースの名字（風間・岩崎 等）は入れない */
+  var SURNAMES = [
+    '佐藤', '鈴木', '高橋', '田中', '伊藤', '渡辺', '山本', '中村', '小林', '加藤', '吉田', '山田', '佐々木', '山口', '松本', '井上', '木村', '林', '斎藤', '清水',
+    '山崎', '森', '池田', '橋本', '阿部', '石川', '山下', '中島', '石井', '小川', '前田', '岡田', '長谷川', '藤田', '後藤', '近藤', '村上', '遠藤', '青木', '坂本',
+    '福田', '太田', '西村', '藤井', '金子', '岡本', '藤原', '中野', '三浦', '原田', '中川', '松田', '竹内', '小野', '田村', '中山', '和田', '石田', '森田', '上田',
+    '原', '内田', '柴田', '酒井', '宮崎', '横山', '高木', '安藤', '宮本', '大野', '工藤', '谷口', '今井', '丸山', '増田', '杉山', '村田', '大塚', '新井', '平野',
+    '河野', '野口', '武田', '松井', '千葉', '菅原', '木下', '久保', '野村', '松尾', '菊地', '市川', '古川', '大西', '島田', '水野', '服部', '秋山', '本田', '星野'
+  ];
+  var GIVEN = [
+    '蓮', '颯太', '大和', '陽翔', '陸', '翼', '健太', '翔', '悠真', '蒼', '龍之介', '圭', '一真', '海斗', '拓海', '慎', '亮太', '豪', '誠', '仁',
+    '湊', '樹', '悠斗', '大翔', '陽太', '颯', '朝陽', '結翔', '奏太', '律', '新', '碧', '瑛太', '晴', '智也', '隼人', '優斗', '大輝', '拓真', '和真',
+    '涼', '航', '匠', '歩夢', '侑', '光', '輝', '柊', '凌', '暖', '宗介', '大地', '健斗', '竜也', '啓太', '直樹', '浩平', '康介', '晃', '修',
+    '勇気', '雄大', '太一', '蒼真', '颯真', '悠人', '遥斗', '爽', '篤', '怜', '創', '渉', '将大', '優太', '晴人', '健吾', '琉生', '一輝', '響', '迅',
+    '敦', '俊', '達也', '和樹', '祐介', '遼', '楓', '慧', '恭平', '涼太', '賢人', '稜', '岳', '丈', '碧斗', '海翔', '真司', '友哉', '光希', '陽介'
+  ];
+  var ACE_NAME_N = 20;
   var TRAITS = [
     { n: '練習の虫', growth: 1.35, inj: 1 }, { n: '努力型', growth: 1.2, inj: 1 },
     { n: '天才肌', growth: 1.1, inj: 1 }, { n: '大舞台に強い', growth: 1, inj: 1, clutch: 6 },
@@ -919,10 +939,23 @@
   function shuffle(arr) { for (var i = arr.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = arr[i]; arr[i] = arr[j]; arr[j] = t; } return arr; }
 
   var namePool = {};
+  var recentSurnames = []; /* v0.26: 直近に生成した名字（まだ部員になっていない勧誘候補の分も含めるため） */
   function uniqName() {
     var n, tries = 0;
-    do { n = pick(SURNAMES) + ' ' + pick(GIVEN); tries++; } while (namePool[n] && tries < 60);
-    namePool[n] = 1; return n;
+    /* v0.26: 在籍中の部員と直近の生成分とは名字が重ならないようにする。重なった時は乱数を追加で使わず、
+     * 名簿の次の名字へずらす（1回の試行の乱数消費は従来どおり名字・名前の2回） */
+    var used = {};
+    if (G && G.players) G.players.forEach(function (p) { used[String(p.name).split(' ')[0]] = 1; });
+    recentSurnames.forEach(function (sn) { used[sn] = 1; });
+    do {
+      var si = Math.floor(Math.random() * SURNAMES.length);
+      var gn = pick(GIVEN);
+      for (var k = 0; k < SURNAMES.length && used[SURNAMES[si]]; k++) si = (si + 1) % SURNAMES.length;
+      n = SURNAMES[si] + ' ' + gn; tries++;
+    } while (namePool[n] && tries < 60);
+    namePool[n] = 1;
+    recentSurnames.push(SURNAMES[si]); if (recentSurnames.length > 24) recentSurnames.shift();
+    return n;
   }
   function personOf(p) { return PERSONS.filter(function (x) { return x.n === p.person; })[0] || PERSONS[2]; }
   function skillNameByKey(key) { var s = SKILLS.filter(function (x) { return x.key === key; })[0]; return s ? s.n : key; }
@@ -1038,7 +1071,7 @@
     return PLATE_COLORS[s % PLATE_COLORS.length];
   }
   function newGame(diff) {
-    namePool = {};
+    namePool = {}; recentSurnames = [];
     G = {
       year: 1, monthIdx: 0, players: [], obs: [], rep: 30, nextId: 1,
       career: { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0, wins: 0, maxBest: 0, achv: {}, seasonHist: [], oppRec: {}, captains: [], streaks: {}, titleStreak: 0, bestTitleStreak: 0 },
@@ -1473,7 +1506,7 @@
     if (epoch === 0) {
       name = base.ace.name; pos = base.ace.pos; skill = base.ace.skill;
     } else {
-      name = SURNAMES[Math.floor(R() * SURNAMES.length)] + ' ' + GIVEN[Math.floor(R() * GIVEN.length)];
+      name = SURNAMES[Math.floor(R() * ACE_NAME_N)] + ' ' + GIVEN[Math.floor(R() * ACE_NAME_N)]; /* v0.26: 名簿拡充後も従来と同じ名前になるよう先頭20個に限る */
       var pool = ACE_POS_BY_STYLE[base.style] || ['SO', 'CTB'];
       pos = pool[Math.floor(R() * pool.length)];
       var aff = (SKILL_AFFINITY[pos] || []).slice();
@@ -1696,7 +1729,8 @@
     save(); render();
   }
   /* おまかせの自動選択：平均疲労が限界に近ければ休養、試合月の後半で準備ボーナスが不足して
-   * いればビデオ分析、それ以外は月の全体方針（inst.team）に合う練習カードを週ごとに回す。
+   * いればビデオ分析、それ以外は月の全体方針（inst.team）に合う練習カードを週ごとに回す
+   * （v0.26 から、方針一致とチームの弱点の練習を交互に選ぶ。下記）。
    * v0.19 校正: 盤面方式は1か月に練習・回復・作戦会議が自然に混ざる（練習が約55%）うえ、
    * 疲労が60〜70あっても練習を続けるのが実測上の常態だった。週次で週ごとに休養を挟みすぎると
    * 練習週の絶対数が足りなくなり、夏以降の総合力が系統的に遅れる（ソーク A/B の切り分けで確認）。
@@ -1718,8 +1752,16 @@
         G.players.filter(function (p) { return (p.form || 0) < 0; }).length >= 7) return 'mental';
     var prac = WEEK_ACTS.filter(function (a) { return !!a.stat; });
     var aligned = prac.filter(function (a) { return a.stat === G.inst.team; });
-    var pool = aligned.length ? aligned : prac;
-    return pool[b.week % pool.length].k;
+    /* v0.26: 方針一致のカードだけを積むと、方針を変えない限り同じ1能力（既定はスタミナ）しか伸びず、
+     * 卒業生が「パワー・スタミナだけ S、他は E〜F」に偏った（実機プレイで確認）。練習の週は
+     * 方針一致のカードと「スタメン平均が最も低い能力」のカードを交互に選ぶ（乱数は使わない） */
+    var nPrac = b.picks.filter(function (k) { return !!weekAct(k).stat; }).length;
+    if (aligned.length && nPrac % 2 === 0) return aligned[0].k;
+    var st = starters();
+    var weak = prac.filter(function (a) { return !aligned.length || a.stat !== aligned[0].stat; })
+      .map(function (a) { return { k: a.k, v: statAvg(st, a.stat) }; })
+      .sort(function (x, y) { return x.v - y.v; })[0];
+    return weak ? weak.k : prac[b.week % prac.length].k;
   }
   function autoMonth() {
     var guard = 0;
@@ -2077,6 +2119,12 @@ function pgChance(p) {
 function kickMark(p) {
   var v = p.stats.kik + (hasSkill(p, 'kick') ? 8 : 0) + (p.form || 0) * 2;
   return v >= 70 ? '◎' : (v >= 55 ? '○' : '△');
+}
+/* v0.26: 勝負どころの成功率も段階の目安（◎○△×）で見せ、数値は出さない（キッカー指名と同じ考え方）。
+ * 数値を出すと「一番高い%を押すだけ」になり、采配の読み合いが消えるため。判定は従来どおり c.p で行う表示専用の変換 */
+var SCENE_MARKS = [{ min: 0.8, m: '◎', c: 'sm1' }, { min: 0.6, m: '○', c: 'sm2' }, { min: 0.4, m: '△', c: 'sm3' }, { min: -1, m: '×', c: 'sm4' }];
+function sceneMark(p) {
+  return SCENE_MARKS.filter(function (t) { return p >= t.min; })[0];
 }
 /* バランス調整(v0.7): 年次ドリフトは県予選（idx1〜3）にだけ小さく掛け、花園の2校は「固定の全国の壁」にする
  * v0.9: 帝都はエースの学年でも強くなる。難易度チャレンジは全校 +3 */
@@ -3269,14 +3317,16 @@ function finishRecruit() {
   }
   /* v0.11: 月次バナーの写真差し替え（月インデックス→写真キー）。
    * ここに登録された月だけ、月頭指示などの月次バナー（train/home）が写真に切り替わる。
-   * 冬の朝練イラストが追加生成されたら { 9: 'winter', 10: 'winter' } のように足すだけでよい */
-  var MONTH_PHOTOS = { 4: 'camp' };
+   * 冬の朝練イラストが追加生成されたら { 9: 'winter', 10: 'winter' } のように足すだけでよい
+   * v0.26: 練習場（夏空）は試合の無い5・7・9月、冬の早朝練習は12月と1月（花園の2か月）に割り当てる。
+   * 4月（桜）・6月（梅雨）・10〜11月（秋）は季節の SVG を残す。試合月の週次画面は従来どおり試合 SVG */
+  var MONTH_PHOTOS = { 1: 'practice', 3: 'practice', 4: 'camp', 5: 'practice', 8: 'winter', 9: 'winter', 10: 'winter' };
   /* v0.22: 写真が実在するシーンキーの登録表（受け口）。CSS 側に .photo-<key> の data URI が
    * 存在するキーだけをここに登録する。未登録のキーが MONTH_PHOTOS 等から参照されても、
    * photoBanner が SVG バナーへフォールバックするため、存在しない画像への参照にはならない。
    * 冬・練習場・部室のイラストが生成されたら: ①CSS に写真クラス（data URI）を足す
    * ②ここに該当キーを足す ③MONTH_PHOTOS に月とキーの対応を足す、の3点で組み込める */
-  var PHOTO_SCENES = { camp: 1, champion: 1, graduation: 1, rain: 1 };
+  var PHOTO_SCENES = { camp: 1, champion: 1, graduation: 1, rain: 1, winter: 1, practice: 1, clubroom: 1 };
   /* v0.11: 写真バナー（画像は CSS 側に data URI で埋め込み済み。cover で切り取り表示） */
   function photoBanner(key, cls) {
     if (!PHOTO_SCENES[key]) return banner('train', cls, null); /* v0.22: 未生成の写真キーは SVG バナーで代替する */
@@ -3415,7 +3465,7 @@ function finishRecruit() {
     /* v1.0: クレジット（制作表記）。詳細はガイドのクレジット節にも置く */
     kids.push(h('p', { class: 'sub', style: 'text-align:center;margin-top:2px' }, ['制作：Kenshin Takada ／ Muse との共同開発']));
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v1.0'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v1.1'])]),
       h('div', { class: 'card center title-card' }, kids)
     ]);
     mount(h('div', { class: 'stack shell' }, [inner]));
@@ -3432,7 +3482,7 @@ function finishRecruit() {
     L.appendChild(h('div', { class: 'sec' }, ['📅 1年の流れ']));
     [['① 年初の目標', 'シーズン目標を決める。達成で評判ボーナス（格上の目標ほど大きい）、未達でも評判-3のみ。思い切って高い目標を掲げるのも監督の腕の見せどころ'],
      ['② 月頭指示', '全体方針・ユニット練習・重点育成・練習強度・キャプテン・校風を決める'],
-     ['③ 週次プランニング', '1か月は4週間。今週の活動をカードから選ぶと、練習の実りや回復、時折イベントが起きる。活動の能力が月の全体方針と一致すると少しお得。「おまかせ」で月末まで自動で進められる'],
+     ['③ 週次プランニング', '1か月は4週間。今週の活動をカードから選ぶと、練習の実りや回復、時折イベントが起きる。活動の能力が月の全体方針と一致すると少しお得。「おまかせ」は方針一致の練習とチームの弱点の練習を交互に選び、月末まで自動で進める'],
      ['④ 試合', '6月=練習試合、10〜12月=花園予選、1月=花園。勝負どころでは采配（選択肢）を選ぶ'],
      ['⑤ シーズン終了', '結果を振り返り、3年生は卒業してOB名鑑へ'],
      ['⑥ 勧誘', 'スカウト候補・特別枠・一般入部で新チームを作って新年度へ。候補は「比較」表示で能力や成功率を見比べられ、成功率の内訳も確認できる。入部した新入生は紹介画面でお披露目される']].forEach(function (r) {
@@ -3458,6 +3508,7 @@ function finishRecruit() {
      ['総合力', 'スタメン15人の「総合」（6能力の平均）の平均。チームの強さの物差しで、対戦確認では相手と並べて比べられる'],
      ['部の格', '弱小→そこそこ→中堅→強豪→名門の5段階。評判で決まる。上がると勧誘の獲得枠・新入生の質・設備（ウェイト場／ビデオ分析室／寮）の解放が進む'],
      ['特能', '選手の際立った強み（最大2つ）。ラインアウトの要／モールの核／タックルマン／ロングキッカー／ステップ職人／大舞台○（大一番で効く）／ケガしにくさ。対応する場面で力を発揮する'],
+     ['成功率の目安', '勝負どころの選択肢の成功しやすさ。◎=80%以上／○=60〜79%／△=40〜59%／×=40%未満の段階で示す。キーマンの能力・調子・信頼度・疲労と今日の戦術で変わる'],
      ['信頼度', '監督への信頼。試合の出場と活躍で上がり、采配の成功率に効く。キャプテンは集めやすい'],
      ['調子', '5段階。顔アイコンの色で分かる（ピンク=絶好調／赤=好調／黄=普通／水色=不調／紫=絶不調）。練習効率と成功率に薄く効く'],
      ['評判', '部の評判を表す数値。勝利と目標達成で上がり、部の格と勧誘の成功率を左右する。部の格は記録室やHUDで確認できる'],
@@ -3469,7 +3520,7 @@ function finishRecruit() {
     [['制作', 'Kenshin Takada'],
      ['開発', 'Muse（AI）との共同開発'],
      ['シリーズ', '100アプリチャレンジ #47'],
-     ['バージョン', 'v1.0（Web版）']].forEach(function (r) {
+     ['バージョン', 'v1.1（Web版）']].forEach(function (r) {
       R.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
     });
     R.appendChild(h('button', { class: 'btn', style: 'margin-top:12px', onclick: function () { tutReplay(guideFrom); back(); } }, ['🎓 チュートリアルをもう一度見る'])); /* v0.24: 実地ガイドの再表示（戻り先の画面のステップから） */
@@ -3487,9 +3538,10 @@ function finishRecruit() {
     /* v0.22: 左カラムは月頭指示と同じヒーローパネル（場面背景＋ガラス1枚）に統合する。
      * v0.20 で入れた「バナー帯＋説明カード」の2段構えは、枠の入れ子で面積を食うため廃止 */
     var heroPanel = h('div', { class: 'heropanel grow' });
-    heroPanel.appendChild(banner('home', 'herobg', 0));
+    heroPanel.appendChild(photoBanner('clubroom', 'herobg')); /* v0.26: 年初のミーティングは部室のイラスト */
     var heroBody = h('div', { class: 'herobody' });
-    var glass = h('div', { class: 'glasscard glassfill' }, [
+    /* v0.26: 中身は固定の4行だけなので、ガラスは内容の高さに留め、下に部室のイラストを見せる（glassfill だと写真がほぼ隠れた） */
+    var glass = h('div', { class: 'glasscard' }, [
       h('div', { class: 'gtitle' }, ['🎯 ' + G.year + '年目の目標を決めよう']),
       /* v0.24: 表示テキスト最小化。目標の仕組み（達成ボーナスの大小・未達時の扱い）は
        * ガイド「① 年初の目標」へ移し、ここは判断に直結する数値だけを残す */
@@ -4181,8 +4233,11 @@ function finishRecruit() {
       if (M.pending.key) ctrl.appendChild(h('div', { class: 'sub' }, ['キーマン：' + M.pending.key.name + '（' + POSITIONS[M.pending.key.posIdx].p + (skillNames(M.pending.key).length ? '・' + skillNames(M.pending.key).join('／') : '') + '）']));
       var box = h('div', { class: 'choices' });
       M.pending.choices.forEach(function (c, i) {
-        box.appendChild(h('button', { class: 'btn choice', onclick: function () { chooseScene(i); } }, [
-          h('span', { class: 't' }, [c.n]), h('span', { class: 'd' }, [' — ' + c.d + ' ']), h('span', { class: 'd nowrap' }, ['（成功率の目安 ' + Math.round(c.p * 100) + '%）'])
+        /* v0.26: 成功率は段階の目安だけを見せる。data-p は QA／ソークの駆動用（画面には出ない） */
+        var sm = sceneMark(Math.round(c.p * 100) / 100); /* 境界は従来の表示（%の四捨五入）と揃える */
+        box.appendChild(h('button', { class: 'btn choice', 'data-p': String(Math.round(c.p * 100)), onclick: function () { chooseScene(i); } }, [
+          h('span', { class: 't' }, [c.n]), h('span', { class: 'd' }, [' — ' + c.d + ' ']),
+          h('span', { class: 'd nowrap' }, ['（成功率の目安 ', h('b', { class: 'smark ' + sm.c }, [sm.m]), '）'])
         ]));
       });
       ctrl.appendChild(box);

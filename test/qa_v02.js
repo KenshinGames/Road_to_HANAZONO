@@ -53,7 +53,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     if (document.querySelector('.choices .btn.choice') && t.includes('成功率の目安')) {
       const opts = [...document.querySelectorAll('.choices .btn.choice')];
       let best = opts[0], bp = -1;
-      opts.forEach(o => { const m = o.textContent.match(/(\d+)%/); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
+      opts.forEach(o => { const m = (o.dataset.p ? [0, o.dataset.p] : o.textContent.match(/(\d+)%/)); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
       best.click(); await sleep(5); continue;
     }
     if (btn('試合を進める')) { click('試合を進める'); await sleep(5); continue; }

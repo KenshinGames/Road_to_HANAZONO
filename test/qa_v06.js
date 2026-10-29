@@ -54,7 +54,7 @@ async function autoplay(h, document, opts) {
     const options = [...document.querySelectorAll('.choices .btn.choice')];
     if (options.length && t.includes('成功率の目安')) {
       let best = options[0], bp = -1;
-      options.forEach(o => { const m = o.textContent.match(/(\d+)%/); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
+      options.forEach(o => { const m = (o.dataset.p ? [0, o.dataset.p] : o.textContent.match(/(\d+)%/)); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
       best.click(); await sleep(2); continue;
     }
     if (h.btn('試合を進める')) { h.click('試合を進める'); await sleep(2); continue; }
