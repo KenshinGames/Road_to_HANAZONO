@@ -147,6 +147,8 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
 .subbtn { text-align: left; font-size: 13px; padding: 7px 9px; margin-top: 6px; }
 .sublist .subbtn { margin-top: 0; }
 .subwarn { background: var(--warn-soft); border-radius: 8px; padding: 5px 8px; font-size: 13px; margin-top: 4px; }
+/* v0.16: 交代・編成ボタンの警告タグ（疲労・不調・ケガ明け）。控えめな小ささで、様式は既存のピル型バッジに合わせる */
+.warntag { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 99px; background: #d97706; color: #fff; font-size: 11px; font-weight: 700; vertical-align: middle; }
 .subrow { padding: 6px 2px; border-bottom: 1px solid var(--line); font-size: 13px; }
 
 /* ===== 固定レイアウト（横画面・広い画面）: ページはスクロールしない ===== */
