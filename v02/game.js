@@ -1,4 +1,4 @@
-/* Road to HANAZONO v0.9.1 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.10 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
  * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示
  * v0.4: 新入生3層の完成(スカウト＋特別枠) + OB連携
  * v0.5: 立ち絵表現(パーツ組み合わせ式の自動生成) + 試合カットイン + 会話劇 + 季節感
@@ -6,7 +6,8 @@
  * v0.7: キャプテン任命と校風 + 選手イベント拡充(性格×信頼度・進路) + ケガの段階化(軽症/重症・欠場期間) + 成長のソフトキャップ化
  * v0.8: メンバー編成(スタメン15名を試合前に編成) + 選手交代(停止点で交代・負傷交代) + 調子(コンディション5段階)
  * v0.9: シーズン目標 + ライバル校の物語(帝都のエース代替わり) + 記録室拡張(通算スタッツ・歴代チーム) + 難易度選択 + 設備解放
- * v0.9.1: タイトル画面に夕景イラスト（ChatGPT生成）を全面背景として採用（見た目のみ） */
+ * v0.9.1: タイトル画面に夕景イラスト（ChatGPT生成）を全面背景として採用（見た目のみ）
+ * v0.10: 効果音（WebAudio合成）／実績（トロフィー）13種／遊び方ガイド／再開時あらすじ */
 (function () {
   'use strict';
   var STORE_KEY = 'hanazono.v02';
@@ -153,7 +154,189 @@
   var screen = 'title';
   var selPlayerId = null;
   var subOutId = null;    /* v0.8: 交代UIで選択中の「下げる選手」 */
-  var lineupSlot = null;  /* v0.8: 編成画面で選択中のスロット */
+  var lineupSlot = null;
+  /* ===== v0.10: 効果音（WebAudio 合成・外部ファイルなし） =====
+   * 設定はゲームのセーブとは別キー hanazono.sound に保存する。
+   * AudioContext はユーザー操作の流れでのみ生成・再開し、失敗しても例外を外に出さない。
+   * AudioContext が無い環境（jsdom 等）では全て無音で素通りする。 */
+  var SOUND_KEY = 'hanazono.sound';
+  var soundOn = true;
+  try { soundOn = localStorage.getItem(SOUND_KEY) !== '0'; } catch (e) { soundOn = true; }
+  var AC = null;              /* AudioContext */
+  var sfxSuppressed = false;  /* 時短表示中は音を重ねない */
+  function audioCtx() {
+    try {
+      if (!AC) {
+        var Ctor = window.AudioContext || window.webkitAudioContext;
+        if (!Ctor) return null;
+        AC = new Ctor();
+      }
+      if (AC.state === 'suspended') { var p = AC.resume(); if (p && p.catch) p.catch(function () {}); }
+      return AC;
+    } catch (e) { return null; }
+  }
+  function tone(o) {
+    var ac = audioCtx(); if (!ac) return;
+    try {
+      var t0 = ac.currentTime + (o.at || 0);
+      var osc = ac.createOscillator(), g = ac.createGain();
+      osc.type = o.type || 'sine';
+      osc.frequency.setValueAtTime(Math.max(1, o.f), t0);
+      if (o.f2) osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.f2), t0 + o.d);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(o.v || 0.07, t0 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + o.d);
+      osc.connect(g); g.connect(ac.destination);
+      osc.start(t0); osc.stop(t0 + o.d + 0.05);
+    } catch (e) {}
+  }
+  function noiseBurst(o) { /* 歓声風ノイズ：ホワイトノイズをバンドパスに通す */
+    var ac = audioCtx(); if (!ac) return;
+    try {
+      var dur = o.d || 0.5, t0 = ac.currentTime + (o.at || 0);
+      var len = Math.max(1, Math.floor(ac.sampleRate * dur));
+      var buf = ac.createBuffer(1, len, ac.sampleRate);
+      var chn = buf.getChannelData(0);
+      for (var i = 0; i < len; i++) chn[i] = Math.random() * 2 - 1;
+      var src = ac.createBufferSource(); src.buffer = buf;
+      var f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = o.freq || 900; f.Q.value = 0.7;
+      var g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(o.v || 0.1, t0 + (o.a || 0.08));
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      src.connect(f); f.connect(g); g.connect(ac.destination);
+      src.start(t0); src.stop(t0 + dur + 0.05);
+    } catch (e) {}
+  }
+  function whistle(at) { /* ホイッスル：高音の方形波に速いビブラート */
+    var ac = audioCtx(); if (!ac) return;
+    try {
+      var t0 = ac.currentTime + (at || 0), dur = 0.32;
+      var osc = ac.createOscillator(), g = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain();
+      osc.type = 'square'; osc.frequency.value = 2350;
+      lfo.type = 'sine'; lfo.frequency.value = 30; lg.gain.value = 240;
+      lfo.connect(lg); lg.connect(osc.frequency);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.025, t0 + 0.03);
+      g.gain.setValueAtTime(0.025, t0 + dur - 0.08);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g); g.connect(ac.destination);
+      osc.start(t0); lfo.start(t0); osc.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
+    } catch (e) {}
+  }
+  function sfx(name, arg) {
+    if (!soundOn || sfxSuppressed) return;
+    try {
+      if (name === 'tap') tone({ f: 640, f2: 500, type: 'triangle', d: 0.05, v: 0.045 });
+      else if (name === 'steps') { var n = arg || 1, i; for (i = 0; i < n; i++) tone({ f: 320 + i * 36, type: 'triangle', d: 0.045, v: 0.04, at: i * 0.1 }); tone({ f: 520, d: 0.07, v: 0.055, at: n * 0.1 }); tone({ f: 780, d: 0.1, v: 0.055, at: n * 0.1 + 0.06 }); }
+      else if (name === 'kick') tone({ f: 165, f2: 55, d: 0.16, v: 0.15 });
+      else if (name === 'try') { noiseBurst({ d: 0.9, v: 0.13, freq: 1000, a: 0.15 }); whistle(0.05); tone({ f: 523, d: 0.12, v: 0.05, at: 0.02 }); tone({ f: 659, d: 0.12, v: 0.05, at: 0.12 }); tone({ f: 784, d: 0.2, v: 0.055, at: 0.22 }); }
+      else if (name === 'concede') noiseBurst({ d: 0.45, v: 0.05, freq: 480 });
+      else if (name === 'scene') { tone({ f: 880, type: 'triangle', d: 0.09, v: 0.055 }); tone({ f: 1174, type: 'triangle', d: 0.13, v: 0.055, at: 0.07 }); }
+      else if (name === 'good') { tone({ f: 587, d: 0.09, v: 0.06 }); tone({ f: 880, d: 0.14, v: 0.06, at: 0.07 }); }
+      else if (name === 'bad') tone({ f: 330, f2: 262, type: 'triangle', d: 0.18, v: 0.055 });
+      else if (name === 'win') { [523, 659, 784, 1046].forEach(function (f, i) { tone({ f: f, d: 0.16, v: 0.065, at: i * 0.11 }); }); noiseBurst({ d: 1.0, v: 0.09, freq: 1100, a: 0.2 }); }
+      else if (name === 'lose') { [392, 330, 262].forEach(function (f, i) { tone({ f: f, type: 'triangle', d: 0.22, v: 0.055, at: i * 0.16 }); }); }
+      else if (name === 'achv') { [784, 988, 1175].forEach(function (f, i) { tone({ f: f, type: 'triangle', d: 0.14, v: 0.065, at: i * 0.08 }); }); }
+      else if (name === 'whistle') whistle(0);
+    } catch (e) {}
+  }
+  function toggleSound() {
+    soundOn = !soundOn;
+    try { localStorage.setItem(SOUND_KEY, soundOn ? '1' : '0'); } catch (e) {}
+    if (soundOn) sfx('tap');
+    render();
+  }
+  function soundBtn() {
+    return h('button', { class: 'btn', onclick: function () { toggleSound(); } }, [soundOn ? '🔊 サウンド ON' : '🔇 サウンド OFF']);
+  }
+  var guideFrom = 'title'; /* 遊び方ガイドから戻る先 */
+  function guideBtn(cls, sty) {
+    var at = { class: cls, onclick: function () { guideFrom = screen; screen = 'guide'; render(); } };
+    if (sty) at.style = sty;
+    return h('button', at, ['📖 遊び方']);
+  }
+
+  /* ===== v0.10: トースト通知（実績達成時） ===== */
+  function showToast(msg) {
+    try {
+      var layer = document.getElementById('toasts');
+      if (!layer) { layer = document.createElement('div'); layer.id = 'toasts'; layer.className = 'toasts'; document.body.appendChild(layer); }
+      var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+      layer.appendChild(t);
+      setTimeout(function () { try { t.classList.add('show'); } catch (e) {} }, 10);
+      setTimeout(function () {
+        try { t.classList.remove('show'); } catch (e) {}
+        setTimeout(function () { try { if (t.parentNode) t.parentNode.removeChild(t); } catch (e) {} }, 450);
+      }, 3400);
+    } catch (e) {}
+  }
+
+  /* ===== v0.10: 実績（トロフィー）。met が null のものはイベント時に直接 unlock する ===== */
+  var ACHIEVEMENTS = [
+    { id: 'firstwin', n: '初勝利', d: '監督として初めて試合に勝つ', met: function () { return (G.career.wins || 0) >= 1; } },
+    { id: 'qual', n: '県予選突破', d: '花園予選で決勝に進出する', met: function () { return (G.career.maxBest || 0) >= 2; } },
+    { id: 'hana1', n: '花園初出場', d: '花園（全国大会）に出場する', met: function () { return G.career.hana >= 1; } },
+    { id: 'hanawin', n: '花園初勝利', d: '花園で1勝を挙げる', met: function () { return G.career.hanaWins >= 1; } },
+    { id: 'hanatitle', n: '花園優勝', d: '花園で優勝する', met: function () { return G.career.hanaTitles >= 1; } },
+    { id: 'wins10', n: '通算10勝', d: '監督通算で10勝する', met: function () { return (G.career.wins || 0) >= 10; } },
+    { id: 'wins50', n: '通算50勝', d: '監督通算で50勝する', met: function () { return (G.career.wins || 0) >= 50; } },
+    { id: 'giant', n: '格上撃破', d: '格上の相手に勝利する（善戦ではなく勝利）', met: null },
+    { id: 'ob10', n: 'OB10人輩出', d: '卒業生をOBとして10人送り出す', met: function () { return G.obs.length >= 10; } },
+    { id: 'ob30', n: 'OB30人輩出', d: '卒業生をOBとして30人送り出す', met: function () { return G.obs.length >= 30; } },
+    { id: 'ace90', n: 'エース育成', d: '選手を総合90まで育てる', met: function () { return G.players.some(function (p) { return overall(p) >= 90; }) || G.obs.some(function (o) { return (o.avg || 0) >= 90; }); } },
+    { id: 'noinj', n: '無事是名馬', d: 'ケガ人を1人も出さずにシーズンを完走する', met: null },
+    { id: 'grade5', n: '名門到達', d: '部の格が「名門」に到達する', met: function () { return gradeIdx() >= 4; } }
+  ];
+  function achvDef(id) { for (var i = 0; i < ACHIEVEMENTS.length; i++) if (ACHIEVEMENTS[i].id === id) return ACHIEVEMENTS[i]; return null; }
+  function unlockAchv(id) {
+    if (!G || !G.career) return false;
+    if (!G.career.achv || typeof G.career.achv !== 'object') G.career.achv = {};
+    if (G.career.achv[id]) return false;
+    G.career.achv[id] = G.year;
+    var a = achvDef(id);
+    if (a) { showToast('🏆 実績達成！「' + a.n + '」'); sfx('achv'); }
+    return true;
+  }
+  function checkAchievements() {
+    if (!G || !G.career) return;
+    ACHIEVEMENTS.forEach(function (a) {
+      if (!a.met) return;
+      var ok = false; try { ok = !!a.met(); } catch (e) {}
+      if (ok) unlockAchv(a.id);
+    });
+  }
+
+  /* ===== v0.10: 再開時あらすじ（セーブ読み込みで再開した初回だけ出す） ===== */
+  var showDigest = false;
+  function maybeDigest() {
+    if (!showDigest || !G) return;
+    try {
+      if (document.getElementById('digest')) return;
+      var mo = MONTHS[G.monthIdx] || { m: '—' };
+      var wrapEl = h('div', { class: 'digest', id: 'digest' });
+      var card = h('div', { class: 'card digest-card' });
+      card.appendChild(h('div', { class: 'sec' }, ['📋 おかえりなさい、監督 ― 前回までのあらすじ']));
+      var rows = [
+        ['いま', G.year + '年目・' + mo.m + '／部の格 ' + gradeOf().n + '／総合力 ' + teamPower()],
+        ['今季ここまで', G.season.wins + '勝 ' + G.season.losses + '敗' + (G.qualified ? '（花園出場決定）' : '')]
+      ];
+      if (G.history && G.history.length) { var lh = G.history[G.history.length - 1]; rows.push(['これまでの歩み', lh.year + '年目の結果：' + lh.result]); }
+      if (G.goalSet) rows.push(['今年の目標', goalOf().n]);
+      rows.push(['今月の予定', mo.match != null ? '月末に ' + effOpp(mo.match).name + ' 戦がある' : (mo.camp ? '夏合宿の月。練習の実りが1.5倍になる' : '公式戦はない。育成と体調管理の月')]);
+      rows.forEach(function (r) {
+        card.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, [r[0]]), h('span', null, [r[1]])]));
+      });
+      card.appendChild(h('button', { class: 'btn primary', style: 'margin-top:12px', onclick: function () {
+        showDigest = false;
+        var d = document.getElementById('digest');
+        if (d && d.parentNode) d.parentNode.removeChild(d);
+      } }, ['グラウンドへ戻る ▶']));
+      wrapEl.appendChild(card);
+      document.body.appendChild(wrapEl);
+    } catch (e) {}
+  }
+  /* v0.8: 編成画面で選択中のスロット */
   function rnd(a, b) { return a + Math.random() * (b - a); }
   function ri(a, b) { return Math.floor(rnd(a, b + 1)); }
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -241,8 +424,8 @@
     namePool = {};
     G = {
       year: 1, monthIdx: 0, players: [], obs: [], rep: 30, nextId: 1,
-      career: { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0 },
-      season: { wins: 0, losses: 0, result: '予選敗退', bestWin: 0, hanaWins: 0, hanaTitle: false },
+      career: { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0, wins: 0, maxBest: 0, achv: {} },
+      season: { wins: 0, losses: 0, result: '予選敗退', bestWin: 0, hanaWins: 0, hanaTitle: false, injuries: 0 },
       inst: { team: 'sta', unit: 'FW', focus: 1, level: 0 },
       captainId: null, ethos: 'discipline', lineup: null,
       board: null, qualified: false, tactic: 'fw', nextBonus: 0,
@@ -294,8 +477,24 @@
     G.players.forEach(fixPlayer);
     /* v0.6: 通算記録の欠けたフィールドを補完（花園優勝回数など） */
     if (!G.career || typeof G.career !== 'object') G.career = { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0 };
-    ['hana', 'hanaWins', 'titles', 'hanaTitles'].forEach(function (k) {
+    ['hana', 'hanaWins', 'titles', 'hanaTitles', 'wins', 'maxBest'].forEach(function (k) {
       if (typeof G.career[k] !== 'number' || !isFinite(G.career[k])) G.career[k] = 0;
+    });
+    /* v0.10: 実績。最高到達（倒した相手の最大index）を今季と履歴結果から復元し、判定できる実績はトーストなしで補完する */
+    var bw0 = (G.season && typeof G.season.bestWin === 'number' && isFinite(G.season.bestWin)) ? G.season.bestWin : 0;
+    if (bw0 > G.career.maxBest) G.career.maxBest = bw0;
+    (Array.isArray(G.history) ? G.history : []).forEach(function (hh) {
+      var rr = hh && hh.result ? String(hh.result) : '', bb = 0;
+      if (rr.indexOf('花園優勝') >= 0) bb = 5;
+      else if (rr.indexOf('花園決勝進出') >= 0 || rr.indexOf('準優勝') >= 0) bb = 4;
+      else if (rr.indexOf('花園') >= 0) bb = 3;
+      else if (rr.indexOf('予選決勝敗退') >= 0) bb = 2;
+      else if (rr.indexOf('予選準決勝敗退') >= 0) bb = 1;
+      if (bb > G.career.maxBest) G.career.maxBest = bb;
+    });
+    if (!G.career.achv || typeof G.career.achv !== 'object' || Array.isArray(G.career.achv)) G.career.achv = {};
+    ACHIEVEMENTS.forEach(function (a) {
+      if (a.met && !G.career.achv[a.id]) { var okA = false; try { okA = !!a.met(); } catch (e) {} if (okA) G.career.achv[a.id] = G.year; }
     });
     if (typeof G.monthIdx !== 'number' || G.monthIdx < 0 || G.monthIdx >= MONTHS.length) G.monthIdx = 0;
     /* v0.7: 校風とキャプテンの検証（キャプテンが卒業・不在なら信頼度トップを自動で引き継ぐ） */
@@ -312,6 +511,7 @@
     ['wins', 'losses', 'bestWin', 'hanaWins'].forEach(function (k) {
       if (typeof G.season[k] !== 'number' || !isFinite(G.season[k])) G.season[k] = 0;
     });
+    if (typeof G.season.injuries !== 'number' || !isFinite(G.season.injuries) || G.season.injuries < 0) G.season.injuries = 0; /* v0.10: 今季のケガ発生数 */
     if (typeof G.season.hanaTitle !== 'boolean') G.season.hanaTitle = !!G.season.hanaTitle;
     /* v0.9: 難易度（旧セーブは ふつう） */
     if (G.difficulty !== 'challenge') G.difficulty = 'normal';
@@ -431,6 +631,7 @@
   }
   /* v0.7: ケガの発生と時間経過での回復 */
   function hurtPlayer(p, heavy) {
+    if (G.season) G.season.injuries = (G.season.injuries || 0) + 1; /* v0.10: 実績「ケガ人ゼロ」用に数える */
     p.injured = heavy ? ri(2, 3) : 1;
     p.injSev = heavy ? 'heavy' : 'light';
     p.injPart = pick(INJ_PARTS);
@@ -524,6 +725,8 @@
     var cell = b.cells[b.pos];
     cell.done = true;
     resolveCell(cell.t);
+    sfx('steps', v);
+    checkAchievements();
     save(); render();
   }
   function resolveCell(t) {
@@ -666,7 +869,7 @@
       return { t: anyInj ? 'マネージャーが入部！ ケアが行き届き、負傷者の回復が早まった（離脱期間が1か月短くなった）' : 'マネージャーが入部！ ケア体制が整い、選手のコンディションが安定した' };
     }
     if (r < 0.74) { G.nextBonus = Math.min(bonusCap(), G.nextBonus + 4); return { t: 'ライバル校の試合映像を入手。弱点が見えた（次の試合 +4）' }; }
-    if (r < 0.84 && healthy.length) { var v = pick(healthy); v.injured = 1; v.injSev = 'light'; v.injPart = '体調不良'; return { t: v.name + ' が体調を崩した。1か月ほど休養し、次の試合は欠場する', bad: true, dlg: { pid: v.id, text: dlgLine(v, 'sick') } }; }
+    if (r < 0.84 && healthy.length) { var v = pick(healthy); v.injured = 1; v.injSev = 'light'; v.injPart = '体調不良'; if (G.season) G.season.injuries = (G.season.injuries || 0) + 1; return { t: v.name + ' が体調を崩した。1か月ほど休養し、次の試合は欠場する', bad: true, dlg: { pid: v.id, text: dlgLine(v, 'sick') } }; }
     if (r < 0.92 && G.players.length) {
       var q = pick(G.players);
       if (q.person === '自由人' || q.person === 'マイペース') { q.fatigue = Math.max(0, q.fatigue - 18); return { t: q.name + '（' + q.person + '）は休日にしっかり気分転換。本人の疲労が抜けた', dlg: { pid: q.id, text: dlgLine(q, 'rest') } }; }
@@ -745,17 +948,19 @@ function startMatch(oppIdx) {
     if (G.rivalLast === 'lose') M.log.push('昨年はこの相手に敗れた。雪辱の舞台が整った');
     else if (G.rivalLast === 'win') M.log.push('昨年はこの相手を破っている。帝都イレブンは雪辱に燃えているはずだ');
   }
+  sfx('whistle');
   screen = 'match'; render();
 }
 function convProb() { return clamp(0.45 + (statAvg(starters(), 'kik') - 50) * 0.008, 0.2, 0.9); }
 function tryScore(mine) {
+  sfx(mine ? 'try' : 'concede');
   var pts = 5, txt = 'トライ！';
   if (Math.random() < convProb()) { pts += 2; txt += ' コンバージョンも成功（+7点）'; }
   else txt += ' コンバージョンは外れた（+5点）';
   if (mine) M.my += pts; else M.op += pts;
   return txt;
 }
-function pgScore(mine) { if (mine) M.my += 3; else M.op += 3; return 'ペナルティゴール成功（+3点）'; }
+function pgScore(mine) { sfx('kick'); if (mine) M.my += 3; else M.op += 3; return 'ペナルティゴール成功（+3点）'; }
 function scoreRoll(diff) { return Math.random() < clamp(0.32 + diff * 0.012, 0.05, 0.75); }
 function playBlock() {
   var diff = fieldPower() - M.power + M.bonus;
@@ -796,6 +1001,7 @@ function maybeSceneOrEnd() {
   if (idx >= 0) {
     M.phase = 'scene';
     M.pending = makeScene(M.plan[idx]);
+    sfx('scene');
     applyOppAdj(M.pending);
     M.log.push('⚑ ' + M.pending.title + (M.pending.key ? '（キーマン：' + M.pending.key.name + '）' : ''));
   }
@@ -962,6 +1168,7 @@ function chooseScene(idx) {
     /* v0.8: 活躍したキーマンは調子も上向くことがある */
     if (Math.random() < 0.3) sc.key.form = clamp((sc.key.form || 0) + 1, -2, 2);
   }
+  sfx(ok ? 'good' : 'bad');
   M.log.push(txt);
   M.pending = null; M.phase = 'play'; subOutId = null; M.block++;
   maybeSceneOrEnd();
@@ -1014,6 +1221,10 @@ function finishMatch() {
   if (res === 'win') {
     G.season.wins++;
     G.season.bestWin = Math.max(G.season.bestWin || 0, M.oppIdx);
+    /* v0.10: 実績用の通算勝利と最高到達、格上撃破（相手の総合力が試合開始時の自チームより上での勝利） */
+    G.career.wins = (G.career.wins || 0) + 1;
+    G.career.maxBest = Math.max(G.career.maxBest || 0, G.season.bestWin);
+    if (M.power > M.tp0) unlockAchv('giant');
     if (M.oppIdx === 4 || M.oppIdx === 5) G.season.hanaWins = (G.season.hanaWins || 0) + 1;
     if (M.oppIdx === 5) G.season.hanaTitle = true;
     G.rep += repGain(M.oppIdx === 0 ? 2 : (M.oppIdx === 3 ? 20 : 6));
@@ -1049,6 +1260,8 @@ function finishMatch() {
     });
   }
   fieldPlayers().forEach(function (p) { p.fatigue = Math.min(100, p.fatigue + 8); });
+  if (res === 'win') sfx('win'); else sfx('lose');
+  checkAchievements();
   save();
 }
 function growFromMatch(prob) {
@@ -1112,6 +1325,7 @@ function canSkip(oppIdx) {
   return oppIdx < 3 && (teamPower() - oppPower(oppIdx)) >= 8;
 }
 function skipMatch(oppIdx) {
+  sfxSuppressed = true; /* v0.10: 高速再生中は音を重ねない（結果の音だけ最後に鳴らす） */
   startMatch(oppIdx);
   var guard = 0;
   while (M && !M.done && guard++ < 300) {
@@ -1129,6 +1343,8 @@ function skipMatch(oppIdx) {
   ];
   if (M.gallant) lines.push('🌟 格上に善戦！ 評判と経験のボーナスが入った');
   M.log = lines;
+  sfxSuppressed = false;
+  sfx(M.result === 'win' ? 'win' : 'lose');
   screen = 'match'; save(); render();
 }
 function advanceMonth() {
@@ -1164,6 +1380,9 @@ stars: G.players.slice().filter(function (p) { return p.srec && (p.srec.tries > 
 .sort(function (a, b) { return (b.srec.tries * 3 + b.srec.plays) - (a.srec.tries * 3 + a.srec.plays); })
 .slice(0, 3).map(function (p) { return { name: p.name, pos: POSITIONS[p.posIdx].p, tries: p.srec.tries, plays: p.srec.plays }; })
 };
+/* v0.10: ケガ人ゼロで完走したら実績。その他の到達系もシーズン終わりに判定する */
+if ((G.season.injuries || 0) === 0) unlockAchv('noinj');
+checkAchievements();
 screen = 'summary'; save(); render();
 }
 /* ---------------- 新入生スカウト・特別枠(v0.4) ----------------
@@ -1282,10 +1501,11 @@ function startRecruit() {
   G.year++; G.monthIdx = 0; G.qualified = false; G.nextBonus = 0;
   G.lineup = null; /* v0.8: 編成はシーズン単位で保持し、新年度は自動選出に戻す */
   G.goal = null; G.goalSet = false; /* v0.9: 新年度は目標を選び直す */
-  G.season = { wins: 0, losses: 0, result: '予選敗退', bestWin: 0, hanaWins: 0, hanaTitle: false };
+  G.season = { wins: 0, losses: 0, result: '予選敗退', bestWin: 0, hanaWins: 0, hanaTitle: false, injuries: 0 };
   G.summary = null;
   G.recruit = { cands: genScoutCands(), special: genSpecial() };
   sortRoster();
+  checkAchievements(); /* v0.10: OB輩出の実績は卒業のタイミングで判定 */
   screen = 'recruit'; save(); render();
 }
 function togglePick(i) {
@@ -1331,6 +1551,7 @@ function finishRecruit() {
   if (G.rivalNews) { lines.push(G.rivalNews); G.rivalNews = null; }
   G.monthLog = lines;
   G.recruit = null;
+  checkAchievements();
   screen = 'goal'; save(); render(); /* v0.9: 新年度はまず目標を決める */
 }
 
@@ -1410,10 +1631,12 @@ function finishRecruit() {
     var s = '';
     s += '<rect width="100" height="120" fill="' + (pos.g === 'FW' ? '#e4f0e5' : '#e3ebf5') + '"/>';
     s += '<circle cx="50" cy="50" r="33" fill="#ffffff" opacity="0.45"/>';
-    /* 桜丘ユニフォーム: 緑 × 白のV襟 × 桜色の帯。背番号つき */
-    s += '<path d="M ' + (50 - sh) + ' 120 L ' + (50 - sh + 3) + ' 85 Q 50 74 ' + (50 + sh - 3) + ' 85 L ' + (50 + sh) + ' 120 Z" fill="#166534"/>';
-    s += '<path d="M ' + (50 - sh + 1) + ' 104 L ' + (50 + sh - 1) + ' 104 L ' + (50 + sh) + ' 111 L ' + (50 - sh) + ' 111 Z" fill="#f2a7bb"/>';
+    /* 桜丘ユニフォーム: 紺 × 白（v0.10: 生成イラストの配色に合わせて変更）。白のV襟・帯・袖ライン、背番号つき */
+    s += '<path d="M ' + (50 - sh) + ' 120 L ' + (50 - sh + 3) + ' 85 Q 50 74 ' + (50 + sh - 3) + ' 85 L ' + (50 + sh) + ' 120 Z" fill="#1b2a52"/>';
+    s += '<path d="M ' + (50 - sh + 1) + ' 104 L ' + (50 + sh - 1) + ' 104 L ' + (50 + sh) + ' 111 L ' + (50 - sh) + ' 111 Z" fill="#f7f3e6"/>';
     s += '<path d="M 41.5 85 L 50 95 L 58.5 85 L 58.5 89.5 L 50 99.5 L 41.5 89.5 Z" fill="#f7f3e6"/>';
+    s += '<path d="M ' + (50 - sh + 2.2) + ' 94 L ' + (50 - sh + 4.6) + ' 85.2" stroke="#f7f3e6" stroke-width="2.6" fill="none" stroke-linecap="round"/>';
+    s += '<path d="M ' + (50 + sh - 2.2) + ' 94 L ' + (50 + sh - 4.6) + ' 85.2" stroke="#f7f3e6" stroke-width="2.6" fill="none" stroke-linecap="round"/>';
     s += '<text x="62.5" y="99" font-size="8.5" font-weight="700" fill="#ffffff" opacity="0.92" font-family="sans-serif">' + pos.no + '</text>';
     s += '<rect x="44.5" y="62" width="11" height="16" rx="3" fill="' + skin + '"/>';
     s += '<rect x="44.5" y="62" width="11" height="5" fill="#000000" opacity="0.08"/>';
@@ -1564,15 +1787,20 @@ function finishRecruit() {
     var el = document.createElement(tag);
     if (attrs) Object.keys(attrs).forEach(function (k) {
       if (k === 'class') el.className = attrs[k];
-      else if (k === 'onclick') el.onclick = attrs[k];
+      else if (k === 'onclick') {
+        /* v0.10: ボタンはタップ音を一元的に鳴らす（AudioContext が無い環境では無音で素通り） */
+        if (tag === 'button') { var _fn = attrs[k]; el.onclick = function (ev) { sfx('tap'); _fn(ev); }; }
+        else el.onclick = attrs[k];
+      }
       else el.setAttribute(k, attrs[k]);
     });
     (children || []).forEach(function (c) { el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
     return el;
   }
-  function mount(node) { var a = document.getElementById('app'); a.innerHTML = ''; a.appendChild(node); }
+  function mount(node) { var a = document.getElementById('app'); a.innerHTML = ''; a.appendChild(node); maybeDigest(); }
   function render() {
     sanitize();
+    if (screen === 'guide') return guideScreen();
     if (!G) return titleScreen();
     if (screen === 'goal') return goalScreen();
     if (screen === 'inst') return instScreen();
@@ -1599,7 +1827,9 @@ function finishRecruit() {
       h('span', { class: 'item' }, ['評判 ', h('b', null, [String(G.rep)])]),
       h('span', { class: 'sp' }, []),
       hudBtn('選手一覧', 'squad'),
-      hudBtn('記録・OB', 'records')
+      hudBtn('記録・OB', 'records'),
+      guideBtn('btn small', 'width:auto;padding:5px 12px'),
+      h('button', { class: 'btn small', style: 'width:auto;padding:5px 12px', onclick: function () { toggleSound(); } }, [soundOn ? '🔊 音ON' : '🔇 音OFF'])
     ]);
   }
   function wrap(children) {
@@ -1611,15 +1841,53 @@ function finishRecruit() {
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.9.1'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.10'])]),
       h('div', { class: 'card center title-card' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
         h('button', { class: 'btn primary', onclick: function () { newGame('normal'); screen = 'goal'; render(); } }, ['監督に就任する（ふつう）']),
         h('button', { class: 'btn', onclick: function () { newGame('challenge'); screen = 'goal'; render(); } }, ['監督に就任する（チャレンジ）']),
-        h('p', { class: 'sub' }, ['難易度は開始時だけの選択。チャレンジは相手が少し強く（全校+3）、評判の伸びが渋い（×0.7）'])
+        h('p', { class: 'sub' }, ['難易度は開始時だけの選択。チャレンジは相手が少し強く（全校+3）、評判の伸びが渋い（×0.7）']),
+        h('div', { class: 'hand', style: 'margin-top:10px;justify-content:center' }, [guideBtn('btn'), soundBtn()])
       ])
     ]);
     mount(h('div', { class: 'stack shell' }, [inner]));
+  }
+    /* v0.10: 遊び方ガイド（タイトルとHUDから開く。左＝目的と流れ、右＝見方とコツ） */
+  function guideScreen() {
+    var back = function () {
+      var t = (guideFrom && guideFrom !== 'guide') ? guideFrom : (G ? (G.recruit ? 'recruit' : (G.summary ? 'summary' : (G.board ? 'board' : 'inst'))) : 'title');
+      screen = t; render();
+    };
+    var L = h('div', { class: 'card grow scroll' });
+    L.appendChild(h('div', { class: 'sec' }, ['🎯 目的']));
+    L.appendChild(h('p', null, ['弱小公立・桜丘高校ラグビー部の監督として、選手を育て、世代交代を重ねながら花園（全国大会）の常連校を目指す育成シミュレーションです。評判が上がると「部の格」（弱小→そこそこ→中堅→強豪→名門）が上がり、入部してくる新入生の質も上がる好循環が生まれます。記録室では実績（トロフィー）も集まります。']));
+    L.appendChild(h('div', { class: 'sec' }, ['📅 1年の流れ']));
+    [['① 年初の目標', 'シーズン目標を決める。達成で評判ボーナス、未達でも小さなペナルティのみ'],
+     ['② 月頭指示', '全体方針・ユニット練習・重点育成・練習強度・キャプテン・校風を決める'],
+     ['③ すごろく進行', '進行カードでマスを進む。止まったマスで練習・イベント・回復などが起きる'],
+     ['④ 試合', '6月=練習試合、10〜12月=花園予選、1月=花園。勝負どころでは采配（選択肢）を選ぶ'],
+     ['⑤ シーズン終了', '結果を振り返り、3年生は卒業してOB名鑑へ'],
+     ['⑥ 勧誘', 'スカウト候補・特別枠・一般入部で新チームを作って新年度へ']].forEach(function (r) {
+      L.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
+    });
+    var R = h('div', { class: 'card grow scroll' });
+    R.appendChild(h('div', { class: 'sec' }, ['👀 画面の見方']));
+    R.appendChild(h('p', null, ['左＝情報（実況・盤面・選手一覧）、右＝操作（選択肢・ボタン）が基本配置です。試合は左の実況を読み、右で采配を選んでください。画面上部のバーでは年・月・部の格・総合力・評判がいつでも確認できます。']));
+    R.appendChild(h('div', { class: 'sec' }, ['💡 監督のコツ']));
+    [['疲労管理', '疲労70以上で練習効率も試合の成功率も大きく落ちる。ケア（💊）と休み（😴）のマス、強度「通常」を織り交ぜよう'],
+     ['信頼度', '試合の出場と活躍で上がり、采配の成功率に効く。重点育成と起用でエースを育てよう'],
+     ['ケガ予防', '強度を上げるほどケガのリスクも上がる。疲労をためないことが一番の予防になる'],
+     ['スカウト', '寸評は体格・特能・性格のヒント。成功率とOB紹介の有無を見て枠を使おう'],
+     ['格上戦', '7点差以内の善戦でも評判と経験が得られる。試合後の「敗因の内訳」が次への教材になる'],
+     ['時短', '戦力差の大きい試合は対戦確認画面から「結果のみ表示」で飛ばせる']].forEach(function (r) {
+      R.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
+    });
+    R.appendChild(h('button', { class: 'btn primary', style: 'margin-top:12px', onclick: back }, [G ? '◀ 戻る' : '◀ タイトルへ戻る']));
+    var kids = [];
+    if (G) kids.push(hud());
+    kids.push(h('div', { class: 'sec' }, ['📖 遊び方 ― Road to HANAZONO']));
+    kids.push(h('div', { class: 'lay2' }, [col([L]), col([R])]));
+    wrap(kids);
   }
   /* v0.9: シーズン目標の設定（年初のみ）。おすすめは部の格で決まり、格上目標も選べる */
   function goalScreen() {
@@ -2155,6 +2423,17 @@ function finishRecruit() {
         h('span', { class: 'sub' }, [POSITIONS[p.posIdx].p + '・トライ ' + p.crec.tries + '／好プレー ' + p.crec.plays])
       ]));
     });
+    /* v0.10: 実績（トロフィー）一覧。達成済みは色つき、未達成は条件のみ表示 */
+    c.appendChild(h('div', { class: 'sec' }, ['🏆 実績（トロフィー）']));
+    var achvGot = ACHIEVEMENTS.filter(function (a) { return G.career.achv && G.career.achv[a.id]; }).length;
+    c.appendChild(h('div', { class: 'sub' }, ['達成 ' + achvGot + ' / ' + ACHIEVEMENTS.length + ' ― 監督キャリアを通じて集まる勲章']));
+    ACHIEVEMENTS.forEach(function (a) {
+      var yr = G.career.achv ? G.career.achv[a.id] : null;
+      c.appendChild(h('div', { class: 'rowline achv' + (yr ? ' got' : '') }, [
+        h('span', null, [(yr ? '🏆 ' : '🔒 ') + a.n + (yr ? '（' + yr + '年目に達成）' : '')]),
+        h('span', { class: 'sub' }, [a.d])
+      ]));
+    });
     var o = h('div', { class: 'card scroll', style: 'height:100%' });
     o.appendChild(h('div', { class: 'sec' }, ['OB名鑑（' + G.obs.length + '人）']));
     if (!G.obs.length) o.appendChild(h('div', { class: 'sub' }, ['まだ卒業生がいない']));
@@ -2168,7 +2447,7 @@ function finishRecruit() {
 
   /* ---------------- 起動 ---------------- */
   if (!loadSaved()) G = null;
-  if (G) { sanitize(); save(); } /* マイグレーション結果を即永続化 */
+  if (G) { sanitize(); save(); showDigest = true; } /* マイグレーション結果を即永続化／v0.10: 再開時はあらすじを1回出す */
   if (G && G.recruit) screen = 'recruit';
   else if (G && G.board) screen = 'board';
   else if (G && G.summary) screen = 'summary';
