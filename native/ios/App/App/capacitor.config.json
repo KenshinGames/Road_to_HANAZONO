@@ -1,0 +1,12 @@
+{
+	"appId": "com.kenshingames.hanazono",
+	"appName": "HANAZONO",
+	"webDir": "www",
+	"ios": {
+		"backgroundColor": "#101410",
+		"contentInset": "never",
+		"zoomEnabled": false,
+		"allowsLinkPreview": false
+	},
+	"packageClassList": []
+}

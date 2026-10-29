@@ -1,0 +1,61 @@
+# iOS 版（native/）のビルド確認。GitHub の macOS 環境で Xcode プロジェクトを署名なしでシミュレータ向けにビルドし、
+# シミュレータでアプリを起動してスクリーンショットとセーブの控え（二重化）の動作を確かめる。
+# 結果のスクリーンショット・ログは Actions の成果物（ios-simulator）に残る。署名・配布（TestFlight）は Mac の Xcode で行う。
+name: iOS build
+
+on:
+  push:
+    paths:
+      - 'native/**'
+      - 'v02/index.html'
+      - 'v02/game.js'
+      - 'v02/style.css'
+      - 'test/fixtures/**'
+      - '.github/workflows/ios-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulator:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tool versions
+        run: |
+          sw_vers
+          xcodebuild -version
+          node -v
+          xcrun simctl list runtimes
+
+      - name: Web assets in the Xcode project match v02
+        working-directory: native
+        run: |
+          node scripts/build-www.mjs
+          for f in index.html style.css game.js native-boot.js native.css; do cmp "www/$f" "ios/App/App/public/$f"; done
+
+      - name: Build for iOS Simulator (unsigned)
+        run: |
+          mkdir -p sim-out
+          if ! xcodebuild -project native/ios/App/App.xcodeproj -scheme App -configuration Debug \
+              -destination 'generic/platform=iOS Simulator' -derivedDataPath build \
+              CODE_SIGNING_ALLOWED=NO build > sim-out/build.log 2>&1; then
+            grep -nE "error:|BUILD FAILED" sim-out/build.log | head -60
+            tail -n 60 sim-out/build.log
+            exit 1
+          fi
+          grep -nE "warning:.*native/ios/App/App/" sim-out/build.log | head -30 || true
+          tail -n 5 sim-out/build.log
+
+      - name: Run in Simulator (screenshots and save mirror)
+        run: bash native/ci/sim-check.sh
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-simulator
+          path: sim-out/
+          if-no-files-found: ignore

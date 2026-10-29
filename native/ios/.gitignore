@@ -1,0 +1,12 @@
+App/build
+App/Pods
+App/output
+DerivedData
+xcuserdata
+
+# Cordova plugins for Capacitor（このアプリは使わない）
+capacitor-cordova-ios-plugins
+
+# 注意：App/App/public（ゲーム本体の写し）と App/App/capacitor.config.json・config.xml は
+# Capacitor の既定では git 管理外だが、このリポジトリでは「Mac で Xcode を開くだけでビルドできる」ように
+# あえてコミットする。更新は native で `npm run sync`（v02 から組み立て直す）。手で編集しない。
