@@ -1,4 +1,4 @@
-/* Road to HANAZONO v0.13 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.14 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
  * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示
  * v0.4: 新入生3層の完成(スカウト＋特別枠) + OB連携
  * v0.5: 立ち絵表現(パーツ組み合わせ式の自動生成) + 試合カットイン + 会話劇 + 季節感
@@ -12,7 +12,9 @@
  * v0.12: 試合の読み応え（実況バリエーション拡充＋試合内の重複回避／スカウティング弱点ヒント／ハーフタイム形勢サマリー／敗因・勝因の相対バー表示）
  *        ＋調子表示を固定サイズの顔アイコンのみに見直し（ユーザー提示の参照画像に基づく配色、ラベル廃止）
  * v0.13: 育成の手触り（月次成長レポート＝盤面の練習で実際に伸びた分の内訳を次の月頭指示画面にカード表示／
- *        選手詳細に調子の推移＝直近最大6件を顔アイコンの列で表示／信頼度イベントに復帰・キャプテン・上級生指導・進路の続きを追加） */
+ *        選手詳細に調子の推移＝直近最大6件を顔アイコンの列で表示／信頼度イベントに復帰・キャプテン・上級生指導・進路の続きを追加）
+ * v0.14: 記録の深化（シーズン別成績＝到達結果・今季勝敗・部の格・目標と達成可否をシーズンごとに career.seasonHist へ記録／
+ *        対戦校別の通算成績 career.oppRec／歴代キャプテン career.captains／OB名鑑に卒業時の最終能力6種と進路を保存・表示） */
 (function () {
   'use strict';
   var STORE_KEY = 'hanazono.v02';
@@ -470,7 +472,7 @@
     namePool = {};
     G = {
       year: 1, monthIdx: 0, players: [], obs: [], rep: 30, nextId: 1,
-      career: { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0, wins: 0, maxBest: 0, achv: {} },
+      career: { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0, wins: 0, maxBest: 0, achv: {}, seasonHist: [], oppRec: {}, captains: [] },
       season: { wins: 0, losses: 0, result: '予選敗退', bestWin: 0, hanaWins: 0, hanaTitle: false, injuries: 0 },
       inst: { team: 'sta', unit: 'FW', focus: 1, level: 0 },
       captainId: null, ethos: 'discipline', lineup: null,
@@ -494,6 +496,7 @@
     var capBest = null;
     G.players.forEach(function (p) { if (!capBest || p.trust > capBest.trust) capBest = p; });
     G.captainId = capBest ? capBest.id : null;
+    recordCaptain(); /* v0.14: 初代キャプテンの任命も歴代キャプテンに残す（保存前に記録する） */
     G.goal = recommendedGoal().k; /* v0.9: 目標の初期値は部の格のおすすめ（目標画面で変更できる） */
     M = null;
     save();
@@ -525,12 +528,14 @@
       .map(function (v) { return clamp(Math.round(v), -2, 2); }).slice(-6);
     if (typeof p.backMark !== 'boolean') p.backMark = !!p.backMark;
     if (typeof p.futureSeen !== 'boolean') p.futureSeen = !!p.futureSeen;
+    /* v0.14: 進路イベントで決まった進路ラベル（卒業時に OB 名鑑へ引き継ぐ）。文字列でなければ未確定として落とす */
+    if (typeof p.futurePath !== 'string' || !p.futurePath) p.futurePath = null;
   }
   function sanitize() {
     if (!G || !G.players) return;
     G.players.forEach(fixPlayer);
     /* v0.6: 通算記録の欠けたフィールドを補完（花園優勝回数など） */
-    if (!G.career || typeof G.career !== 'object') G.career = { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0 };
+    if (!G.career || typeof G.career !== 'object') G.career = { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0, seasonHist: [], oppRec: {}, captains: [] };
     ['hana', 'hanaWins', 'titles', 'hanaTitles', 'wins', 'maxBest'].forEach(function (k) {
       if (typeof G.career[k] !== 'number' || !isFinite(G.career[k])) G.career[k] = 0;
     });
@@ -611,6 +616,53 @@
         !G.growAcc.by || typeof G.growAcc.by !== 'object' || Array.isArray(G.growAcc.by)) G.growAcc = null;
     if (!G.growReport || typeof G.growReport !== 'object' || Array.isArray(G.growReport) ||
         typeof G.growReport.label !== 'string' || !Array.isArray(G.growReport.rows) || !G.growReport.rows.length) G.growReport = null;
+    /* v0.14: 記録の深化（シーズン別成績・対戦校別成績・歴代キャプテン）の検証と移行。
+     * 旧セーブでは実記録として残っている範囲（歴代チームの年・結果、帝都との通算）だけを初期値にし、推測では埋めない */
+    if (!Array.isArray(G.career.seasonHist)) {
+      G.career.seasonHist = (Array.isArray(G.history) ? G.history : []).filter(function (hh) {
+        return hh && typeof hh.year === 'number' && typeof hh.result === 'string';
+      }).map(function (hh) {
+        return { y: hh.year, result: hh.result, w: null, l: null, grade: null, goal: null, goalOk: null };
+      }).slice(-30);
+    } else {
+      G.career.seasonHist = G.career.seasonHist.filter(function (sh) {
+        return sh && typeof sh.y === 'number' && isFinite(sh.y) && typeof sh.result === 'string';
+      }).map(function (sh) {
+        return {
+          y: sh.y, result: sh.result,
+          w: (typeof sh.w === 'number' && isFinite(sh.w)) ? sh.w : null,
+          l: (typeof sh.l === 'number' && isFinite(sh.l)) ? sh.l : null,
+          grade: (typeof sh.grade === 'string' && sh.grade) ? sh.grade : null,
+          goal: (typeof sh.goal === 'string' && sh.goal) ? sh.goal : null,
+          goalOk: (typeof sh.goalOk === 'boolean') ? sh.goalOk : null
+        };
+      }).slice(-30);
+    }
+    if (!G.career.oppRec || typeof G.career.oppRec !== 'object' || Array.isArray(G.career.oppRec)) {
+      G.career.oppRec = {};
+      var rw0 = (typeof G.rivalW === 'number' && isFinite(G.rivalW)) ? G.rivalW : 0;
+      var rl0 = (typeof G.rivalL === 'number' && isFinite(G.rivalL)) ? G.rivalL : 0;
+      if (rw0 + rl0 > 0) G.career.oppRec['帝都学園'] = { p: rw0 + rl0, w: rw0, l: rl0 };
+    } else {
+      Object.keys(G.career.oppRec).forEach(function (nm) {
+        var r0 = G.career.oppRec[nm];
+        if (!r0 || typeof r0 !== 'object' || Array.isArray(r0)) { delete G.career.oppRec[nm]; return; }
+        ['p', 'w', 'l'].forEach(function (k) { if (typeof r0[k] !== 'number' || !isFinite(r0[k]) || r0[k] < 0) r0[k] = 0; });
+      });
+    }
+    if (!Array.isArray(G.career.captains)) G.career.captains = [];
+    else {
+      G.career.captains = G.career.captains.filter(function (cp) {
+        return cp && typeof cp.id === 'number' && typeof cp.name === 'string' && cp.name && Array.isArray(cp.years);
+      }).map(function (cp) {
+        return {
+          id: cp.id, name: cp.name,
+          grade: (typeof cp.grade === 'number' && isFinite(cp.grade)) ? clamp(Math.round(cp.grade), 1, 3) : null,
+          years: cp.years.filter(function (y) { return typeof y === 'number' && isFinite(y); })
+        };
+      }).slice(-30);
+    }
+    recordCaptain();
     /* v0.13: 読み込み時点の調子を推移の起点として記録する */
     syncFormHist();
   }
@@ -686,6 +738,25 @@
   function avgAttr(players, key) { if (!players.length) return 0; return players.reduce(function (a, p) { return a + (p[key] || 0); }, 0) / players.length; }
   function ethosOf() { return ETHOS.filter(function (e) { return e.k === G.ethos; })[0] || ETHOS[0]; }
   function captainOf() { return G.players.filter(function (p) { return p.id === G.captainId; })[0] || null; }
+  /* v0.14: 歴代キャプテンの記録。sanitize（＝毎回の描画と読み込み）から呼ばれ、現在のキャプテンを履歴に残す。
+   * 任命の変更も卒業時の自動引き継ぎも、次に sanitize が走った時点でここに集約される。同じ選手は1エントリに
+   * まとめ、務めたキャリア年を years に併記する。表示専用の記録で、キャプテンの効果には一切関与しない */
+  function recordCaptain() {
+    if (!G || !G.career || !Array.isArray(G.players)) return;
+    var cap = captainOf(); if (!cap) return;
+    if (!Array.isArray(G.career.captains)) G.career.captains = [];
+    var ent = null;
+    G.career.captains.forEach(function (c) { if (c.id === cap.id) ent = c; });
+    if (!ent) {
+      ent = { id: cap.id, name: cap.name, grade: cap.year, years: [] };
+      G.career.captains.push(ent);
+      if (G.career.captains.length > 30) G.career.captains = G.career.captains.slice(-30);
+    }
+    if (ent.years.indexOf(G.year) < 0) {
+      ent.years.push(G.year);
+      ent.years.sort(function (a, b) { return a - b; });
+    }
+  }
   function gainTrust(p, amt) {
     /* 校風で伸びが変わり、キャプテンは信頼を集めやすい */
     var mul = ethosOf().t * (p.id === G.captainId ? 1.3 : 1);
@@ -917,6 +988,14 @@
     G.board.log.push((big ? '🔥 特訓！ ' : '💪 練習。') + (top.length ? top.join('、') : '大きな伸びはなし') +
       (surplusNotes.length ? '（限界に近い能力の余剰が信頼に変わった：' + surplusNotes.slice(0, 2).join('、') + '）' : ''));
   }
+  /* v0.14: 進路の選択肢。進路イベントの文面（text）と OB 名鑑の進路ラベル（label）は同じ組を使い、表現を矛盾させない */
+  var OB_PATHS = [
+    { label: '大学でラグビー継続', text: '卒業後は大学でもラグビーを続ける決意を固めた' },
+    { label: '実業団へ就職', text: '実業団への就職が内定。それでも最後の花園に全てを懸けている' },
+    { label: '大学進学（受験）', text: '受験勉強と両立しながら、後輩の面倒も見ている' }
+  ];
+  /* 卒業時の進路：進路イベントで決まっていればそれを、なければ卒業時に1つ確定させる */
+  function obPathOf(p) { return p.futurePath ? p.futurePath : pick(OB_PATHS).label; }
   /* v0.7: 性格×信頼度で分岐する選手ドラマ（面談・後輩指導・3年生の進路） */
   function playerDrama() {
     var seniors = G.players.filter(function (p) { return p.year === 3; });
@@ -943,12 +1022,9 @@
       }
       s.futureSeen = true;
       G.nextBonus = Math.min(bonusCap(), G.nextBonus + 2);
-      var path = pick([
-        '卒業後は大学でもラグビーを続ける決意を固めた',
-        '実業団への就職が内定。それでも最後の花園に全てを懸けている',
-        '受験勉強と両立しながら、後輩の面倒も見ている'
-      ]);
-      return { t: '進路の季節。3年 ' + s.name + '（' + s.person + '）は' + path + '。チームの士気が上がった（次の試合 +2）', dlg: { pid: s.id, text: dlgLine(s, 'future') } };
+      var path = pick(OB_PATHS);
+      s.futurePath = path.label; /* v0.14: 決まった進路を本人に記録し、卒業時に OB 名鑑へそのまま引き継ぐ */
+      return { t: '進路の季節。3年 ' + s.name + '（' + s.person + '）は' + path.text + '。チームの士気が上がった（次の試合 +2）', dlg: { pid: s.id, text: dlgLine(s, 'future') } };
     }
     if (lowTrust.length && r < 0.68) {
       var v = pick(lowTrust);
@@ -1491,6 +1567,11 @@ function finishMatch() {
     G.rivalLast = res;
     if (res === 'win') G.rivalW++; else G.rivalL++;
   }
+  /* v0.14: 対戦校別の通算成績（記録のみ。時短スキップの試合も finishMatch を通るため含まれる） */
+  if (!G.career.oppRec || typeof G.career.oppRec !== 'object' || Array.isArray(G.career.oppRec)) G.career.oppRec = {};
+  var orc = G.career.oppRec[M.opp.name];
+  if (!orc) { orc = { p: 0, w: 0, l: 0 }; G.career.oppRec[M.opp.name] = orc; }
+  orc.p++; if (res === 'win') orc.w++; else orc.l++;
   if (res === 'win') {
     G.season.wins++;
     G.season.bestWin = Math.max(G.season.bestWin || 0, M.oppIdx);
@@ -1646,6 +1727,10 @@ if (ar >= goalObj.rank) {
 if (!Array.isArray(G.history)) G.history = [];
 G.history.push({ year: G.year, power: teamPower(), result: G.season.result });
 if (G.history.length > 60) G.history = G.history.slice(-60);
+/* v0.14: シーズン別成績（到達結果・今季勝敗・部の格・シーズン目標と達成可否）をキャリア履歴に残す（直近30件） */
+if (!Array.isArray(G.career.seasonHist)) G.career.seasonHist = [];
+G.career.seasonHist.push({ y: G.year, result: G.season.result, w: G.season.wins, l: G.season.losses, grade: gradeOf().n, goal: goalObj.n, goalOk: !!goalEval.ok });
+if (G.career.seasonHist.length > 30) G.career.seasonHist = G.career.seasonHist.slice(-30);
 G.summary = {
 result: G.season.result, wins: G.season.wins, losses: G.season.losses,
 goalEval: goalEval,
@@ -1759,7 +1844,10 @@ function startRecruit() {
   var grads = G.players.filter(function (p) { return p.year === 3; });
   grads.forEach(function (p) {
     /* v0.9: OB名鑑にキャリア通算スタッツも併記する */
-    G.obs.push({ name: p.name, pos: POSITIONS[p.posIdx].p, avg: Math.round(overall(p)), year: G.year, tries: p.crec ? p.crec.tries : 0, plays: p.crec ? p.crec.plays : 0 });
+    /* v0.14: OB 名鑑に最終能力（6能力のスナップショット）と進路も残す */
+    var st14 = {};
+    STATS.forEach(function (s) { st14[s.k] = Math.round(p.stats[s.k]); });
+    G.obs.push({ name: p.name, pos: POSITIONS[p.posIdx].p, avg: Math.round(overall(p)), year: G.year, tries: p.crec ? p.crec.tries : 0, plays: p.crec ? p.crec.plays : 0, st: st14, path: obPathOf(p) });
   });
   /* v0.9: ライバル（帝都のエース）の進級と代替わり */
   if (G.rival) {
@@ -1781,7 +1869,7 @@ function startRecruit() {
   G.recruit = { cands: genScoutCands(), special: genSpecial() };
   sortRoster();
   checkAchievements(); /* v0.10: OB輩出の実績は卒業のタイミングで判定 */
-  screen = 'recruit'; save(); render();
+  screen = 'recruit'; sanitize(); save(); render(); /* v0.14: 卒業で空いたキャプテンの引き継ぎと記録を、保存にも反映させる（描画時の sanitize と同じ内容） */
 }
 function togglePick(i) {
   var R = G.recruit; if (!R || !R.cands[i]) return;
@@ -2130,7 +2218,7 @@ function finishRecruit() {
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.13'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.14'])]),
       h('div', { class: 'card center title-card' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
         h('button', { class: 'btn primary', onclick: function () { newGame('normal'); screen = 'goal'; render(); } }, ['監督に就任する（ふつう）']),
@@ -2256,7 +2344,7 @@ function finishRecruit() {
     var s5 = h('select', null, byTrust.map(function (p, i) {
       return h('option', { value: String(p.id) }, [(i === 0 ? '⭐推奨 ' : '') + p.name + '（' + p.year + '年・' + POSITIONS[p.posIdx].p + '・信頼 ' + p.trust + '）']);
     }));
-    s5.value = String(G.captainId); s5.onchange = function () { G.captainId = +s5.value; save(); render(); };
+    s5.value = String(G.captainId); s5.onchange = function () { G.captainId = +s5.value; recordCaptain(); save(); render(); }; /* v0.14: 任命はその場で歴代キャプテンに記録してから保存 */
     var s6 = h('select', null, ETHOS.map(function (e) { return h('option', { value: e.k }, [e.n + ' ― ' + e.d]); }));
     s6.value = G.ethos; s6.onchange = function () { G.ethos = s6.value; save(); };
     form.appendChild(field('全体方針（チーム全員の底上げ）', s1));
@@ -2776,6 +2864,39 @@ function finishRecruit() {
         h('span', { class: 'sub' }, ['総合力 ' + hh.power + '・' + hh.result])
       ]));
     });
+    /* v0.14: シーズン別成績（これからのシーズンから蓄積。旧セーブは年・結果のみ復元され、他は「—」） */
+    c.appendChild(h('div', { class: 'sec' }, ['📅 シーズン別成績']));
+    var shs = (G.career.seasonHist || []).slice().reverse();
+    if (!shs.length) c.appendChild(h('div', { class: 'sub' }, ['まだシーズンを終えていない']));
+    shs.forEach(function (sh) {
+      var bits = [sh.result,
+        (typeof sh.w === 'number' && typeof sh.l === 'number') ? (sh.w + '勝 ' + sh.l + '敗') : '勝敗 —',
+        '格：' + (sh.grade || '—'),
+        sh.goal ? ('目標「' + sh.goal + '」' + (sh.goalOk ? '達成' : '未達')) : '目標 —'];
+      c.appendChild(h('div', { class: 'rowline' }, [
+        h('span', null, [sh.y + '年目']),
+        h('span', { class: 'sub' }, [bits.join('・')])
+      ]));
+    });
+    /* v0.14: 対戦校別の通算成績（帝都学園は因縁校として目立たせる） */
+    c.appendChild(h('div', { class: 'sec' }, ['⚔ 対戦校別成績']));
+    OPPONENTS.forEach(function (op) {
+      var r = (G.career.oppRec || {})[op.name];
+      c.appendChild(h('div', { class: 'rowline' }, [
+        h('span', null, [op.name + (op.name === '帝都学園' ? ' 🔥因縁' : '')]),
+        h('span', { class: 'sub' }, [r && r.p ? (r.p + '戦 ' + r.w + '勝 ' + r.l + '敗') : '対戦なし'])
+      ]));
+    });
+    /* v0.14: 歴代キャプテン（同じ選手は1行にまとめ、務めた年を併記） */
+    c.appendChild(h('div', { class: 'sec' }, ['👑 歴代キャプテン']));
+    var caps = G.career.captains || [];
+    if (!caps.length) c.appendChild(h('div', { class: 'sub' }, ['まだ記録がない']));
+    caps.forEach(function (cp) {
+      c.appendChild(h('div', { class: 'rowline' }, [
+        h('span', null, [cp.name]),
+        h('span', { class: 'sub' }, ['就任：' + cp.years.map(function (y) { return y + '年目'; }).join('・') + (cp.grade ? '／就任時 ' + cp.grade + '年' : '')])
+      ]));
+    });
     /* v0.9: 現役選手のキャリア通算トップ5 */
     c.appendChild(h('div', { class: 'sec' }, ['🏉 通算スタッツ（現役）']));
     var tops = G.players.slice().filter(function (p) { return p.crec && (p.crec.tries > 0 || p.crec.plays > 0); })
@@ -2802,7 +2923,12 @@ function finishRecruit() {
     o.appendChild(h('div', { class: 'sec' }, ['OB名鑑（' + G.obs.length + '人）']));
     if (!G.obs.length) o.appendChild(h('div', { class: 'sub' }, ['まだ卒業生がいない']));
     G.obs.slice().reverse().forEach(function (x) {
-      o.appendChild(h('div', { class: 'rowline' }, [h('span', null, [x.name]), h('span', { class: 'sub' }, [x.pos + '・' + x.year + '年卒・総合 ' + x.avg + ((x.tries || 0) > 0 ? '・トライ ' + x.tries : '') + ((x.plays || 0) > 0 ? '／好プレー ' + x.plays : '')])]));
+      /* v0.14: 名鑑に進路と最終能力（6能力）も出す。旧 OB（v0.14 以前の卒業生）は不明項目を「—」にする */
+      o.appendChild(h('div', { class: 'rowline' }, [h('span', null, [x.name]), h('span', { class: 'sub' }, [x.pos + '・' + x.year + '年卒・総合 ' + x.avg + '・進路 ' + (x.path || '—')])]));
+      var stTxt = (x.st && typeof x.st === 'object' && !Array.isArray(x.st))
+        ? STATS.map(function (s) { return s.n + ' ' + (typeof x.st[s.k] === 'number' ? x.st[s.k] : '—'); }).join('・')
+        : '最終能力 —';
+      o.appendChild(h('div', { class: 'sub' }, [stTxt + ((x.tries || 0) > 0 ? '／トライ ' + x.tries : '') + ((x.plays || 0) > 0 ? '／好プレー ' + x.plays : '')]));
     });
     wrap([hud(), h('div', { class: 'lay2' }, [col([c]), o]),
       h('button', { class: 'btn', onclick: function () { screen = G.recruit ? 'recruit' : (G.board ? 'board' : 'inst'); render(); } }, ['戻る'])
