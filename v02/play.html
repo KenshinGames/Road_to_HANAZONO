@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Road to HANAZONO v0.17</title>
-<meta name="description" content="高校ラグビー育成ゲーム v0.17。監督として世代を超えて花園を目指す。">
+<title>Road to HANAZONO v0.18</title>
+<meta name="description" content="高校ラグビー育成ゲーム v0.18。監督として世代を超えて花園を目指す。">
 <meta name="theme-color" content="#f4f7f2" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#101410" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -364,12 +364,22 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
   .banner.pmb { flex: 0 0 32%; min-height: 0; }
 }
 
+/* ===== v0.18: ライバル（キーマン対比カード） =====
+ * 対戦確認の vs カード内（内部スクロール）に収める。左右2列で両軍キーマンを並べる */
+.keyman { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; text-align: left; }
+.keyman .sec { margin-bottom: 4px; }
+.kmcols { display: flex; gap: 12px; }
+.kmcol { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.kmcol .rowline { width: 100%; }
+.kmhead { font-weight: 800; font-size: 13px; color: var(--sub); }
+.kmname { font-weight: 800; font-size: 15px; white-space: nowrap; }
+
 </style>
 </head>
 <body>
 <div id="app" aria-live="polite"></div>
 <script>
-/* Road to HANAZONO v0.17 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.18 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
  * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示
  * v0.4: 新入生3層の完成(スカウト＋特別枠) + OB連携
  * v0.5: 立ち絵表現(パーツ組み合わせ式の自動生成) + 試合カットイン + 会話劇 + 季節感
@@ -398,7 +408,13 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
  *        ②決定系ボタン（指示を確定／目標を決める／キックオフ／新年度を始める・新年度へ）を画面下部の固定アクションバーへ分離
  *        ③月頭指示の左カラムを「月のバナーを背景＋半透明カード（目標・設備／最近の出来事）」のヒーローパネルに統合し、
  *          バナーの帯状潰れとラベルの割れを解消 ④選手データを master-detail 化（左=一覧／右=詳細＋能力・プロフィールのタブ切替。
- *          一覧テーブルと詳細の全項目は保持） ⑤対戦確認の vs カードを内部スクロール化して 1060×600 のはみ出しを解消 */
+ *          一覧テーブルと詳細の全項目は保持） ⑤対戦確認の vs カードを内部スクロール化して 1060×600 のはみ出しを解消
+ * v0.18: ライバル（他校エースの実在化＝帝都以外の各校にも名前・立ち絵・学年・特能・主要能力を持つエースを設定し、
+ *        （学校, 世代）からの決定的シード生成で代替わりさせる。セーブに状態は持たず、年度から常に同じ人物を再現する／
+ *        対戦確認に両軍キーマンの対比カード（立ち絵・特能・主要能力のランク表示）を追加／
+ *        因縁の深化＝対戦校ごとの現在の連勝・連敗ストリーク career.streaks を記録し、ストリークで変わる実況と
+ *        ライバル専用イベント（月次イベント枠に排他で割り込む）を追加）。エースの能力は学校の既存の強さ oppPower から
+ *        導出する表示専用の数字で、試合の数式への影響は従来の skill 経由の補正のみ（新規の強さの源泉は作らない） */
 (function () {
   'use strict';
   var STORE_KEY = 'hanazono.v02';
@@ -543,7 +559,9 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
   ];
   var UNIT_STAT = { FW: 'pow', BK: 'pas', SP: 'kik' };
   var UNIT_NAME = { FW: 'FW（フィジカル）', BK: 'BK（スキル）', SP: 'セットピース' };
-  /* 相手校: 戦術傾向(style)とエース(ace)で個性を持たせる。ace.skill は SKILLS の key */
+  /* 相手校: 戦術傾向(style)とエース(ace)で個性を持たせる。ace.skill は SKILLS の key。
+   * v0.18: ace は初代（世代0）の姿で、effOpp が年度に応じた現在のエース（代替わり含む）に差し替える。
+   * jersey は相手校のユニフォーム色（エースの立ち絵用） */
   var OPP_STYLES = {
     fw: { n: 'FW主体', d: 'スクラムとモールで押し込む重戦車スタイル' },
     wide: { n: '展開ラグビー', d: 'バックスに大きく展開して走り勝つ' },
@@ -551,17 +569,17 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
     def: { n: '堅守', d: '低いタックルで粘り強く守り、カウンターを狙う' }
   };
   var OPPONENTS = [
-    { name: '青葉高校', power: 38, note: '練習試合。力試し', skill: null,
+    { name: '青葉高校', power: 38, note: '練習試合。力試し', skill: null, jersey: '#2e7d4f',
       style: 'wide', ace: { name: '風間 駿', pos: 'WTB', skill: 'step' } },
-    { name: '県立西高校', power: 52, note: '花園予選 1回戦', skill: { n: '堅いディフェンス', key: 'def' },
+    { name: '県立西高校', power: 52, note: '花園予選 1回戦', skill: { n: '堅いディフェンス', key: 'def' }, jersey: '#b03a2e',
       style: 'def', ace: { name: '岩崎 剛', pos: 'CTB', skill: 'tackle' } },
-    { name: '県立工業高校', power: 60, note: '花園予選 準決勝。FWの圧力が強い', skill: { n: 'モールの核がいるFW陣', key: 'maul' },
+    { name: '県立工業高校', power: 60, note: '花園予選 準決勝。FWの圧力が強い', skill: { n: 'モールの核がいるFW陣', key: 'maul' }, jersey: '#d97b16',
       style: 'fw', ace: { name: '大熊 鉄平', pos: 'No8', skill: 'maul' } },
-    { name: '帝都学園', power: 69, note: '花園予選 決勝。県内王者の強豪校', skill: { n: '大舞台に強いエース', key: 'big' },
+    { name: '帝都学園', power: 69, note: '花園予選 決勝。県内王者の強豪校', skill: { n: '大舞台に強いエース', key: 'big' }, jersey: '#26221f',
       style: 'kick', ace: { name: '白鳥 圭', pos: 'SO', skill: 'big' } },
-    { name: '東都第一高校', power: 77, note: '花園 初戦。全国レベルの強豪', skill: { n: 'ロングキッカーの司令塔', key: 'kick' },
+    { name: '東都第一高校', power: 77, note: '花園 初戦。全国レベルの強豪', skill: { n: 'ロングキッカーの司令塔', key: 'kick' }, jersey: '#3f7fbf',
       style: 'wide', ace: { name: '東雲 悠真', pos: 'SO', skill: 'kick' } },
-    { name: '北辰学園', power: 85, note: '花園 決勝。全国屈指のタレント軍団', skill: { n: '鉄壁のラインアウト', key: 'lineout' },
+    { name: '北辰学園', power: 85, note: '花園 決勝。全国屈指のタレント軍団', skill: { n: '鉄壁のラインアウト', key: 'lineout' }, jersey: '#5b3a8e',
       style: 'fw', ace: { name: '北原 蒼汰', pos: 'LO', skill: 'lineout' } }
   ];
   /* 試合の格ごとの停止点プラン（場面連動）。halftime は block5=40分 に来る並び */
@@ -912,7 +930,7 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
     namePool = {};
     G = {
       year: 1, monthIdx: 0, players: [], obs: [], rep: 30, nextId: 1,
-      career: { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0, wins: 0, maxBest: 0, achv: {}, seasonHist: [], oppRec: {}, captains: [] },
+      career: { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0, wins: 0, maxBest: 0, achv: {}, seasonHist: [], oppRec: {}, captains: [], streaks: {} },
       season: { wins: 0, losses: 0, result: '予選敗退', bestWin: 0, hanaWins: 0, hanaTitle: false, injuries: 0 },
       inst: { team: 'sta', unit: 'FW', focus: 1, level: 0 },
       captainId: null, ethos: 'discipline', lineup: null,
@@ -977,7 +995,7 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
     if (!G || !G.players) return;
     G.players.forEach(fixPlayer);
     /* v0.6: 通算記録の欠けたフィールドを補完（花園優勝回数など） */
-    if (!G.career || typeof G.career !== 'object') G.career = { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0, seasonHist: [], oppRec: {}, captains: [] };
+    if (!G.career || typeof G.career !== 'object') G.career = { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0, seasonHist: [], oppRec: {}, captains: [], streaks: {} };
     ['hana', 'hanaWins', 'titles', 'hanaTitles', 'wins', 'maxBest'].forEach(function (k) {
       if (typeof G.career[k] !== 'number' || !isFinite(G.career[k])) G.career[k] = 0;
     });
@@ -1094,6 +1112,14 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
         ['p', 'w', 'l'].forEach(function (k) { if (typeof r0[k] !== 'number' || !isFinite(r0[k]) || r0[k] < 0) r0[k] = 0; });
       });
     }
+    /* v0.18: 対戦校ごとの現在の連勝・連敗ストリーク。旧セーブには無いので「不明＝空」から始め、
+     * これからの試合結果でだけ育てる（過去の連勝・連敗を推測で復元しない） */
+    if (!G.career.streaks || typeof G.career.streaks !== 'object' || Array.isArray(G.career.streaks)) G.career.streaks = {};
+    Object.keys(G.career.streaks).forEach(function (nm2) {
+      var sv = G.career.streaks[nm2];
+      if (typeof sv !== 'number' || !isFinite(sv)) { delete G.career.streaks[nm2]; return; }
+      G.career.streaks[nm2] = clamp(Math.round(sv), -99, 99);
+    });
     if (!Array.isArray(G.career.captains)) G.career.captains = [];
     else {
       G.career.captains = G.career.captains.filter(function (cp) {
@@ -1244,18 +1270,121 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
   }
   function bonusCap() { return hasFacility('video') ? 8 : 6; }
   function repGain(n) { return G.difficulty === 'challenge' ? Math.max(1, Math.round(n * 0.7)) : n; }
-  /* v0.9: 帝都学園のエースは G.rival（存命の人物）に差し替える */
+  /* v0.9: 帝都学園のエースは G.rival（存命の人物）に差し替える。
+   * v0.18: 帝都以外の各校のエースも「その年度に在籍している人物」として effOpp が返す。
+   * 他校分はセーブに状態を持たず、(学校, 世代) からの決定的シード生成で再現する（下記） */
   function effOpp(idx) {
     var opp = OPPONENTS[idx];
+    var c = {}; Object.keys(opp).forEach(function (k) { c[k] = opp[k]; });
     if (idx === 3 && G.rival) {
-      var c = {}; Object.keys(opp).forEach(function (k) { c[k] = opp[k]; });
-      c.ace = { name: G.rival.name, pos: G.rival.pos, skill: G.rival.skill };
+      var rp = 0; POSITIONS.forEach(function (x, i) { if (x.p === G.rival.pos) rp = i; });
+      var rseed = 0; for (var ri2 = 0; ri2 < G.rival.name.length; ri2++) rseed = (rseed * 31 + G.rival.name.charCodeAt(ri2)) >>> 0;
+      c.ace = { name: G.rival.name, pos: G.rival.pos, skill: G.rival.skill, grade: G.rival.grade, epoch: -1,
+        posIdx: rp, person: '熱血', h: 176, w: 82, seedId: -(900000 + (rseed % 50000)) };
       return c;
     }
-    return opp;
+    c.ace = oppAceAt(idx, G.year);
+    return c;
   }
   function newRivalAce(grade) {
     return { name: uniqName(), pos: pick(['SO', 'SO', 'CTB', 'FB']), skill: pick(['big', 'kick', 'step', 'big']), grade: grade || 1 };
+  }
+  /* ===== v0.18: 他校エースの決定的生成 =====
+   * 世代（epoch）ごとに在任年数（2〜3年）と入部時学年がシードで決まるため、(学校, 年度) から
+   * 常に同じ人物・同じ学年が再現できる。世代0は v0.6 から固定だった OPPONENTS[].ace を初代として使う。
+   * エースの「能力」は aceStatsOf で学校の既存の強さ（oppPower）から導出する表示専用の数字であり、
+   * 試合の数式に新規の強さを足すことはしない（試合への影響は従来どおり skill 経由の既存補正のみ） */
+  var ACE_POS_BY_STYLE = {
+    fw: ['No8', 'LO', 'FL', 'PR', 'HO'],
+    wide: ['WTB', 'FB', 'CTB', 'SO'],
+    kick: ['SO', 'FB', 'SH', 'CTB'],
+    def: ['CTB', 'FL', 'No8', 'FB']
+  };
+  var ACE_SKILL_STAT = { lineout: 'pow', maul: 'pow', tackle: 'tak', kick: 'kik', step: 'spd', big: 'sta', tough: 'sta' };
+  function aceEpochSeed(idx, epoch) { return ((idx + 3) * 7919 + epoch * 104729 + 29) >>> 0; }
+  /* 世代の在任年数と入部時学年（在任 L 年なら入部は 4-L 年生＝卒業時は必ず3年） */
+  function aceTenure(idx, epoch) {
+    var R = rng32(aceEpochSeed(idx, epoch) ^ 0x51ab);
+    var len = 2 + Math.floor(R() * 2);
+    return { len: len, entry: 4 - len };
+  }
+  function genOppAce(idx, epoch) {
+    var base = OPPONENTS[idx];
+    var R = rng32(aceEpochSeed(idx, epoch));
+    var ten = aceTenure(idx, epoch);
+    var name, pos, skill;
+    if (epoch === 0) {
+      name = base.ace.name; pos = base.ace.pos; skill = base.ace.skill;
+    } else {
+      name = SURNAMES[Math.floor(R() * SURNAMES.length)] + ' ' + GIVEN[Math.floor(R() * GIVEN.length)];
+      var pool = ACE_POS_BY_STYLE[base.style] || ['SO', 'CTB'];
+      pos = pool[Math.floor(R() * pool.length)];
+      var aff = (SKILL_AFFINITY[pos] || []).slice();
+      if (aff.indexOf(base.ace.skill) < 0) aff.push(base.ace.skill);
+      skill = aff[Math.floor(R() * aff.length)];
+    }
+    var posIdx = 0; POSITIONS.forEach(function (x, i) { if (x.p === pos) posIdx = i; });
+    var sz = POS_SIZE[pos] || [170, 185, 70, 95];
+    return {
+      name: name, pos: pos, skill: skill, grade: ten.entry, epoch: epoch, posIdx: posIdx,
+      person: PERSONS[Math.floor(R() * PERSONS.length)].n,
+      h: sz[0] + Math.floor(R() * (sz[1] - sz[0] + 1)),
+      w: sz[2] + Math.floor(R() * (sz[3] - sz[2] + 1)),
+      seedId: -((idx + 1) * 100003 + epoch * 131 + 7)
+    };
+  }
+  /* 指定年度にその学校のエースである人物（学年は在任年数ぶん進んだ値で返す） */
+  function oppAceAt(idx, year) {
+    var start = 1, epoch = 0;
+    while (epoch < 80) {
+      var ten = aceTenure(idx, epoch);
+      if (year < start + ten.len) {
+        var a = genOppAce(idx, epoch);
+        a.grade = ten.entry + (year - start);
+        return a;
+      }
+      start += ten.len; epoch++;
+    }
+    return genOppAce(idx, 0);
+  }
+  /* エースの表示用能力（6能力）。学校の総合力から決定的に導出するだけで、勝敗の計算には使わない */
+  function aceStatsOf(ace, power) {
+    var seed = 0;
+    for (var i = 0; i < ace.name.length; i++) seed = (seed * 31 + ace.name.charCodeAt(i)) >>> 0;
+    seed = (seed + (ace.epoch + 2) * 131) >>> 0;
+    var R = rng32(seed ^ 0x77aa);
+    var posMain = (POSITIONS[ace.posIdx] || POSITIONS[9]).main;
+    var skStat = ACE_SKILL_STAT[ace.skill] || posMain;
+    var st = {};
+    STATS.forEach(function (s) {
+      var v = power + Math.floor(R() * 12) - 6;
+      if (s.k === posMain) v += 8;
+      if (s.k === skStat) v += 5;
+      st[s.k] = clamp(Math.round(v), 25, 97);
+    });
+    return st;
+  }
+  function aceOverallOf(ace, power) {
+    var st = aceStatsOf(ace, power);
+    return STATS.reduce(function (a, s) { return a + st[s.k]; }, 0) / 6;
+  }
+  /* エースの立ち絵要素（相手校ジャージ色で描く。portraitSVG は p.jersey を見て色を変える） */
+  function acePortraitEl(idx, ace, cls) {
+    return portraitEl({ id: ace.seedId, name: ace.name, posIdx: ace.posIdx, w: ace.w, h: ace.h, person: ace.person, jersey: OPPONENTS[idx].jersey || '#44506b' }, cls);
+  }
+  /* ===== v0.18: 対戦校との現在の連勝・連敗（career.streaks。正=桜丘の連勝、負=連敗） =====
+   * oppRec（通算）とは別に持つ。v0.14 の oppRec 移行の形（厳密な初期値）を変えないためで、
+   * 旧セーブのストリークは「不明＝0」から始める（推測で埋めない） */
+  function streakOf(name) {
+    var s = (G.career && G.career.streaks) ? G.career.streaks[name] : 0;
+    return (typeof s === 'number' && isFinite(s)) ? s : 0;
+  }
+  function streakText(st) {
+    if (st >= 2) return '目下 ' + st + '連勝中';
+    if (st <= -2) return '目下 ' + (-st) + '連敗中';
+    if (st === 1) return '前回対戦は勝利';
+    if (st === -1) return '前回対戦は敗戦';
+    return '';
   }
   function effOf(p) { return p.fatigue >= 70 ? 0.55 : (p.fatigue >= 40 ? 0.85 : 1); }
   function avgFatigue() { return Math.round(G.players.reduce(function (a, p) { return a + p.fatigue; }, 0) / Math.max(1, G.players.length)); }
@@ -1503,7 +1632,42 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
     q.form = clamp((q.form || 0) + 1, -2, 2);
     return { t: q.name + ' と面談。今のチームへの思いを語ってくれた', dlg: { pid: q.id, text: dlgLine(q, 'talk') } };
   }
+  /* v0.18: ライバル専用イベント。因縁が育っている相手（連勝・連敗が続いている学校）か、
+   * 今年エースが代替わりした学校がある時だけ、約1割で排他的に割り込む（既存イベントとは競合しない）。
+   * 材料が無ければ null を返し、通常のイベント抽選に落ちる。効果は既存イベントの範囲内の小さなものだけ。
+   * 材料の判定は決定的（乱数を消費しない）で、抽選の乱数は材料がある時だけ引く
+   * （因縁が無い時期の盤面イベントの乱数列を v0.17 までと変えないため） */
+  function rivalEvent() {
+    var cands = [];
+    OPPONENTS.forEach(function (op, idx) {
+      var st = streakOf(op.name);
+      if (Math.abs(st) >= 2) cands.push({ kind: 'streak', idx: idx, st: st });
+    });
+    if (G.year > 1) {
+      OPPONENTS.forEach(function (op, idx) {
+        if (idx === 3) return; /* 帝都の代替わりは G.rivalNews で別途報じられる */
+        if (oppAceAt(idx, G.year).name !== oppAceAt(idx, G.year - 1).name) cands.push({ kind: 'ace', idx: idx });
+      });
+    }
+    if (!cands.length) return null;
+    if (Math.random() >= 0.10) return null;
+    var c = pick(cands);
+    var op = OPPONENTS[c.idx];
+    if (c.kind === 'ace') {
+      var a = oppAceAt(c.idx, G.year);
+      return { t: '📰 ライバル校の話題。' + op.name + ' のエースが代替わりし、新エースは ' + a.grade + '年の ' + a.name + '（' + a.pos + '・' + skillNameByKey(a.skill) + '）だという。次の対戦では要注意だ' };
+    }
+    var cap = G.players.filter(function (p) { return p.id === G.captainId; })[0] || (G.players.length ? pick(G.players) : null);
+    var dlg = cap ? { pid: cap.id, text: dlgLine(cap, 'rival') } : null;
+    if (c.st <= -2) {
+      G.nextBonus = Math.min(bonusCap(), G.nextBonus + 2);
+      return { t: '🔥 地元紙が「' + op.name + ' への ' + (-c.st) + '連敗」を特集。選手たちは雪辱に燃えている（次の試合 +2）', dlg: dlg };
+    }
+    G.rep += repGain(3);
+    return { t: '📰 スポーツ紙が「桜丘の ' + op.name + ' への ' + c.st + '連勝」を取り上げた。注目度が上がった（評判 +' + repGain(3) + '）', dlg: dlg };
+  }
   function rollEvent() {
+    var re = rivalEvent(); if (re) return re;
     var r = Math.random();
     if (r < 0.24) return null;
     var healthy = G.players.filter(function (p) { return !p.injured; });
@@ -1646,9 +1810,21 @@ function startMatch(oppIdx) {
   M.log.push('キックオフ（' + MONTHS[G.monthIdx].m + '・' + seasonPhrase() + '）。相手は ' + opp.name + '（総合力 ' + M.power + '）。' + opp.note);
   if (opp.skill) M.log.push('相手の特能：' + opp.skill.n);
   if (opp.style && OPP_STYLES[opp.style]) M.log.push('相手の戦術傾向：' + OPP_STYLES[opp.style].n + ' ― ' + OPP_STYLES[opp.style].d);
-  if (opp.ace) M.log.push('相手のエース：' + opp.ace.name + '（' + opp.ace.pos + '・' + skillNameByKey(opp.ace.skill) + '）。要注意だ');
+  if (opp.ace) M.log.push('相手のエース：' + opp.ace.name + '（' + opp.ace.pos + '・' + skillNameByKey(opp.ace.skill) + '・' + opp.ace.grade + '年）。要注意だ');
   if (M.kickerId) { var kp0 = st.filter(function (p) { return p.id === M.kickerId; })[0]; if (kp0) M.log.push('🦵 今日のPGキッカーは ' + kp0.name + ' が務める'); }
   if (M.markId) { var mp0 = st.filter(function (p) { return p.id === M.markId; })[0]; if (mp0) M.log.push('🎯 マーク指示：' + mp0.name + ' が相手エース ' + opp.ace.name + ' を重点マークする（その分、他の選手への対応は薄くなる）'); }
+  /* v0.18: 他校エースの代替わりと、対戦校との現在の連勝・連敗をキックオフ実況に出す（帝都は下の v0.9 専用実況がある） */
+  if (oppIdx !== 3 && opp.ace) {
+    if (G.year > 1) {
+      var prevAce = oppAceAt(oppIdx, G.year - 1);
+      if (prevAce && prevAce.name !== opp.ace.name) M.log.push('📰 ' + opp.name + ' は今年からエースが代替わり。新エースは ' + opp.ace.grade + '年の ' + opp.ace.name + ' だ');
+    }
+    var stK = streakOf(opp.name);
+    if (stK >= 3) M.log.push('この相手には目下 ' + stK + '連勝中。桜丘の選手たちに気負いはない');
+    else if (stK === 2) M.log.push('この相手には2連勝中。相性の良さを今日も示したい');
+    else if (stK <= -3) M.log.push('この相手には ' + (-stK) + '連敗中。因縁の壁を、今日こそ破りたい');
+    else if (stK === -2) M.log.push('この相手には2連敗中。雪辱への思いは強い');
+  }
   /* v0.9: 帝都との因縁を実況にも出す */
   if (oppIdx === 3 && G.rival) {
     M.log.push('因縁の相手、帝都学園。エースは ' + G.rival.grade + '年の ' + G.rival.name + '。' +
@@ -1747,6 +1923,21 @@ var RIVAL_COMM = {
   ]
 };
 /* COMM-END */
+/* v0.18: ストリークが懸かった試合の決着実況（帝都以外。因縁が育った相手との試合でだけ、
+ * 通常プールに混ざる）。判定には「この試合の前」時点のストリークを使う
+ * （finishMatch は決着実況の後にストリークを更新する） */
+var STREAK_COMM = {
+  endWin: [
+    function (c) { return '長く続いた ' + c.school + ' への連敗を、ついに止めた！'; },
+    function (c) { return '雪辱成就。この日のために積んできた練習が実った'; },
+    function (c) { return c.school + ' の壁を越えた。この一勝は、来年への財産になる'; }
+  ],
+  endLose: [
+    function (c) { return '相性の良さもここまでか。' + c.school + ' の意地に押し返された'; },
+    function (c) { return '連勝は止まった。相手もまた、力をつけてきている'; },
+    function (c) { return c.school + ' に土をつけられた。因縁はまだ続いていく'; }
+  ]
+};
 /* 月（季節）の言及。試合があるのは 6月・10月・11月・12月・1月 */
 function seasonPhrase() {
   var m = MONTHS[G.monthIdx].m;
@@ -1761,8 +1952,15 @@ function seasonPhrase() {
 function commPick(cat, ctx) {
   var pool = (COMM[cat] || []).slice();
   if (M && M.oppIdx === 3 && RIVAL_COMM[cat]) pool = pool.concat(RIVAL_COMM[cat]);
+  /* v0.18: 帝都以外でも、連勝・連敗が懸かった試合ではストリーク専用の決着文が混ざる */
+  if (M && M.oppIdx !== 3 && STREAK_COMM[cat]) {
+    var stk = streakOf(M.opp.name);
+    if ((cat === 'endWin' && stk <= -2) || (cat === 'endLose' && stk >= 2)) pool = pool.concat(STREAK_COMM[cat]);
+  }
   if (!pool.length) return '';
-  if (!M) return pool[0](ctx || {});
+  var c2 = ctx || {};
+  if (M && !c2.school) c2.school = M.opp.name;
+  if (!M) return pool[0](c2);
   M.usedComm = M.usedComm || {};
   var used = M.usedComm[cat] || (M.usedComm[cat] = []);
   var avail = [];
@@ -1771,7 +1969,7 @@ function commPick(cat, ctx) {
   var idx = pick(avail);
   used.push(idx);
   if (used.length > Math.max(1, pool.length - 1)) used.shift();
-  return pool[idx](ctx || {});
+  return pool[idx](c2);
 }
 function playBlock() {
   var diff = fieldPower() - M.power + M.bonus;
@@ -2128,6 +2326,16 @@ function finishMatch() {
   var orc = G.career.oppRec[M.opp.name];
   if (!orc) { orc = { p: 0, w: 0, l: 0 }; G.career.oppRec[M.opp.name] = orc; }
   orc.p++; if (res === 'win') orc.w++; else orc.l++;
+  /* v0.18: 現在の連勝・連敗ストリークも更新する（記録と実況の素材専用。勝敗の数式には使わない）。
+   * 節目（3連勝・3連敗・長い連敗/連勝のストップ）だけ、結果ログに一文を添える */
+  if (!G.career.streaks || typeof G.career.streaks !== 'object' || Array.isArray(G.career.streaks)) G.career.streaks = {};
+  var stPrev = streakOf(M.opp.name);
+  var stNew = res === 'win' ? (stPrev > 0 ? stPrev + 1 : 1) : (stPrev < 0 ? stPrev - 1 : -1);
+  G.career.streaks[M.opp.name] = stNew;
+  if (stNew === 3) M.log.push('🔥 ' + M.opp.name + ' に3連勝。因縁の相手への相性の良さが、数字にも表れてきた');
+  else if (stNew === -3) M.log.push('😖 ' + M.opp.name + ' に3連敗。この壁の高さを、来年こそ越えたい');
+  else if (stPrev <= -3 && res === 'win') M.log.push('🎉 長い連敗を止めた！ ' + M.opp.name + ' への雪辱を果たした一戦になった');
+  else if (stPrev >= 3 && res !== 'win') M.log.push('連勝は ' + stPrev + ' で止まった。' + M.opp.name + ' もまた、力をつけてきている');
   if (res === 'win') {
     G.season.wins++;
     G.season.bestWin = Math.max(G.season.bestWin || 0, M.oppIdx);
@@ -2547,6 +2755,8 @@ function finishRecruit() {
     function pk(arr) { return arr[Math.floor(R() * arr.length)]; }
     function rr(a, b) { return a + Math.floor(R() * (b - a + 1)); }
     var pos = POSITIONS[p.posIdx] || POSITIONS[0];
+    /* v0.18: 相手校エースの立ち絵では p.jersey でユニフォーム色を差し替える（自校選手は従来どおり紺） */
+    var jersey = p.jersey || '#1b2a52';
     var skin = pk(['#f6cfae', '#eebd93', '#e2aa7c', '#cb9264']);
     var hairC = pk(['#262019', '#3a2a1e', '#54382a', '#6e4b2a', '#191921']);
     var hairStyle = rr(0, 5), faceShape = rr(0, 2), eyeStyle = rr(0, 2), browThick = R() < 0.4;
@@ -2558,7 +2768,7 @@ function finishRecruit() {
     s += '<rect width="100" height="120" fill="' + (pos.g === 'FW' ? '#e4f0e5' : '#e3ebf5') + '"/>';
     s += '<circle cx="50" cy="50" r="33" fill="#ffffff" opacity="0.45"/>';
     /* 桜丘ユニフォーム: 紺 × 白（v0.10: 生成イラストの配色に合わせて変更）。白のV襟・帯・袖ライン、背番号つき */
-    s += '<path d="M ' + (50 - sh) + ' 120 L ' + (50 - sh + 3) + ' 85 Q 50 74 ' + (50 + sh - 3) + ' 85 L ' + (50 + sh) + ' 120 Z" fill="#1b2a52"/>';
+    s += '<path d="M ' + (50 - sh) + ' 120 L ' + (50 - sh + 3) + ' 85 Q 50 74 ' + (50 + sh - 3) + ' 85 L ' + (50 + sh) + ' 120 Z" fill="' + jersey + '"/>';
     s += '<path d="M ' + (50 - sh + 1) + ' 104 L ' + (50 + sh - 1) + ' 104 L ' + (50 + sh) + ' 111 L ' + (50 - sh) + ' 111 Z" fill="#f7f3e6"/>';
     s += '<path d="M 41.5 85 L 50 95 L 58.5 85 L 58.5 89.5 L 50 99.5 L 41.5 89.5 Z" fill="#f7f3e6"/>';
     s += '<path d="M ' + (50 - sh + 2.2) + ' 94 L ' + (50 - sh + 4.6) + ' 85.2" stroke="#f7f3e6" stroke-width="2.6" fill="none" stroke-linecap="round"/>';
@@ -2613,7 +2823,9 @@ function finishRecruit() {
       comeback: { '熱血': '待たせました！ もう全開でいけます！', 'クール': '…復帰した。ここから取り返す', '真面目': 'リハビリで学んだことを、プレーで返します', 'default': 'ご心配をおかけしました。もう大丈夫です' },
       captain: { 'リーダー気質': '最後まで声を出し続けよう。それが桜丘のラグビーだ', '熱血': '俺が引っ張る！ 全員ついてこい！', 'default': 'みんなで声を掛け合っていこう' },
       senior: { 'リーダー気質': '基礎が一番大事だ。焦らなくていい', '真面目': '分からないことは何でも聞いて。去年の自分を見ているようだ', '熱血': '1年、遠慮するな！ ガンガンいけ！', 'default': '教えることで、自分の基礎も固まります' },
-      future2: { '熱血': '進路は決めた。あとは花園で全部出すだけです！', '真面目': 'やるべきことは終わりました。最後の冬に集中します', 'default': '決めました。あとはこのチームで勝つだけです' }
+      future2: { '熱血': '進路は決めた。あとは花園で全部出すだけです！', '真面目': 'やるべきことは終わりました。最後の冬に集中します', 'default': '決めました。あとはこのチームで勝つだけです' },
+      /* v0.18: ライバル専用イベントのキャプテンの一言 */
+      rival: { '熱血': 'あの相手には、絶対に負けたくないっす！', 'リーダー気質': '相手のことより、自分たちのラグビーを磨こう', 'クール': '…データは見た。次は勝ち方も変わる', 'default': '次の対戦が楽しみです。全力でぶつかります' }
     };
     var m = T[kind] || {};
     return m[p.person] || m['default'] || '';
@@ -2790,7 +3002,7 @@ function finishRecruit() {
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.17'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.18'])]),
       h('div', { class: 'card center title-card' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
         h('button', { class: 'btn primary', onclick: function () { newGame('normal'); screen = 'goal'; render(); } }, ['監督に就任する（ふつう）']),
@@ -3235,8 +3447,8 @@ function finishRecruit() {
       }
       sc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['相手の総合力']), h('span', null, [String(oppPower(mo.match))])]));
       if (opp.ace) {
-        var aceLabel = opp.ace.name + '（' + opp.ace.pos + '）';
-        if (mo.match === 3 && G.rival) aceLabel = opp.ace.name + '（' + G.rival.grade + '年・' + opp.ace.pos + '）';
+        /* v0.18: 全校のエースに学年が付いた（帝都は従来から） */
+        var aceLabel = opp.ace.name + '（' + (opp.ace.grade ? opp.ace.grade + '年・' : '') + opp.ace.pos + '）';
         sc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['エース']), h('span', null, [aceLabel])]));
         sc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['エースの特能']), h('span', null, [skillNameByKey(opp.ace.skill)])]));
       }
@@ -3249,6 +3461,15 @@ function finishRecruit() {
           G.rival.grade >= 3 ? 'エース ' + G.rival.name + ' は高校最後の冬。集大成の強さを見せてくるだろう' : '県決勝の常連。エースを中心に年々力をつけている'
         ]));
       }
+      /* v0.18: 帝都以外の学校とも、通算対戦と現在の連勝・連敗（因縁の育ち）を出す */
+      if (mo.match !== 3) {
+        var orcP = (G.career.oppRec || {})[opp.name];
+        if (orcP && orcP.p) {
+          sc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['通算対戦']), h('span', null, [orcP.w + '勝 ' + orcP.l + '敗'])]));
+          var stPv = streakOf(opp.name), stPt = streakText(stPv);
+          if (stPt) sc.appendChild(h('div', { class: 'sub' }, [stPt + (stPv <= -2 ? '。今日こそ雪辱を果たしたい' : stPv >= 2 ? '。相性の良さが自信になる' : '')]));
+        }
+      }
       /* v0.12: 弱点ヒント（内部データから導く具体的な狙い目を最大2つ） */
       var hints = scoutHints(opp);
       if (hints.length) {
@@ -3256,6 +3477,47 @@ function finishRecruit() {
         hints.forEach(function (t) { sc.appendChild(h('div', { class: 'hint' }, ['・' + t])); });
       }
       vs.appendChild(sc);
+    }
+    /* v0.18: 両軍キーマンの対比カード（vs カードの内部スクロールに収める）。
+     * 自軍キーマン＝相手エースと同じ部門（FW/BK）の先発で総合力トップの選手。
+     * 相手エースの能力は aceStatsOf の表示専用数字（学校の総合力 oppPower から導出）で、ランク併記で見せる */
+    if (opp.ace) {
+      var kmBox = h('div', { class: 'keyman' });
+      kmBox.appendChild(h('div', { class: 'sec' }, ['⚔ キーマン対比']));
+      var aceGrp = (POSITIONS[opp.ace.posIdx] || POSITIONS[9]).g;
+      var mine = null;
+      starters().forEach(function (p) {
+        if (POSITIONS[p.posIdx].g !== aceGrp) return;
+        if (!mine || overall(p) > overall(mine)) mine = p;
+      });
+      if (!mine) starters().forEach(function (p) { if (!mine || overall(p) > overall(mine)) mine = p; });
+      var aPow = oppPower(mo.match);
+      var aSt = aceStatsOf(opp.ace, aPow);
+      var aMain = (POSITIONS[opp.ace.posIdx] || POSITIONS[9]).main;
+      var kmCols = h('div', { class: 'kmcols' });
+      var mc = h('div', { class: 'kmcol' });
+      mc.appendChild(h('div', { class: 'kmhead' }, ['桜丘高校']));
+      if (mine) {
+        var mMain = POSITIONS[mine.posIdx].main;
+        mc.appendChild(portraitEl(mine, 'cand-p'));
+        mc.appendChild(h('div', { class: 'kmname' }, [mine.name]));
+        mc.appendChild(h('div', { class: 'sub' }, [POSITIONS[mine.posIdx].p + '・' + mine.year + '年']));
+        mc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['総合']), rankValEl(Math.round(overall(mine)), 'sm')]));
+        mc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, [STATS.filter(function (s) { return s.k === mMain; })[0].n]), rankValEl(Math.round(mine.stats[mMain]), 'sm')]));
+        mc.appendChild(h('div', { class: 'sub' }, ['特能：' + (mine.skills && mine.skills.length ? mine.skills.map(skillNameByKey).join('・') : 'なし')]));
+      }
+      var oc = h('div', { class: 'kmcol' });
+      oc.appendChild(h('div', { class: 'kmhead' }, [opp.name]));
+      oc.appendChild(acePortraitEl(mo.match, opp.ace, 'cand-p'));
+      oc.appendChild(h('div', { class: 'kmname' }, [opp.ace.name]));
+      oc.appendChild(h('div', { class: 'sub' }, [opp.ace.pos + '・' + opp.ace.grade + '年']));
+      oc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['総合']), rankValEl(Math.round(aceOverallOf(opp.ace, aPow)), 'sm')]));
+      oc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, [STATS.filter(function (s) { return s.k === aMain; })[0].n]), rankValEl(aSt[aMain], 'sm')]));
+      oc.appendChild(h('div', { class: 'sub' }, ['特能：' + skillNameByKey(opp.ace.skill)]));
+      kmCols.appendChild(mc);
+      kmCols.appendChild(oc);
+      kmBox.appendChild(kmCols);
+      vs.appendChild(kmBox);
     }
     var box = h('div', { class: 'card choices grow scroll' });
     box.appendChild(h('div', { class: 'sec' }, ['今日の戦術']));
@@ -3560,13 +3822,20 @@ function finishRecruit() {
         h('span', { class: 'sub' }, [bits.join('・')])
       ]));
     });
-    /* v0.14: 対戦校別の通算成績（帝都学園は因縁校として目立たせる） */
+    /* v0.14: 対戦校別の通算成績（帝都学園は因縁校として目立たせる）
+     * v0.18: 現在の連勝・連敗と今のエースも併記する。因縁の 🔥 は帝都固定ではなく、
+     * ストリークが3以上育った学校にも付く（ただし帝都は常時） */
     c.appendChild(h('div', { class: 'sec' }, ['⚔ 対戦校別成績']));
-    OPPONENTS.forEach(function (op) {
+    OPPONENTS.forEach(function (op, oi) {
       var r = (G.career.oppRec || {})[op.name];
+      var stR = streakOf(op.name);
+      var aceNow = effOpp(oi).ace;
+      var bits = [r && r.p ? (r.p + '戦 ' + r.w + '勝 ' + r.l + '敗') : '対戦なし'];
+      var stT = streakText(stR); if (stT) bits.push(stT);
+      if (aceNow) bits.push('現エース：' + aceNow.name + '（' + aceNow.grade + '年・' + aceNow.pos + '）');
       c.appendChild(h('div', { class: 'rowline' }, [
-        h('span', null, [op.name + (op.name === '帝都学園' ? ' 🔥因縁' : '')]),
-        h('span', { class: 'sub' }, [r && r.p ? (r.p + '戦 ' + r.w + '勝 ' + r.l + '敗') : '対戦なし'])
+        h('span', null, [op.name + (op.name === '帝都学園' || Math.abs(stR) >= 3 ? ' 🔥因縁' : '')]),
+        h('span', { class: 'sub' }, [bits.join('・')])
       ]));
     });
     /* v0.14: 歴代キャプテン（同じ選手は1行にまとめ、務めた年を併記） */

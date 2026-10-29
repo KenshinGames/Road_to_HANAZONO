@@ -347,3 +347,13 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
   /* 対戦確認：バナーは固定比率、vs カードが残りを受けて内部スクロールする */
   .banner.pmb { flex: 0 0 32%; min-height: 0; }
 }
+
+/* ===== v0.18: ライバル（キーマン対比カード） =====
+ * 対戦確認の vs カード内（内部スクロール）に収める。左右2列で両軍キーマンを並べる */
+.keyman { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; text-align: left; }
+.keyman .sec { margin-bottom: 4px; }
+.kmcols { display: flex; gap: 12px; }
+.kmcol { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.kmcol .rowline { width: 100%; }
+.kmhead { font-weight: 800; font-size: 13px; color: var(--sub); }
+.kmname { font-weight: 800; font-size: 15px; white-space: nowrap; }
