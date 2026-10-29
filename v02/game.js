@@ -1,4 +1,8 @@
-/* Road to HANAZONO v0.20 — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.21 — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+ * v0.21: 演出と動き（表示専用の FX モジュール＝画面遷移のフェード／試合カットインのスライドイン／得点バナー＋スコアのポップ／
+ *        勝利時のスコアボードの金のグロー／対戦確認キーマン対比の両側スライド＋VS バッジ／成長レポートの行ごとのライズと数値ポップ。
+ *        いずれも「同じ見せ場では1回だけ」再生し、再描画では繰り返さない。数値・判定・乱数消費・セーブ形式は一切変更しない。
+ *        時短スキップ中はバナーを出さず、タップでバナーを消せる。QA からは window.__hzFxOff で全演出を停止できる）
  * v0.20: 新入生と締め（スカウト候補の比較表示＝能力ランク・特能・寸評・成功率を一覧で比較／成功率の内訳可視化＝判定式の実在要素を分解表示・判定ロジック不変／
  *        新入生紹介画面＝入部した新入生を立ち絵＋寸評＋特能でお披露目し、卒業演出と対になる見せ場に／全画面デザイン監査／週次方式の長期ソーク最終レポート）
  * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示
@@ -382,6 +386,64 @@
       else if (name === 'whistle') whistle(0);
     } catch (e) {}
   }
+  /* ===== v0.21: 演出（FX）モジュール =====
+   * 表示専用。数値・判定・乱数の消費順・セーブ形式には一切触れない（状態はモジュール変数だけに持つ）。
+   * 演出は「同じ見せ場では1回だけ」再生し、再描画（選択の切替や交代パネルの操作など）では繰り返さない。
+   * 時短スキップ（sfxSuppressed）中は得点バナーを出さない。バナーはタップで即座に消せる。
+   * QA からはページ読み込み前に window.__hzFxOff = true を立てることで全演出を止められる
+   * （演出の有無でテスト結果が変わらないことの確認にも使う） */
+  var FX = {
+    off: (typeof window !== 'undefined' && !!window.__hzFxOff),
+    enterPending: false, lastKey: null, once: {},
+    logMatch: null, logSeen: -1, score: null, histSeen: 0,
+    bannerEl: null, bannerTimer: null
+  };
+  /* 見せ場キーごとに1回だけ true を返す（再描画での演出リプレイ防止） */
+  function fxOnce(key) {
+    if (FX.off || FX.once[key]) return false;
+    FX.once[key] = 1;
+    return true;
+  }
+  function dismissFxBanner(instant) {
+    var b = FX.bannerEl; if (!b) return;
+    FX.bannerEl = null;
+    if (FX.bannerTimer) { clearTimeout(FX.bannerTimer); FX.bannerTimer = null; }
+    if (instant) { try { if (b.parentNode) b.parentNode.removeChild(b); } catch (e) {} return; }
+    try {
+      b.classList.add('out');
+      setTimeout(function () { try { if (b.parentNode) b.parentNode.removeChild(b); } catch (e) {} }, 260);
+    } catch (e) { try { if (b.parentNode) b.parentNode.removeChild(b); } catch (e2) {} }
+  }
+  /* 得点イベント（M.hist）の新規分がちょうど1件のときだけバナーを出す。
+   * 時短スキップ中は複数件が一気に増える／再生中フラグが立つため、どちらでも出さない */
+  function fxScoreBanner() {
+    if (!M || !M.hist) return;
+    var fresh = M.hist.slice(FX.histSeen);
+    FX.histSeen = M.hist.length;
+    if (FX.off || sfxSuppressed || fresh.length !== 1) return;
+    var ev = fresh[0];
+    try {
+      var layer = document.getElementById('fxlayer');
+      if (!layer) { layer = document.createElement('div'); layer.id = 'fxlayer'; layer.className = 'fxlayer'; document.body.appendChild(layer); }
+      /* バナーは常に1枚だけにする：前のは即座に取り除き、消えかけの残りも層から一掃する
+       * （立て続けの得点でバナーが縦に重なって見えるのを防ぐ） */
+      dismissFxBanner(true);
+      var olds = layer.querySelectorAll('.fxbanner');
+      for (var oi = 0; oi < olds.length; oi++) { try { if (olds[oi].parentNode) olds[oi].parentNode.removeChild(olds[oi]); } catch (e) {} }
+      var b = document.createElement('div');
+      b.className = 'fxbanner ' + (ev.mine ? 'mine' : 'opp');
+      var t1 = document.createElement('div'); t1.className = 'fxb-big';
+      t1.textContent = (ev.k === 'try' ? (ev.mine ? 'トライ！' : '相手のトライ') : (ev.mine ? 'PG成功！' : '相手のPG')) + ' +' + ev.pts + '点';
+      var t2 = document.createElement('div'); t2.className = 'fxb-sub';
+      t2.textContent = '桜丘 ' + M.my + ' － ' + M.op + ' ' + M.opp.name;
+      b.appendChild(t1); b.appendChild(t2);
+      b.onclick = function () { dismissFxBanner(); };
+      layer.appendChild(b);
+      FX.bannerEl = b;
+      FX.bannerTimer = setTimeout(dismissFxBanner, 1500);
+    } catch (e) {}
+  }
+
   function toggleSound() {
     soundOn = !soundOn;
     try { localStorage.setItem(SOUND_KEY, soundOn ? '1' : '0'); } catch (e) {}
@@ -2781,9 +2843,18 @@ function finishRecruit() {
     (children || []).forEach(function (c) { el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
     return el;
   }
-  function mount(node) { var a = document.getElementById('app'); a.innerHTML = ''; a.appendChild(node); maybeDigest(); }
+  function mount(node) {
+    var a = document.getElementById('app'); a.innerHTML = ''; a.appendChild(node);
+    /* v0.21: 画面が切り替わった時だけ、入場フェードを1回かける（同一画面の再描画ではかけない） */
+    if (FX.enterPending) { try { node.classList.add('fx-in'); } catch (e) {} FX.enterPending = false; }
+    maybeDigest();
+  }
   function render() {
     sanitize();
+    /* v0.21: 実効画面キーが変わった時だけ入場演出を予約する */
+    var fxKey = !G ? 'title' : screen;
+    FX.enterPending = !FX.off && FX.lastKey !== fxKey;
+    FX.lastKey = fxKey;
     if (screen === 'guide') return guideScreen();
     if (!G) return titleScreen();
     if (screen === 'goal') return goalScreen();
@@ -2835,7 +2906,7 @@ function finishRecruit() {
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.20'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.21'])]),
       h('div', { class: 'card center title-card' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、1週間ごとに活動を選んで選手を育てよう。世代を超えて、花園の常連校を目指す。']),
         h('button', { class: 'btn primary', onclick: function () { newGame('normal'); screen = 'goal'; render(); } }, ['監督に就任する（ふつう）']),
@@ -2940,9 +3011,13 @@ function finishRecruit() {
       var gr = h('div', { class: 'card growreport grboard' });
       gr.appendChild(h('div', { class: 'grtitle' }, ['〜 ' + G.growReport.label + 'の成長レポート 〜']));
       var lineupNow = lineupIds();
-      G.growReport.rows.slice(0, 10).forEach(function (r) {
+      /* v0.21: その月のレポートを初めて表示する時だけ、行を上から順にライズさせ数値をポップさせる
+       * （月頭指示の再描画では繰り返さない。遅延は CSS 変数 --fxd で行と子要素に共有する） */
+      var grFresh = fxOnce('gr:' + G.year + ':' + G.growReport.label);
+      G.growReport.rows.slice(0, 10).forEach(function (r, ri) {
         var pl = G.players.filter(function (p) { return p.name === r.name; })[0];
         var rowEl = h('div', { class: 'grrow' });
+        if (grFresh) { rowEl.classList.add('fx-grow'); rowEl.style.setProperty('--fxd', (ri * 70) + 'ms'); }
         var who = h('div', { class: 'grwho' });
         who.appendChild(h('span', { class: 'grrole' }, [r.focus ? '重点' : (pl && lineupNow.indexOf(pl.id) >= 0 ? 'スタメン' : '控え')]));
         who.appendChild(h('span', { class: 'grplate', style: 'background:' + plateColor(r.name) }, [r.name]));
@@ -3388,6 +3463,9 @@ function finishRecruit() {
     if (opp.ace) {
       var kmBox = h('div', { class: 'keyman' });
       kmBox.appendChild(h('div', { class: 'sec' }, ['⚔ キーマン対比']));
+      /* v0.21: この試合の対比を初めて表示する時だけ、両カラムを左右からスライドインさせ VS バッジをポップさせる
+       * （戦術切替などの再描画では繰り返さない） */
+      var kmFresh = fxOnce('km:' + G.year + ':' + G.monthIdx + ':' + mo.match);
       var aceGrp = (POSITIONS[opp.ace.posIdx] || POSITIONS[9]).g;
       var mine = null;
       starters().forEach(function (p) {
@@ -3399,7 +3477,7 @@ function finishRecruit() {
       var aSt = aceStatsOf(opp.ace, aPow);
       var aMain = (POSITIONS[opp.ace.posIdx] || POSITIONS[9]).main;
       var kmCols = h('div', { class: 'kmcols' });
-      var mc = h('div', { class: 'kmcol' });
+      var mc = h('div', { class: 'kmcol' + (kmFresh ? ' fx-kml' : '') });
       mc.appendChild(h('div', { class: 'kmhead' }, ['桜丘高校']));
       if (mine) {
         var mMain = POSITIONS[mine.posIdx].main;
@@ -3410,7 +3488,7 @@ function finishRecruit() {
         mc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, [STATS.filter(function (s) { return s.k === mMain; })[0].n]), rankValEl(Math.round(mine.stats[mMain]), 'sm')]));
         mc.appendChild(h('div', { class: 'sub' }, ['特能：' + (mine.skills && mine.skills.length ? mine.skills.map(skillNameByKey).join('・') : 'なし')]));
       }
-      var oc = h('div', { class: 'kmcol' });
+      var oc = h('div', { class: 'kmcol' + (kmFresh ? ' fx-kmr' : '') });
       oc.appendChild(h('div', { class: 'kmhead' }, [opp.name]));
       oc.appendChild(acePortraitEl(mo.match, opp.ace, 'cand-p'));
       oc.appendChild(h('div', { class: 'kmname' }, [opp.ace.name]));
@@ -3419,6 +3497,8 @@ function finishRecruit() {
       oc.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, [STATS.filter(function (s) { return s.k === aMain; })[0].n]), rankValEl(aSt[aMain], 'sm')]));
       oc.appendChild(h('div', { class: 'sub' }, ['特能：' + skillNameByKey(opp.ace.skill)]));
       kmCols.appendChild(mc);
+      /* v0.21: 中央の VS バッジ（フレックスの子として置き、絶対配置の重なりは作らない） */
+      kmCols.appendChild(h('div', { class: 'kmvs' + (kmFresh ? ' fx-kmvs' : '') }, ['VS']));
       kmCols.appendChild(oc);
       kmBox.appendChild(kmCols);
       vs.appendChild(kmBox);
@@ -3503,11 +3583,18 @@ function finishRecruit() {
     return box;
   }
   function matchScreen() {
+    /* v0.21: 演出用の表示状態をこの試合に同期する（新しい試合オブジェクトでは見せ場の記録をリセットする） */
+    if (FX.logMatch !== M) { FX.logMatch = M; FX.logSeen = -1; FX.score = null; FX.histSeen = 0; }
+    var myPop = !FX.off && FX.score && FX.score.my !== M.my;
+    var opPop = !FX.off && FX.score && FX.score.op !== M.op;
     var sb = h('div', { class: 'card score' }, [
-      h('div', { class: 'team' }, [h('div', null, ['桜丘高校']), h('div', { class: 'pts' }, [String(M.my)])]),
+      h('div', { class: 'team' }, [h('div', null, ['桜丘高校']), h('div', { class: 'pts' + (myPop ? ' fx-pop' : '') }, [String(M.my)])]),
       h('div', { class: 'vs' }, [M.done ? '試合終了' : Math.min(80, M.block * 8) + '分']),
-      h('div', { class: 'team' }, [h('div', null, [M.opp.name]), h('div', { class: 'pts' }, [String(M.op)])])
+      h('div', { class: 'team' }, [h('div', null, [M.opp.name]), h('div', { class: 'pts' + (opPop ? ' fx-pop' : '') }, [String(M.op)])])
     ]);
+    FX.score = { my: M.my, op: M.op };
+    /* v0.21: 勝利が決まった最初の描画だけ、スコアボードに金のグローをかける */
+    if (M.done && M.result === 'win' && fxOnce('mdone:' + G.year + ':' + G.monthIdx + ':' + M.oppIdx + ':' + M.my + ':' + M.op)) sb.classList.add('fx-wingo');
     var ctrl = h('div', { class: 'card grow scroll' });
     if (M.phase === 'scene' && M.pending) {
       ctrl.appendChild(h('div', { class: 'sec' }, [M.pending.title]));
@@ -3550,13 +3637,19 @@ function finishRecruit() {
       ctrl.appendChild(h('button', { class: 'btn primary', onclick: function () { afterMatchNext(); } }, [M.result === 'win' ? 'やった！次へ' : '次へ']));
     }
     var log = h('div', { class: 'log grow' });
-    M.log.forEach(function (ln) {
-      log.appendChild(h('div', ln.indexOf('勝負どころ') >= 0 ? { class: 'hl' } : (ln.indexOf('トライ') >= 0 || ln.indexOf('勝利') >= 0 ? { class: 'score-line' } : null), [ln]));
+    M.log.forEach(function (ln, li) {
+      var lc = ln.indexOf('勝負どころ') >= 0 ? 'hl' : (ln.indexOf('トライ') >= 0 || ln.indexOf('勝利') >= 0 ? 'score-line' : '');
+      /* v0.21: この描画で新しく増えた実況行だけフェードインさせる（試合の初回描画では行わない） */
+      if (!FX.off && FX.logSeen >= 0 && li >= FX.logSeen) lc = (lc ? lc + ' ' : '') + 'fx-new';
+      log.appendChild(h('div', lc ? { class: lc } : null, [ln]));
     });
+    FX.logSeen = M.log.length;
     var leftKids = [];
     if (M.phase === 'scene' && M.pending && M.pending.key) {
       var kp = M.pending.key;
       var cut = h('div', { class: 'cutin' });
+      /* v0.21: その勝負どころの初出時だけカットインをスライドインさせる（交代パネル操作などの再描画では繰り返さない） */
+      if (fxOnce('cut:' + M.oppIdx + ':' + M.block + ':' + kp.id + ':' + M.pending.title)) cut.classList.add('fx-cutin');
       cut.appendChild(portraitEl(kp, 'cutin-p'));
       cut.appendChild(h('div', null, [
         h('div', null, [h('b', null, [kp.name]), h('span', { class: 'sub' }, ['（' + POSITIONS[kp.posIdx].p + (skillNames(kp).length ? '・' + skillNames(kp).join('／') : '') + '）'])]),
@@ -3567,6 +3660,8 @@ function finishRecruit() {
     leftKids.push(log);
     wrap([sb, h('div', { class: 'lay2' }, [col(leftKids), col([ctrl])])]);
     var lg = document.querySelector('.log'); if (lg) lg.scrollTop = lg.scrollHeight;
+    /* v0.21: 直近の描画以降に生まれた得点が1件だけなら、得点バナーを出す */
+    fxScoreBanner();
   }
   function summaryScreen() {
     var s = G.summary;
