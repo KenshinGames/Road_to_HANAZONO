@@ -1,4 +1,4 @@
-/* Road to HANAZONO v0.10 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.11 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
  * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示
  * v0.4: 新入生3層の完成(スカウト＋特別枠) + OB連携
  * v0.5: 立ち絵表現(パーツ組み合わせ式の自動生成) + 試合カットイン + 会話劇 + 季節感
@@ -7,7 +7,8 @@
  * v0.8: メンバー編成(スタメン15名を試合前に編成) + 選手交代(停止点で交代・負傷交代) + 調子(コンディション5段階)
  * v0.9: シーズン目標 + ライバル校の物語(帝都のエース代替わり) + 記録室拡張(通算スタッツ・歴代チーム) + 難易度選択 + 設備解放
  * v0.9.1: タイトル画面に夕景イラスト（ChatGPT生成）を全面背景として採用（見た目のみ）
- * v0.10: 効果音（WebAudio合成）／実績（トロフィー）13種／遊び方ガイド／再開時あらすじ */
+ * v0.10: 効果音（WebAudio合成）／実績（トロフィー）13種／遊び方ガイド／再開時あらすじ
+ * v0.11: シーンイラスト4枚（ChatGPT生成：優勝・卒業・合宿・雨）を組み込み／調子の色分け表示 */
 (function () {
   'use strict';
   var STORE_KEY = 'hanazono.v02';
@@ -77,12 +78,22 @@
     { k: 'passion', n: '熱血', d: '成長は速いが、疲労も溜まりやすい', g: 1.08, f: 1.12, t: 1.05, r: 0.9 }
   ];
   var INJ_PARTS = ['左膝', '右肩', '足首', '太ももの裏', '腰', '手首'];
-  /* v0.8: 調子（コンディション）。-2..2 の5段階で、場面成功率と練習効率に薄く効く */
+  /* v0.8: 調子（コンディション）。-2..2 の5段階で、場面成功率と練習効率に薄く効く
+   * v0.11: 色分けを FORMS の c（文字色）/bg（背景ティント）に一元定義し、全画面で formChip 経由に統一する。
+   * 絶好調=金 / 好調=オレンジ / 普通=グレー / 不調=水色 / 絶不調=青。色だけに頼らず表情＋ラベルも併記する */
   var FORMS = [
-    { v: -2, n: '絶不調', ic: '💀' }, { v: -1, n: '不調', ic: '😞' }, { v: 0, n: '普通', ic: '😐' },
-    { v: 1, n: '好調', ic: '😊' }, { v: 2, n: '絶好調', ic: '🔥' }
+    { v: -2, n: '絶不調', ic: '💀', c: '#2456c6', bg: 'rgba(36,86,198,.14)' },
+    { v: -1, n: '不調', ic: '😞', c: '#1d8fc1', bg: 'rgba(29,143,193,.13)' },
+    { v: 0, n: '普通', ic: '😐', c: '#66707a', bg: 'rgba(102,112,122,.13)' },
+    { v: 1, n: '好調', ic: '😊', c: '#dd7414', bg: 'rgba(221,116,20,.14)' },
+    { v: 2, n: '絶好調', ic: '🔥', c: '#a97b06', bg: 'rgba(217,164,20,.20)' }
   ];
   function formOf(p) { return FORMS.filter(function (x) { return x.v === (p.form || 0); })[0] || FORMS[2]; }
+  /* v0.11: 調子チップ（色＋表情＋ラベルの併記）。色は FORMS の定数をそのまま使う */
+  function formChip(p) {
+    var f = formOf(p);
+    return h('span', { class: 'formchip', style: 'color:' + f.c + ';background:' + f.bg + ';border-color:' + f.c }, [f.ic + ' ' + f.n]);
+  }
   function rollForm() { var r = Math.random(); return r < 0.12 ? -1 : (r < 0.24 ? 1 : 0); }
   /* v0.9: シーズン目標（年初に1つ選ぶ。rank が達成判定の物差し） */
   var GOALS = [
@@ -1776,7 +1787,16 @@ function finishRecruit() {
       + '<rect y="112" width="560" height="38" fill="#5f4048"/>'
       + postsSVG(280, 140, 1.25, '#402b33') + ballSVG(150, 138, 0.9) + '</svg>';
   }
+  /* v0.11: 月次バナーの写真差し替え（月インデックス→写真キー）。
+   * ここに登録された月だけ、月頭指示などの月次バナー（train/home）が写真に切り替わる。
+   * 冬の朝練イラストが追加生成されたら { 9: 'winter', 10: 'winter' } のように足すだけでよい */
+  var MONTH_PHOTOS = { 4: 'camp' };
+  /* v0.11: 写真バナー（画像は CSS 側に data URI で埋め込み済み。cover で切り取り表示） */
+  function photoBanner(key, cls) {
+    return h('div', { class: 'banner photobanner photo-' + key + (cls ? ' ' + cls : '') });
+  }
   function banner(kind, cls, mi) {
+    if (mi != null && MONTH_PHOTOS[mi] && (kind === 'train' || kind === 'home')) return photoBanner(MONTH_PHOTOS[mi], cls);
     var d = h('div', { class: 'banner' + (cls ? ' ' + cls : '') });
     d.innerHTML = sceneSVG(kind, mi).replace('<svg ', '<svg preserveAspectRatio="xMidYMid slice" ');
     return d;
@@ -1841,7 +1861,7 @@ function finishRecruit() {
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.10'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.11'])]),
       h('div', { class: 'card center title-card' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
         h('button', { class: 'btn primary', onclick: function () { newGame('normal'); screen = 'goal'; render(); } }, ['監督に就任する（ふつう）']),
@@ -2017,7 +2037,9 @@ function finishRecruit() {
           var pm = h('span', { class: 'pmini' });
           pm.innerHTML = portraitSVG(p);
           td.appendChild(pm);
-          td.appendChild(document.createTextNode(p.name + ' ' + formOf(p).ic + (p.id === G.captainId ? ' ©主将' : '') + (p.injured ? ' 🚑' + (p.injured > 1 ? '（あと' + p.injured + 'か月）' : '') : '')));
+          td.appendChild(document.createTextNode(p.name + ' '));
+          td.appendChild(formChip(p));
+          td.appendChild(document.createTextNode((p.id === G.captainId ? ' ©主将' : '') + (p.injured ? ' 🚑' + (p.injured > 1 ? '（あと' + p.injured + 'か月）' : '') : '')));
           return td;
         }
         return h('td', null, [x]);
@@ -2053,7 +2075,7 @@ function finishRecruit() {
       detail.appendChild(sk);
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['今季の記録']), h('span', null, ['トライ ' + (sel.srec ? sel.srec.tries : 0) + ' ／ 好プレー ' + (sel.srec ? sel.srec.plays : 0)])]));
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['キャリア通算']), h('span', null, ['トライ ' + (sel.crec ? sel.crec.tries : 0) + ' ／ 好プレー ' + (sel.crec ? sel.crec.plays : 0)])]));
-      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['調子']), h('span', null, [formOf(sel).ic + ' ' + formOf(sel).n + '（成功率と練習効率に影響）'])]));
+      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['調子']), h('span', null, [formChip(sel), '（成功率と練習効率に影響）'])]));
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['信頼度']), h('span', null, [String(sel.trust) + '（采配の成功率に影響）'])]));
       detail.appendChild(h('div', { class: 'meter' }, [h('div', { style: 'width:' + sel.trust + '%' }, [])]));
       detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['疲労']), h('span', null, [String(sel.fatigue)])]));
@@ -2101,7 +2123,9 @@ function finishRecruit() {
       var cells = [String(pos.no), pos.p,
         p ? (p.name + (filled ? ' ※' : '')) : '―',
         p ? String(p.year) : '', p ? String(Math.round(overall(p))) : '',
-        p ? String(p.fatigue) : '', p ? formOf(p).ic + formOf(p).n : ''];
+        p ? String(p.fatigue) : ''];
+      var tds = cells.map(function (x) { return h('td', null, [x]); });
+      tds.push(h('td', null, p ? [formChip(p)] : []));
       var tr = h('tr', { class: 'prow' + (lineupSlot === n ? ' sel' : ''), onclick: (function (nn) {
         return function () {
           if (lineupSlot === nn) { lineupSlot = null; render(); return; }
@@ -2112,7 +2136,7 @@ function finishRecruit() {
           }
           lineupSlot = nn; render();
         };
-      })(n) }, cells.map(function (x) { return h('td', null, [x]); }));
+      })(n) }, tds);
       table.appendChild(tr);
     });
     left.appendChild(table);
@@ -2136,7 +2160,7 @@ function finishRecruit() {
       }
       right.appendChild(h('button', { class: 'btn small subbtn', onclick: (function (pid) {
         return function () { if (lineupSlot != null) swapLineupWith(lineupSlot, pid); };
-      })(p.id) }, ['IN ' + POSITIONS[p.posIdx].p + ' ' + p.name + '（' + p.year + '年・総合' + Math.round(overall(p)) + '・疲労' + p.fatigue + '・' + formOf(p).ic + formOf(p).n + '）']));
+      })(p.id) }, ['IN ' + POSITIONS[p.posIdx].p + ' ' + p.name + '（' + p.year + '年・総合' + Math.round(overall(p)) + '・疲労' + p.fatigue + '・', formChip(p), '）']));
     });
     var rightCol = [right,
       h('button', { class: 'btn', onclick: function () { G.lineup = null; lineupSlot = null; save(); render(); } }, ['自動選出に戻す']),
@@ -2194,8 +2218,10 @@ function finishRecruit() {
       rightKids.push(h('button', { class: 'btn', onclick: function () { skipMatch(mo.match); } }, ['⏩ 結果のみ表示（スキップ）']));
       rightKids.push(h('div', { class: 'sub' }, ['戦力差の大きい格下戦は、経過を省略して結果と勝因・敗因だけを確認できる（決勝・花園では使えない）']));
     }
+    /* v0.11: 花園の大一番（初戦・決勝）だけ、雨のナイター写真を試合バナーにする。通常の試合は従来の SVG バナー */
+    var matchBanner = mo.match >= 4 ? photoBanner('rain', 'grow') : banner('match', 'grow');
     wrap([hud(), h('div', { class: 'lay2' }, [
-      col([banner('match', 'grow'), vs]),
+      col([matchBanner, vs]),
       col(rightKids)
     ])]);
   }
@@ -2218,7 +2244,7 @@ function finishRecruit() {
       fieldPlayers().forEach(function (p) {
         list.appendChild(h('button', { class: 'btn small subbtn', onclick: (function (pid) {
           return function () { subOutId = pid; render(); };
-        })(p.id) }, ['OUT ' + POSITIONS[p.posIdx].no + ' ' + p.name + '（疲労' + p.fatigue + '・' + formOf(p).ic + formOf(p).n + (M.knock.indexOf(p.id) >= 0 ? '・🚑負傷' : '') + '）']));
+        })(p.id) }, ['OUT ' + POSITIONS[p.posIdx].no + ' ' + p.name + '（疲労' + p.fatigue + '・', formChip(p), (M.knock.indexOf(p.id) >= 0 ? '・🚑負傷' : '') + '）']));
       });
       box.appendChild(list);
     } else {
@@ -2228,7 +2254,7 @@ function finishRecruit() {
       bench.forEach(function (p) {
         list2.appendChild(h('button', { class: 'btn small subbtn', onclick: (function (pid) {
           return function () { doSub(subOutId, pid); };
-        })(p.id) }, ['IN ' + POSITIONS[p.posIdx].p + ' ' + p.name + '（総合' + Math.round(overall(p)) + '・疲労' + p.fatigue + '・' + formOf(p).ic + formOf(p).n + '）']));
+        })(p.id) }, ['IN ' + POSITIONS[p.posIdx].p + ' ' + p.name + '（総合' + Math.round(overall(p)) + '・疲労' + p.fatigue + '・', formChip(p), '）']));
       });
       box.appendChild(list2);
       box.appendChild(h('button', { class: 'btn small', onclick: function () { subOutId = null; render(); } }, ['交代をやめる']));
@@ -2312,9 +2338,25 @@ function finishRecruit() {
     g.appendChild(h('div', { class: 'sec' }, ['卒業する3年生（' + s.grads.length + '人）']));
     s.grads.forEach(function (x) { g.appendChild(h('div', { class: 'rowline' }, [h('span', null, [x.name]), h('span', { class: 'sub' }, [x.pos + '・総合 ' + x.avg])])); });
     g.appendChild(h('div', { class: 'sub' }, ['彼らはOBとして記録に残る。お疲れさま']));
+    var nextBtn = h('button', { class: 'btn primary', onclick: function () { startRecruit(); } }, ['新年度へ（新入生を迎える）']);
+    /* v0.11: 花園優勝の年は、優勝イラストを全面背景にした特別なエンディング表示にする */
+    if (s.result && s.result.indexOf('花園優勝') >= 0) {
+      result.classList.add('title-card');
+      g.classList.add('title-card');
+      var full = h('div', { class: 'photofull photo-champion' }, [
+        h('div', { class: 'hero' }, [
+          h('h1', null, ['🏆 花園優勝！']),
+          h('p', null, ['桜丘高校が全国の頂点に立った ― ' + G.year + '年目のシーズン'])
+        ]),
+        h('div', { class: 'lay2' }, [col([result]), col([g, nextBtn])])
+      ]);
+      wrap([hud(), full]);
+      return;
+    }
+    /* v0.11: 通常のシーズン終了は「卒業の日」イラストをヒーローに（卒業生の送り出しが主役の画面） */
     wrap([hud(), h('div', { class: 'lay2' }, [
-      col([banner(G.qualified ? 'hanazono' : 'sunset', 'grow', G.monthIdx), result]),
-      col([g, h('button', { class: 'btn primary', onclick: function () { startRecruit(); } }, ['新年度へ（新入生を迎える）'])])
+      col([photoBanner('graduation', 'grow'), result]),
+      col([g, nextBtn])
     ])]);
   }
   function candHead(p) {
