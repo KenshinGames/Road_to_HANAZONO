@@ -1,4 +1,12 @@
-/* Road to HANAZONO v0.23 — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.24 — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+ * v0.24: はじめての人への仕上げ（セーブスロット＝3枠＋自動継続。アクティブ枠のデータは従来どおり STORE_KEY に置き、
+ *        非アクティブ枠は hanazono.slot.<n> へ退避するため、既存セーブはスロット1としてそのまま引き継がれ移行は冪等。
+ *        save()/loadSaved() は無変更／チュートリアル＝端末キーの hanazono.tut で進捗を持つ実地ガイド（目標→指示→週次→
+ *        対戦確認→試合の5ステップを各画面で一言ずつ。既存セーブのある端末は完了扱い、再表示はガイドから。
+ *        数値・乱数には一切触れない）／設定の集約＝効果音・BGM・時短（格下戦の自動スキップ、新キー hanazono.pref。
+ *        既存キー hanazono.sound / hanazono.bgm は不変）・セーブ管理・全データ削除（2段階確認）を1画面に／
+ *        ヘルプ整備＝ガイドに用語集を追加）＋表示テキストの最小化（Takada 原則：操作画面の説明文の段落を削り、
+ *        判断に直結するラベル・数値・短い補足だけを残す。削った説明はガイド側へ移す）
  * v0.23: 音楽＋キャリアの厚み（BGM＝WebAudio 合成の4系統〈タイトル／日常／試合／大一番〉を場面で切替。設定は効果音の
  *        hanazono.sound とは別キー hanazono.bgm に保存し既存設定は壊さない／OBイベント拡充＝名前と進路を持つ OB の再訪・
  *        差し入れ・進路のその後を排他スロットで追加／部の格の節目＝gradeSeen で一度だけ祝福し、名門到達後は記録室に
@@ -556,6 +564,8 @@
     if (!bgmOn) return null;
     if (!G) return 'title';
     if (screen === 'guide') return BGM.playing;
+    if (screen === 'settings') return BGM.playing; /* v0.24: 設定画面でも現在の曲を維持 */
+    if (screen === 'title') return 'title';        /* v0.24: 進行中にタイトルへ戻った場合もタイトル曲 */
     if (screen === 'match') return (M && M.oppIdx >= 4) ? 'big' : 'match';
     if (screen === 'preMatch') { var mi2 = MONTHS[G.monthIdx] ? MONTHS[G.monthIdx].match : null; return (mi2 != null && mi2 >= 4) ? 'big' : 'match'; }
     return 'daily';
@@ -603,6 +613,220 @@
     var at = { class: cls, onclick: function () { guideFrom = screen; screen = 'guide'; render(); } };
     if (sty) at.style = sty;
     return h('button', at, ['📖 遊び方']);
+  }
+
+  /* ===== v0.24: 環境設定（時短の自動スキップ）。新キー hanazono.pref に JSON で保存し、
+   * 効果音（hanazono.sound）・BGM（hanazono.bgm）の既存キーと値の意味は一切変更しない ===== */
+  var PREF_KEY = 'hanazono.pref';
+  var prefFast = false;
+  try { var prefSaved = JSON.parse(localStorage.getItem(PREF_KEY) || 'null'); if (prefSaved && prefSaved.fast) prefFast = true; } catch (e) {}
+  function savePref() { try { localStorage.setItem(PREF_KEY, JSON.stringify({ fast: prefFast ? 1 : 0 })); } catch (e) {} }
+  function togglePrefFast() { prefFast = !prefFast; savePref(); render(); }
+
+  /* ===== v0.24: チュートリアル（実地ガイド）。端末単位のキー hanazono.tut に進捗を持ち、
+   * ゲームのセーブ・数値・乱数には一切触れない。ステップは各画面で一言だけ出し、
+   * 表示は画面の通常フローに置く（絶対配置で重ねない）。既存セーブがある端末では
+   * 起動時に完了扱いにして、経験者の画面に突然出ないようにする。再表示はガイド／設定から ===== */
+  var TUT_KEY = 'hanazono.tut';
+  var TUT_STEPS = [
+    { screen: 'goal', text: '🎓 まずは今シーズンの目標を選ぼう。決めたら下のボタンでシーズン開始！' },
+    { screen: 'inst', text: '🎓 月頭指示の画面。方針・重点・強度を決めて「指示を確定」。迷ったらそのままでも進める' },
+    { screen: 'board', text: '🎓 1か月は4週間。毎週、活動カードを1枚選んで育てよう。⭐や「おまかせ」でも進める' },
+    { screen: 'preMatch', text: '🎓 試合の日。総合力を比べ、戦術を選んでキックオフ。編成やキッカー指名もここで' },
+    { screen: 'match', text: '🎓 左の実況で試合が進み、勝負どころでは右の選択肢で采配を選ぶ。健闘を祈る！' }
+  ];
+  var tutStep = 0, tutDone = true; /* 安全側の初期値（起動時の tutInit が実際の状態を決める） */
+  function tutSave() { try { localStorage.setItem(TUT_KEY, JSON.stringify({ step: tutStep, done: tutDone ? 1 : 0 })); } catch (e) {} }
+  function tutInit(hadSave) {
+    try {
+      var t = JSON.parse(localStorage.getItem(TUT_KEY) || 'null');
+      if (t) { tutStep = (typeof t.step === 'number' && isFinite(t.step)) ? Math.min(Math.max(0, Math.floor(t.step)), TUT_STEPS.length) : 0; tutDone = !!t.done; return; }
+    } catch (e) {}
+    /* キーが無い初回：既存セーブがある端末は経験者として完了扱い。新規端末は最初から案内する */
+    tutStep = 0; tutDone = !!hadSave; tutSave();
+  }
+  function tutBar() {
+    if (tutDone || tutStep >= TUT_STEPS.length) return null;
+    var st = TUT_STEPS[tutStep];
+    if (!st || st.screen !== screen) return null;
+    var bar = h('div', { class: 'tutbar' });
+    bar.appendChild(h('span', { class: 'tuttxt' }, [st.text + '（' + (tutStep + 1) + '／' + TUT_STEPS.length + '）']));
+    bar.appendChild(h('button', { class: 'hudbtn tutbtn', onclick: function () { tutStep++; if (tutStep >= TUT_STEPS.length) tutDone = true; tutSave(); render(); } }, ['わかった ▶']));
+    bar.appendChild(h('button', { class: 'hudbtn tutbtn', onclick: function () { tutDone = true; tutSave(); render(); } }, ['終了する']));
+    return bar;
+  }
+  /* ガイド／設定からの再表示：戻り先の画面に対応するステップから始める（無ければ最初から） */
+  function tutReplay(fromScreen) {
+    var idx = 0;
+    TUT_STEPS.forEach(function (s, i) { if (s.screen === fromScreen) idx = i; });
+    tutStep = idx; tutDone = false; tutSave();
+  }
+
+  /* ===== v0.24: セーブスロット（3枠＋自動継続） =====
+   * 設計：アクティブなスロットのデータは従来どおり STORE_KEY（hanazono.v02）に置く。
+   * 非アクティブなスロットは hanazono.slot.<n> に退避するだけなので、save() / loadSaved() は
+   * 無変更で済み、既存セーブ（ユーザーの実セーブ）はそのままスロット1として引き継がれる。
+   * メタ（アクティブ枠）は hanazono.slots に JSON で持つ。移行はメタを用意するだけ＝冪等 */
+  var SLOT_META_KEY = 'hanazono.slots';
+  var SLOT_COUNT = 3;
+  var selSlot = null;         /* タイトルで選択中のスロット（null=アクティブ枠） */
+  var confirmDelSlot = 0;     /* 削除の2段階確認（0=なし、1..3=対象） */
+  var confirmDelAll = false;  /* 全データ削除の2段階確認 */
+  function slotMeta() {
+    try { var m = JSON.parse(localStorage.getItem(SLOT_META_KEY) || 'null'); if (m && (m.active === 1 || m.active === 2 || m.active === 3)) return m; } catch (e) {}
+    var m2 = { v: 1, active: 1 }; slotMetaSave(m2); return m2;
+  }
+  function slotMetaSave(m) { try { localStorage.setItem(SLOT_META_KEY, JSON.stringify(m)); } catch (e) {} }
+  function slotArchiveKey(i) { return 'hanazono.slot.' + i; }
+  function slotRaw(i) {
+    try { return i === slotMeta().active ? localStorage.getItem(STORE_KEY) : localStorage.getItem(slotArchiveKey(i)); } catch (e) { return null; }
+  }
+  /* スロットの概要（表示専用。壊れたデータは null＝空きとして扱う） */
+  function slotInfo(i) {
+    var raw = slotRaw(i); if (!raw) return null;
+    try {
+      var g = JSON.parse(raw);
+      if (!g || !Array.isArray(g.players) || !g.players.length) return null;
+      var gr = GRADES[0].n; GRADES.forEach(function (x) { if ((g.rep || 0) >= x.min) gr = x.n; });
+      var mo = MONTHS[g.monthIdx] || { m: '—' };
+      return {
+        year: g.year || 1, month: mo.m, grade: gr, rep: g.rep || 0,
+        wins: (g.season && g.season.wins) || 0, losses: (g.season && g.season.losses) || 0,
+        diff: g.difficulty === 'challenge' ? 'チャレンジ' : 'ふつう'
+      };
+    } catch (e) { return null; }
+  }
+  function slotSummaryText(info) {
+    return info.year + '年目 ・ ' + info.month + ' ／ 部の格 ' + info.grade + ' ・ 評判 ' + info.rep + ' ／ 今季 ' + info.wins + '勝 ' + info.losses + '敗 ・ ' + info.diff;
+  }
+  /* データレベルの切替（現在データを現アクティブ枠へ退避し、対象枠を STORE_KEY へ） */
+  function switchToSlot(i) {
+    var meta = slotMeta(); if (i === meta.active) return;
+    try {
+      var cur = localStorage.getItem(STORE_KEY);
+      if (cur) localStorage.setItem(slotArchiveKey(meta.active), cur); else localStorage.removeItem(slotArchiveKey(meta.active));
+      var tgt = localStorage.getItem(slotArchiveKey(i));
+      if (tgt) { localStorage.setItem(STORE_KEY, tgt); localStorage.removeItem(slotArchiveKey(i)); }
+      else localStorage.removeItem(STORE_KEY);
+    } catch (e) {}
+    meta.active = i; slotMetaSave(meta);
+  }
+  /* 起動時と同じ再開先の決定（スロット読込後の遷移に使う） */
+  function resumeScreenName() {
+    if (!G) return 'title';
+    if (G.recruit) return 'recruit';
+    if (G.intro) return 'intro';
+    if (G.board) return 'board';
+    if (G.summary) return 'summary';
+    if (!G.goalSet && G.monthIdx === 0) return 'goal';
+    return 'inst';
+  }
+  function loadSlotInto(i) {
+    switchToSlot(i);
+    G = null; M = null;
+    if (loadSaved()) { sanitize(); save(); showDigest = true; } /* 切り替え先も「再開」としてあらすじを出す */
+    selSlot = null; confirmDelSlot = 0;
+    screen = resumeScreenName(); render();
+  }
+  function deleteSlot(i) {
+    var meta = slotMeta();
+    try {
+      if (i === meta.active) { localStorage.removeItem(STORE_KEY); G = null; M = null; showDigest = false; }
+      localStorage.removeItem(slotArchiveKey(i));
+    } catch (e) {}
+    confirmDelSlot = 0;
+    if (!G) screen = 'title';
+    render();
+  }
+  function deleteAllSlots() {
+    try {
+      localStorage.removeItem(STORE_KEY);
+      for (var i = 1; i <= SLOT_COUNT; i++) localStorage.removeItem(slotArchiveKey(i));
+      slotMetaSave({ v: 1, active: 1 });
+      localStorage.removeItem(TUT_KEY); /* 初回体験もまっさらにする（チュートリアルがまた出る） */
+    } catch (e) {}
+    G = null; M = null; showDigest = false;
+    tutStep = 0; tutDone = false;
+    confirmDelAll = false; confirmDelSlot = 0; selSlot = null;
+    screen = 'title'; render();
+  }
+  function startInSlot(i, diff) { /* 空きスロットで新規開始。現在のデータは現スロットへ退避される */
+    if (i !== slotMeta().active) switchToSlot(i);
+    selSlot = null; confirmDelSlot = 0;
+    newGame(diff);
+    screen = 'goal'; render();
+  }
+
+  /* ===== v0.24: 設定画面（効果音・BGM・時短・チュートリアル・セーブ管理・データ削除を集約）。
+   * 既存の設定キー（hanazono.sound / hanazono.bgm）は従来の部品・関数をそのまま使い、意味を変えない ===== */
+  var settingsFrom = 'title';
+  function openSettings() { settingsFrom = screen; screen = 'settings'; render(); }
+  function settingsBackTarget() {
+    var t = settingsFrom;
+    if (!t || t === 'settings' || t === 'guide' || t === 'title') return G ? resumeScreenName() : 'title';
+    return t;
+  }
+  function setRow(label, desc, ctrl) {
+    var lab = h('div', { class: 'setlab' }, [h('b', null, [label])]);
+    if (desc) lab.appendChild(h('span', { class: 'sub setdesc' }, [desc]));
+    return h('div', { class: 'rowline setrow' }, [lab, ctrl]);
+  }
+  function settingsScreen() {
+    /* v0.24: 両カラムとも内部スクロール（ガイドと同じ作法）。項目が増えても
+     * アクションバーと重ならず、固定コンテンツの見切れにもならない */
+    var L = h('div', { class: 'grow scroll flatbox' });
+    L.appendChild(h('div', { class: 'sec' }, ['🔊 サウンド・BGM']));
+    L.appendChild(setRow('効果音', 'タップ音・歓声・ジングルなど', h('button', { class: 'hudbtn', onclick: function () { toggleSound(); } }, [soundOn ? '🔊 ON' : '🔇 OFF'])));
+    L.appendChild(setRow('BGM', 'タイトル／日常／試合／大一番で切り替わる', h('button', { class: 'hudbtn', onclick: function () { toggleBgm(); } }, [bgmOn ? '🎵 ON' : '🎵 OFF'])));
+    var volBox = h('span', { class: 'hand' }, [[0.35, '小'], [0.65, '中'], [1, '大']].map(function (d) {
+      return h('button', { class: 'hudbtn' + (Math.abs(bgmVol - d[0]) < 0.01 ? ' on' : ''), onclick: function () { setBgmVol(d[0]); } }, ['音量' + d[1]]);
+    }));
+    L.appendChild(setRow('BGM音量', '', volBox));
+    L.appendChild(h('div', { class: 'sec' }, ['⏩ 時短']));
+    L.appendChild(setRow('格下戦は自動で結果のみ表示', '戦力差の大きい格下戦はキックオフで省略（決勝・花園は対象外）',
+      h('button', { class: 'hudbtn', onclick: function () { togglePrefFast(); } }, [prefFast ? '⏩ ON' : '⏩ OFF'])));
+    L.appendChild(h('div', { class: 'sec' }, ['🎓 チュートリアル']));
+    L.appendChild(setRow('実地ガイド', '最初の1か月を、実際の画面で一言ずつ案内する',
+      h('button', { class: 'hudbtn', onclick: function () { tutReplay(settingsFrom); screen = settingsBackTarget(); render(); } }, ['もう一度見る'])));
+    var R = h('div', { class: 'grow scroll flatbox' });
+    R.appendChild(h('div', { class: 'sec' }, ['💾 セーブデータ']));
+    var meta = slotMeta();
+    [1, 2, 3].forEach(function (i) {
+      var info = slotInfo(i);
+      var lab = h('div', { class: 'setlab' }, [h('b', null, ['スロット' + i + (i === meta.active && info ? '（プレイ中）' : '')])]);
+      lab.appendChild(h('span', { class: 'sub setdesc' }, [info ? slotSummaryText(info) : 'あき ― タイトル画面から始められる']));
+      var ctrls = h('span', { class: 'hand' }, []);
+      if (info && i !== meta.active) ctrls.appendChild(h('button', { class: 'hudbtn', onclick: function () { loadSlotInto(i); } }, ['切り替え']));
+      if (info) {
+        if (confirmDelSlot === i) {
+          ctrls.appendChild(h('button', { class: 'hudbtn danger', onclick: function () { deleteSlot(i); } }, ['本当に削除']));
+          ctrls.appendChild(h('button', { class: 'hudbtn', onclick: function () { confirmDelSlot = 0; render(); } }, ['やめる']));
+        } else {
+          ctrls.appendChild(h('button', { class: 'hudbtn', onclick: function () { confirmDelSlot = i; confirmDelAll = false; render(); } }, ['削除']));
+        }
+      }
+      R.appendChild(h('div', { class: 'rowline setrow' }, [lab, ctrls]));
+    });
+    R.appendChild(h('div', { class: 'sec' }, ['🗑 データ削除']));
+    var delCtrl;
+    if (!confirmDelAll) {
+      delCtrl = h('button', { class: 'hudbtn', onclick: function () { confirmDelAll = true; confirmDelSlot = 0; render(); } }, ['すべて削除']);
+    } else {
+      delCtrl = h('span', { class: 'hand' }, [
+        h('button', { class: 'hudbtn danger', onclick: function () { deleteAllSlots(); } }, ['本当にすべて削除']),
+        h('button', { class: 'hudbtn', onclick: function () { confirmDelAll = false; render(); } }, ['やめる'])
+      ]);
+    }
+    R.appendChild(setRow('全セーブデータ', '3スロット全てを消す。音・BGM・時短の設定は残る', delCtrl));
+    var kids = [];
+    if (G) kids.push(hud());
+    kids.push(h('div', { class: 'sec' }, ['⚙ 設定']));
+    kids.push(h('div', { class: 'lay2' }, [col([L]), col([R])]));
+    kids.push(actionBar([
+      h('button', { class: 'btn primary', onclick: function () { screen = settingsBackTarget(); render(); } }, ['◀ 戻る']),
+      h('button', { class: 'btn', onclick: function () { selSlot = null; screen = 'title'; render(); } }, ['タイトル画面へ'])
+    ]));
+    wrap(kids);
   }
 
   /* ===== v0.10: トースト通知（実績達成時） ===== */
@@ -3091,6 +3315,8 @@ function finishRecruit() {
     FX.enterPending = !FX.off && FX.lastKey !== fxKey;
     FX.lastKey = fxKey;
     if (screen === 'guide') return guideScreen();
+    if (screen === 'settings') return settingsScreen(); /* v0.24: 設定画面（ゲーム未開始でも開ける） */
+    if (screen === 'title') return titleScreen();       /* v0.24: スロット選択のため、進行中でもタイトルへ戻れる */
     if (!G) return titleScreen();
     if (screen === 'goal') return goalScreen();
     if (screen === 'inst') return instScreen();
@@ -3125,6 +3351,7 @@ function finishRecruit() {
       hudBtn('選手一覧', 'squad'),
       hudBtn('記録・OB', 'records'),
       h('button', { class: 'hudbtn icon', title: '遊び方', onclick: function () { guideFrom = screen; screen = 'guide'; render(); } }, ['📖']),
+      h('button', { class: 'hudbtn icon', title: '設定', onclick: function () { openSettings(); } }, ['⚙']), /* v0.24: 設定画面への入口 */
       h('button', { class: 'hudbtn icon', title: soundOn ? 'サウンド ON（タップで OFF）' : 'サウンド OFF（タップで ON）', onclick: function () { toggleSound(); } }, [soundOn ? '🔊 音ON' : '🔇 音OFF'])
     ]);
   }
@@ -3139,17 +3366,52 @@ function finishRecruit() {
     mount(w);
   }
   function col(children) { return h('div', { class: 'col' }, children); }
+  /* v0.24: タイトル＝スロット選択。3枠の概要を横並びで示し、選んだ枠に応じて
+   * 「つづき／新規／削除（2段階確認）」の操作を出す。ゲームの説明段落は置かない
+   * （表示テキスト最小化の原則。遊び方はガイド側が担う） */
   function titleScreen() {
+    var meta = slotMeta();
+    var sel = selSlot || meta.active;
+    var selInfo = slotInfo(sel);
+    var slots = h('div', { class: 'slots' });
+    [1, 2, 3].forEach(function (i) {
+      var info = slotInfo(i);
+      var c = h('div', { class: 'slotcol' + (i === sel ? ' sel' : ''), onclick: (function (ix) { return function () { selSlot = ix; confirmDelSlot = 0; render(); }; })(i) });
+      c.appendChild(h('div', { class: 'slothead' }, [
+        h('b', null, ['スロット' + i]),
+        (i === meta.active && info) ? h('span', { class: 'slotlive' }, ['▶プレイ中']) : h('span', null, [])
+      ]));
+      c.appendChild(h('div', { class: 'slotsum' }, [info ? (info.year + '年目 ・ ' + info.month) : 'あき']));
+      c.appendChild(h('div', { class: 'slotsum' }, [info ? ('部の格 ' + info.grade + ' ・ 評判 ' + info.rep) : '　']));
+      slots.appendChild(c);
+    });
+    var kids = [slots];
+    if (confirmDelSlot === sel && selInfo) {
+      kids.push(h('div', { class: 'hand' }, [
+        h('button', { class: 'btn danger', style: 'flex:2', onclick: function () { deleteSlot(sel); } }, ['スロット' + sel + 'を削除する']),
+        h('button', { class: 'btn', style: 'flex:1', onclick: function () { confirmDelSlot = 0; render(); } }, ['やめる'])
+      ]));
+      kids.push(h('p', { class: 'sub' }, ['削除したセーブは元に戻せない']));
+    } else if (selInfo) {
+      kids.push(h('div', { class: 'hand' }, [
+        h('button', { class: 'btn primary', style: 'flex:2', onclick: function () {
+          if (sel === slotMeta().active && G) { screen = resumeScreenName(); render(); } else loadSlotInto(sel);
+        } }, ['▶ つづきから始める']),
+        h('button', { class: 'btn', style: 'flex:1', onclick: function () { confirmDelSlot = sel; render(); } }, ['🗑 削除'])
+      ]));
+    } else {
+      kids.push(h('div', { class: 'hand' }, [
+        h('button', { class: 'btn primary', onclick: function () { startInSlot(sel, 'normal'); } }, ['監督に就任する（ふつう）']),
+        h('button', { class: 'btn', onclick: function () { startInSlot(sel, 'challenge'); } }, ['監督に就任する（チャレンジ）'])
+      ]));
+      kids.push(h('p', { class: 'sub' }, ['難易度は開始時だけの選択。チャレンジは相手が少し強く（全校+3）、評判の伸びが渋い（×0.7）']));
+    }
+    kids.push(h('div', { class: 'hand', style: 'margin-top:2px;justify-content:center' }, [guideBtn('btn'), soundBtn(), bgmBtn(),
+      h('button', { class: 'btn', onclick: function () { openSettings(); } }, ['⚙ 設定'])]));
+    kids.push(h('div', { class: 'hand', style: 'margin-top:2px;justify-content:center;align-items:center' }, [h('span', { class: 'sub' }, ['BGM音量'])].concat(bgmVolBtns())));
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.23'])]),
-      h('div', { class: 'card center title-card' }, [
-        h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、1週間ごとに活動を選んで選手を育てよう。世代を超えて、花園の常連校を目指す。']),
-        h('button', { class: 'btn primary', onclick: function () { newGame('normal'); screen = 'goal'; render(); } }, ['監督に就任する（ふつう）']),
-        h('button', { class: 'btn', onclick: function () { newGame('challenge'); screen = 'goal'; render(); } }, ['監督に就任する（チャレンジ）']),
-        h('p', { class: 'sub' }, ['難易度は開始時だけの選択。チャレンジは相手が少し強く（全校+3）、評判の伸びが渋い（×0.7）']),
-        h('div', { class: 'hand', style: 'margin-top:10px;justify-content:center' }, [guideBtn('btn'), soundBtn(), bgmBtn()]),
-        h('div', { class: 'hand', style: 'margin-top:8px;justify-content:center;align-items:center' }, [h('span', { class: 'sub' }, ['BGM音量'])].concat(bgmVolBtns()))
-      ])
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.24'])]),
+      h('div', { class: 'card center title-card' }, kids)
     ]);
     mount(h('div', { class: 'stack shell' }, [inner]));
   }
@@ -3163,7 +3425,7 @@ function finishRecruit() {
     L.appendChild(h('div', { class: 'sec' }, ['🎯 目的']));
     L.appendChild(h('p', null, ['弱小公立・桜丘高校ラグビー部の監督として、選手を育て、世代交代を重ねながら花園（全国大会）の常連校を目指す育成シミュレーションです。評判が上がると「部の格」（弱小→そこそこ→中堅→強豪→名門）が上がり、入部してくる新入生の質も上がる好循環が生まれます。記録室では実績（トロフィー）も集まります。']));
     L.appendChild(h('div', { class: 'sec' }, ['📅 1年の流れ']));
-    [['① 年初の目標', 'シーズン目標を決める。達成で評判ボーナス、未達でも小さなペナルティのみ'],
+    [['① 年初の目標', 'シーズン目標を決める。達成で評判ボーナス（格上の目標ほど大きい）、未達でも評判-3のみ。思い切って高い目標を掲げるのも監督の腕の見せどころ'],
      ['② 月頭指示', '全体方針・ユニット練習・重点育成・練習強度・キャプテン・校風を決める'],
      ['③ 週次プランニング', '1か月は4週間。今週の活動をカードから選ぶと、練習の実りや回復、時折イベントが起きる。活動の能力が月の全体方針と一致すると少しお得。「おまかせ」で月末まで自動で進められる'],
      ['④ 試合', '6月=練習試合、10〜12月=花園予選、1月=花園。勝負どころでは采配（選択肢）を選ぶ'],
@@ -3178,12 +3440,26 @@ function finishRecruit() {
     [['疲労管理', '疲労70以上で練習効率も試合の成功率も大きく落ちる。「休養・ケア」の週と強度「通常」を織り交ぜよう'],
      ['信頼度', '試合の出場と活躍で上がり、采配の成功率に効く。重点育成と起用でエースを育てよう'],
      ['ケガ予防', '強度を上げるほどケガのリスクも上がる。疲労をためないことが一番の予防になる'],
-     ['スカウト', '寸評は体格・特能・性格のヒント。成功率とOB紹介の有無を見て枠を使おう'],
+     ['スカウト', '寸評は体格・特能・性格のヒント（伝聞なので鵜呑みにしない）。成功率とOB紹介の有無を見て枠を使おう。失敗しても空いた枠は一般入部で埋まる'],
      ['格上戦', '7点差以内の善戦でも評判と経験が得られる。試合後の「敗因の内訳」が次への教材になる'],
-     ['時短', '戦力差の大きい試合は対戦確認画面から「結果のみ表示」で飛ばせる'],
+     ['時短', '戦力差の大きい試合は対戦確認画面から「結果のみ表示」で飛ばせる。設定画面で「格下戦は自動で結果のみ表示」を ON にしておくと、キックオフで自動的に飛ぶ'],
+     ['メンバー編成', '対戦確認から入れる。編成はシーズンを通して保持され、次の試合にも引き継がれる（試合中の交代とは別）。※ はケガなどで編成どおりに出られないため自動補完された枠'],
      ['采配', '対戦確認でPGキッカーと、相手エースへのマークを指名できる（どちらも任意）。後半には戦術変更の機会もあり、選んだ攻め方が少しだけ効きやすくなる']].forEach(function (r) {
       R.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
     });
+    /* v0.24: 用語集（操作画面から削った説明の受け皿。既存の流れ・コツと重複しない定義だけを置く） */
+    R.appendChild(h('div', { class: 'sec' }, ['📚 用語集']));
+    [['能力ランク', '能力値は数値に加えてランクと色でも併記される。S=90以上／A=80台／B=70台／C=60台／D=50台／E=40台／F=30台／G=29以下。Sはキャリア終盤のスターだけが届く帯域'],
+     ['総合力', 'スタメン15人の「総合」（6能力の平均）の平均。チームの強さの物差しで、対戦確認では相手と並べて比べられる'],
+     ['部の格', '弱小→そこそこ→中堅→強豪→名門の5段階。評判で決まる。上がると勧誘の獲得枠・新入生の質・設備（ウェイト場／ビデオ分析室／寮）の解放が進む'],
+     ['特能', '選手の際立った強み（最大2つ）。ラインアウトの要／モールの核／タックルマン／ロングキッカー／ステップ職人／大舞台○（大一番で効く）／ケガしにくさ。対応する場面で力を発揮する'],
+     ['信頼度', '監督への信頼。試合の出場と活躍で上がり、采配の成功率に効く。キャプテンは集めやすい'],
+     ['調子', '5段階。顔アイコンの色で分かる（ピンク=絶好調／赤=好調／黄=普通／水色=不調／紫=絶不調）。練習効率と成功率に薄く効く'],
+     ['評判', '部の評判を表す数値。勝利と目標達成で上がり、部の格と勧誘の成功率を左右する。部の格は記録室やHUDで確認できる'],
+     ['OBネットワーク', '卒業生はOBとして記録に残り、来訪・贈り物・紹介で後輩を支える。OBの子が入部してくることもある']].forEach(function (r) {
+      R.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
+    });
+    R.appendChild(h('button', { class: 'btn', style: 'margin-top:12px', onclick: function () { tutReplay(guideFrom); back(); } }, ['🎓 チュートリアルをもう一度見る'])); /* v0.24: 実地ガイドの再表示（戻り先の画面のステップから） */
     R.appendChild(h('button', { class: 'btn primary', style: 'margin-top:12px', onclick: back }, [G ? '◀ 戻る' : '◀ タイトルへ戻る']));
     var kids = [];
     if (G) kids.push(hud());
@@ -3202,7 +3478,8 @@ function finishRecruit() {
     var heroBody = h('div', { class: 'herobody' });
     var glass = h('div', { class: 'glasscard glassfill' }, [
       h('div', { class: 'gtitle' }, ['🎯 ' + G.year + '年目の目標を決めよう']),
-      h('p', null, ['シーズンの物差しになる目標を1つ選ぶ。達成すれば評判が上がり、格上の目標ならなお大きい。届かなくても罰は小さい（評判-3）。思い切って高い目標を掲げるのも監督の腕の見せどころ。']), /* v0.23: 932×380 で最終行がガラス下端に張り付いたため文を締めた */
+      /* v0.24: 表示テキスト最小化。目標の仕組み（達成ボーナスの大小・未達時の扱い）は
+       * ガイド「① 年初の目標」へ移し、ここは判断に直結する数値だけを残す */
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['現在の部の格']), h('span', null, [gradeOf().n])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['昨季の結果']), h('span', null, [G.history.length ? G.history[G.history.length - 1].result : '―（初年度）'])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['おすすめの目標']), h('span', null, [rec.n])])
@@ -3219,8 +3496,11 @@ function finishRecruit() {
       ]));
     });
     var right = [box];
-    wrap([hud(), h('div', { class: 'lay2' }, [col(left), col(right)]),
-      actionBar([h('button', { class: 'btn primary', onclick: function () { G.goalSet = true; save(); screen = 'inst'; render(); } }, ['目標を決めてシーズンを始める'])])]);
+    var gkids = [hud()]; /* v0.24: チュートリアルバーは通常フローに置く（重ねない） */
+    var tbG = tutBar(); if (tbG) gkids.push(tbG);
+    gkids.push(h('div', { class: 'lay2' }, [col(left), col(right)]));
+    gkids.push(actionBar([h('button', { class: 'btn primary', onclick: function () { G.goalSet = true; save(); screen = 'inst'; render(); } }, ['目標を決めてシーズンを始める'])]));
+    wrap(gkids);
   }
   function instScreen() {
     var mo = MONTHS[G.monthIdx];
@@ -3297,8 +3577,11 @@ function finishRecruit() {
       right.push(h('div', { class: 'card hintcard' }, ['💡 まずは全体方針と重点育成する選手を選んで、月を始めよう。練習で選手が育ち、月末には試合が待っている']));
     }
     right.push(card);
-    wrap([hud(), h('div', { class: 'lay2 layinst' }, [col(left), col(right)]),
-      actionBar([h('button', { class: 'btn primary', onclick: function () { startMonth(); } }, ['指示を確定して月を始める'])])]);
+    var ikids = [hud()]; /* v0.24: チュートリアルバー（通常フロー） */
+    var tbI = tutBar(); if (tbI) ikids.push(tbI);
+    ikids.push(h('div', { class: 'lay2 layinst' }, [col(left), col(right)]));
+    ikids.push(actionBar([h('button', { class: 'btn primary', onclick: function () { startMonth(); } }, ['指示を確定して月を始める'])]));
+    wrap(ikids);
   }
   /* v0.22: 成長レポート専用レイアウト。画面幅いっぱいの濃緑ボードに、全行（上限10名＋
    * 「ほか n 名」は見出し行に併記）をスクロールなしで収める。行の様式は v0.15 の
@@ -3422,7 +3705,13 @@ function finishRecruit() {
     sbar.appendChild(h('span', { class: 'wstext' }, [G.year + '年目 ' + mo.m + ' 第' + (b.week + 1) + '週（あと' + (WEEKS_PER_MONTH - b.week) + '週で月末）']));
     sbar.appendChild(h('span', { class: 'wstext sub' }, [nextMatchText()]));
     sbar.appendChild(h('button', { class: 'btn primary wauto', onclick: function () { autoMonth(); } }, ['⏩ おまかせ（月末まで自動）']));
-    wrap([hud(), h('div', { class: 'lay2 wtop' }, [col([scene]), col(rightKids)]), cards, sbar]);
+    var wkids = [hud()]; /* v0.24: チュートリアルバー（通常フロー）。週次は高さが詰まっているため、
+     * バー表示中はバー自体を細くし、活動カードとステータスバーも一段詰める（CSS の .hastut） */
+    var tbW = tutBar();
+    if (tbW) { tbW.classList.add('tutsm'); cards.classList.add('hastut'); sbar.classList.add('hastut'); wkids.push(tbW); }
+    wkids.push(h('div', { class: 'lay2 wtop' + (tbW ? ' hastut' : '') }, [col([scene]), col(rightKids)]));
+    wkids.push(cards); wkids.push(sbar);
+    wrap(wkids);
     var lg = document.querySelector('.log'); if (lg) lg.scrollTop = lg.scrollHeight;
   }
   function boardScreen() {
@@ -3621,10 +3910,11 @@ function finishRecruit() {
       table.appendChild(tr);
     });
     left.appendChild(table);
-    left.appendChild(h('div', { class: 'sub' }, ['※ はケガなどで編成どおりに出られないため自動補完された枠。編成はシーズンを通して保持され、試合中の交代とは別に次の試合にも引き継がれる']));
+    /* v0.24: ※ の凡例だけを短く残す。編成の保持方針はガイド「メンバー編成」へ移した */
+    left.appendChild(h('div', { class: 'sub' }, ['※ はケガなどで自動補完された枠']));
     var right = h('div', { class: 'card grow scroll' });
     right.appendChild(h('div', { class: 'sec' }, ['控えメンバー']));
-    if (lineupSlot == null) right.appendChild(h('div', { class: 'sub' }, ['先に左のスタメンから、入れ替えたい選手を選んでください。スタメン同士の入れ替えは、続けて別のスタメンをタップ']));
+    if (lineupSlot == null) right.appendChild(h('div', { class: 'sub' }, ['スタメン同士の交換は、続けて別のスタメンをタップ']));
     else {
       var selP = G.players.filter(function (x) { return x.id === ids[lineupSlot]; })[0];
       right.appendChild(h('div', { class: 'sub' }, [(selP ? selP.name : '―') + ' と入れ替える控えを選んでください']));
@@ -3796,14 +4086,22 @@ function finishRecruit() {
       h('button', { class: 'btn', onclick: function () { lineupSlot = null; screen = 'lineup'; render(); } }, ['👥 メンバー編成'])];
     if (canSkip(mo.match)) {
       rightKids.push(h('button', { class: 'btn', onclick: function () { skipMatch(mo.match); } }, ['⏩ 結果のみ表示（スキップ）']));
-      rightKids.push(h('div', { class: 'sub' }, ['戦力差の大きい格下戦は、経過を省略して結果と勝因・敗因だけを確認できる（決勝・花園では使えない）']));
+      /* v0.24: 表示テキスト最小化。時短の条件・説明はガイド「時短」へ移し、ボタンだけを残す。
+       * 時短設定 ON の時だけ、その旨を短く添える */
+      if (prefFast) rightKids.push(h('div', { class: 'sub' }, ['⏩ 時短設定 ON：キックオフで自動的に結果のみ表示になる']));
     }
     /* v0.11: 花園の大一番（初戦・決勝）だけ、雨のナイター写真を試合バナーにする。通常の試合は従来の SVG バナー */
     var matchBanner = mo.match >= 4 ? photoBanner('rain', 'pmb') : banner('match', 'pmb');
-    wrap([hud(), h('div', { class: 'lay2' }, [
+    var pkids = [hud()]; /* v0.24: チュートリアルバー（通常フロー） */
+    var tbP = tutBar(); if (tbP) pkids.push(tbP);
+    pkids.push(h('div', { class: 'lay2' }, [
       col([matchBanner, vs]),
       col(rightKids)
-    ]), actionBar([h('button', { class: 'btn primary', onclick: function () { startMatch(mo.match); } }, ['キックオフ'])])]);
+    ]));
+    /* v0.24: 時短設定 ON なら、キックオフが従来の「結果のみ表示」と同じ経路（skipMatch）を通る。
+     * 判定・乱数消費は手動スキップと同一で、設定 OFF では従来どおり startMatch のみ */
+    pkids.push(actionBar([h('button', { class: 'btn primary', onclick: function () { if (prefFast && canSkip(mo.match)) skipMatch(mo.match); else startMatch(mo.match); } }, ['キックオフ'])]));
+    wrap(pkids);
   }
   /* v0.8: 停止点での交代パネル（右カラム・選択肢の下）。
    * 2タップ式：下げる選手 → 入れる選手。負傷交代は回数に数えない */
@@ -3878,7 +4176,7 @@ function finishRecruit() {
       ctrl.appendChild(subPanelEl());
     } else if (!M.done) {
       ctrl.appendChild(h('div', { class: 'sec' }, ['実況']));
-      ctrl.appendChild(h('p', { class: 'sub' }, ['左の実況を見ながら、試合を進めよう。勝負どころでは采配が求められる']));
+      /* v0.24: 表示テキスト最小化。試合の進め方はチュートリアルとガイド「④ 試合」が担い、ここはボタンだけにする */
       ctrl.appendChild(h('button', { class: 'btn primary', onclick: function () { playBlock(); } }, ['試合を進める']));
     } else {
       ctrl.appendChild(h('div', { class: 'sec' }, [M.result === 'win' ? '勝利！ 勝因の内訳' : '試合終了：敗因の内訳']));
@@ -3895,7 +4193,7 @@ function finishRecruit() {
             h('span', { class: 'fval' }, [f.v + '%'])
           ]));
         });
-        ctrl.appendChild(h('p', { class: 'sub' }, [M.result === 'win' ? '勝ち切れた要因の目安。次もこの形を伸ばそう。' : '敗因の目安。練習指示と采配で一番大きい要素を潰していこう。']));
+        /* v0.24: 内訳の読み方（敗因は次への教材）はガイド「格上戦」が担う。ここは数値だけを残す */
       }
       ctrl.appendChild(h('button', { class: 'btn primary', onclick: function () { afterMatchNext(); } }, [M.result === 'win' ? 'やった！次へ' : '次へ']));
     }
@@ -3921,7 +4219,11 @@ function finishRecruit() {
       leftKids.push(cut);
     }
     leftKids.push(log);
-    wrap([sb, h('div', { class: 'lay2' }, [col(leftKids), col([ctrl])])]);
+    var mkids = []; /* v0.24: チュートリアルバー（試合画面は HUD が無いので、スコアボードの上に置く） */
+    var tbM = tutBar(); if (tbM) mkids.push(tbM);
+    mkids.push(sb);
+    mkids.push(h('div', { class: 'lay2' }, [col(leftKids), col([ctrl])]));
+    wrap(mkids);
     var lg = document.querySelector('.log'); if (lg) lg.scrollTop = lg.scrollHeight;
     /* v0.21: 直近の描画以降に生まれた得点が1件だけなら、得点バナーを出す */
     fxScoreBanner();
@@ -4122,12 +4424,12 @@ function finishRecruit() {
      * ガラス内が長くなる場合（巣立った卒業生リスト）に備え、ガラス自体をスクロール可能にする */
     var leftKids = [
       h('div', { class: 'gtitle' }, ['🌸 ' + G.year + '年目 ― 新入生を迎える']),
-      h('p', null, ['中学3年生のスカウト候補から、声をかけたい選手を獲得リスト（' + quota + '名まで）に入れよう。']), /* v0.22: ガラス内に初期表示で収まるよう冒頭の味付け文を省いた（卒業生の話は下段の「巣立った卒業生」が担う） */
+      /* v0.24: 表示テキスト最小化。進め方と寸評の性質・失敗時の扱いはガイド「⑥ 勧誘」「スカウト」へ移し、
+       * ここは判断に直結する数値（枠・選択中・OB数）だけを残す */
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['部の格']), h('span', null, [gradeOf().n])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['スカウト獲得枠']), h('span', null, [quota + '名（選択中 ' + pickedN + '名）'])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['OB名鑑']), h('span', null, [G.obs.length + '名が記録に残る'])]),
-      tabs,
-      h('p', { class: 'sub' }, ['寸評は伝聞。体格と「らしさ」のヒントに。成功率の内訳は各カードに示した。失敗しても枠は一般入部で埋まる。']) /* v0.22: 成功率の決まり方は内訳表示とガイドが担い、ここは2行に収まる要約にした */
+      tabs
     ];
     var newObs = G.obs.filter(function (o) { return o.year === G.year - 1; });
     if (newObs.length) {
@@ -4138,7 +4440,7 @@ function finishRecruit() {
         os.appendChild(rankValEl(o.avg, 'sm', true)); /* v0.15: ランク併記／v0.22: ガラス（暗背景）上なので濃色背景用のランク色を使う */
         leftKids.push(h('div', { class: 'rowline' }, [h('span', null, [o.name]), os]));
       });
-      leftKids.push(h('p', { class: 'sub' }, ['彼らの紹介や息子の入部で、OBはこれからも部に返ってくる。']));
+      /* v0.24: OBの還元（紹介・息子の入部）の説明はガイド「OBネットワーク」へ移した */
     }
     var heroPanel = h('div', { class: 'heropanel grow' });
     heroPanel.appendChild(banner('home', 'herobg', G.monthIdx));
@@ -4180,11 +4482,10 @@ function finishRecruit() {
     var nGen = items.filter(function (o) { return o.x.kind === 'general'; }).length;
     var leftKids = [
       h('div', { class: 'gtitle' }, ['🌸 新入生紹介 ― ' + G.year + '年目の春']),
-      h('p', null, [items.length + '名の新入生が桜丘ラグビー部に入部した。卒業生が巣立ったグラウンドに、新しい顔ぶれが加わる。']),
+      /* v0.24: 表示テキスト最小化。入部の味付け文は削り、内訳の数値だけを残す */
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['スカウト入部']), h('span', null, [nScout + '名'])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['特別枠']), h('span', null, [nSp + '名'])]),
-      h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['一般入部']), h('span', null, [nGen + '名'])]),
-      h('p', { class: 'sub' }, ['まずは顔と名前を覚えよう。彼らの成長の物語は、ここから始まる。'])
+      h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['一般入部']), h('span', null, [nGen + '名'])])
     ];
     /* v0.22: 左はヒーローパネル（場面背景＋ガラス1枚）に統合する。v0.20 で避けたのは
      * 「バナーを帯として縦積みする」形で、パネル全面を背景にする形は帯化しない（主役は右の新入生カード列のまま） */
@@ -4349,6 +4650,12 @@ function finishRecruit() {
   }
 
   /* ---------------- 起動 ---------------- */
+  /* v0.24: スロットのメタを用意する（移行はこれだけ＝冪等）。既存セーブは STORE_KEY に
+   * そのまま残り、スロット1のデータとして自動で続きから始まる体験が維持される。
+   * チュートリアルは、既存セーブがある端末では完了扱いにして経験者に突然出さない */
+  var hadSaveAtBoot = false; try { hadSaveAtBoot = !!localStorage.getItem(STORE_KEY); } catch (e) {}
+  slotMeta();
+  tutInit(hadSaveAtBoot);
   if (!loadSaved()) G = null;
   if (G) { sanitize(); save(); showDigest = true; } /* マイグレーション結果を即永続化／v0.10: 再開時はあらすじを1回出す */
   if (G && G.recruit) screen = 'recruit';

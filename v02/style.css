@@ -586,3 +586,45 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
   .titlephoto .hero h1 { font-size: 22px; }
   .titlephoto .hero p { font-size: 12px; }
 }
+
+/* ===== v0.24: セーブスロット／設定画面／チュートリアル ===== */
+/* タイトルのスロット選択（3枠を横並び。タイトルの暗いガラス上の配色） */
+.slots { display: flex; gap: 8px; }
+.slotcol { flex: 1; min-width: 0; border: 1px solid rgba(255,255,255,.28); border-radius: 12px; padding: 7px 9px; text-align: left; cursor: pointer; background: rgba(255,255,255,.07); color: #f2f6f2; }
+.slotcol.sel { border-color: #ffd94d; background: rgba(255,217,77,.13); box-shadow: inset 0 0 0 1px #ffd94d; }
+.slothead { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 13.5px; }
+.slotlive { color: #ffd94d; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.slotsum { font-size: 12.5px; color: rgba(255,255,255,.88); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+/* 削除の確定ボタン（タイトル・設定共通） */
+.btn.danger { background: #c62f3b; color: #fff; border-color: transparent; }
+.hudbtn.danger { background: #c62f3b; color: #fff; border-color: transparent; }
+.hudbtn.on { background: var(--brand); color: var(--brand-ink); border-color: transparent; }
+/* 設定画面の行（.flatbox 内のヘアライン区切り。枠の入れ子は作らない） */
+.setrow { padding: 7px 0; border-bottom: 1px solid var(--line); }
+.setrow .setlab { flex: 1; min-width: 0; text-align: left; }
+.setdesc { display: block; }
+/* チュートリアルバー（通常フローに置く一言ガイド。絶対配置では重ねない） */
+.tutbar { display: flex; align-items: center; gap: 10px; background: var(--warn-soft); border: 1px solid #d9b64a; border-radius: 12px; padding: 7px 12px; font-size: 13.5px; text-align: left; }
+.tutbar .tuttxt { flex: 1; min-width: 0; }
+.tutbar .tutbtn { flex: none; }
+/* 週次：チュートリアルバーが出ている間だけ、バーを細くし、上段の最小高さ（場面 180px／ログ 46px）を
+ * 緩め、活動カードとステータスバーも一段詰めて、情報カラム（情報＋ログ）が収まる高さを確保する。
+ * バーが無い通常時は従来の寸法のまま（監査 05t が両寸法で検証） */
+.tutbar.tutsm { padding: 3px 10px; font-size: 12.5px; gap: 8px; }
+.wtop.hastut .wscene { min-height: 0; }
+.wtop.hastut .winfo { font-size: 13px; }
+.wtop.hastut .log { min-height: 30px; line-height: 1.35; font-size: 12.5px; }
+.wcards.hastut .wcard { padding: 6px 4px 5px; gap: 1px; }
+.wcards.hastut .wic { font-size: 20px; line-height: 1.1; }
+.wcards.hastut .wnm { line-height: 1.2; }
+.wcards.hastut .wdsc { min-height: 22px; line-height: 1.2; }
+.wcards.hastut .wbadge { min-height: 12px; }
+.wstatus.hastut { padding: 4px 12px; }
+.wstatus.hastut .wauto { padding-top: 4px; padding-bottom: 4px; }
+@media (min-width: 760px) and (orientation: landscape) and (max-height: 400px) {
+  .slotcol { padding: 5px 8px; }
+  .slotsum { font-size: 11.5px; }
+  .slothead { font-size: 12.5px; }
+  .tutbar { padding: 5px 10px; font-size: 12.5px; }
+  .setrow { padding: 5px 0; }
+}
