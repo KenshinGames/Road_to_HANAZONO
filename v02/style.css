@@ -305,3 +305,45 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
 .grboard .btn.grcheck { background: rgba(255, 255, 255, .94); color: #0a3d2a; border-color: transparent; }
 /* 初回ヒント（最初の月だけ月頭指示に出る1行） */
 .hintcard { background: var(--warn-soft); font-size: 14px; }
+
+/* ===== v0.17: 横画面レイアウト再整理 ===== */
+/* HUD：1行に収めるための圧縮（チップ＋ピルボタン）。横画面では折り返しを禁止する */
+.hud { padding: 6px 10px; gap: 4px 8px; border-radius: 12px; }
+.hud .ttl { font-size: 15px; white-space: nowrap; }
+.hud .chip { background: var(--brand-soft); border-radius: 99px; padding: 2px 10px; font-size: 13px; white-space: nowrap; }
+.hud .chip b { font-variant-numeric: tabular-nums; }
+.hudbtn { flex: none; padding: 5px 12px; border: 1px solid var(--line); border-radius: 99px; background: var(--card); color: var(--ink); font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.hudbtn:active { transform: scale(.97); }
+.hudbtn.icon { padding: 5px 10px; }
+@media (min-width: 760px) and (orientation: landscape) {
+  .hud { flex-wrap: nowrap; overflow: hidden; }
+}
+/* 画面下部の固定アクションバー（決定系ボタンの置き場。コンテンツに重ならない） */
+.actionbar { display: flex; gap: 10px; }
+.actionbar .btn { flex: 1; }
+/* 月頭指示のヒーローパネル：月のバナーを背景に敷き、半透明カードを重ねる（タイトル画面と同じ手法） */
+.heropanel { position: relative; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); min-height: 320px; }
+.heropanel .herobg { position: absolute; inset: 0; border: none; border-radius: 0; box-shadow: none; min-height: 0; }
+.herobody { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 10px; height: 100%; min-height: 0; }
+.glasscard { background: rgba(10, 15, 10, .68); color: #f2f6f2; border: 1px solid rgba(255, 255, 255, .22); border-radius: 12px; padding: 9px 12px; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.glasscard .sub { color: rgba(255, 255, 255, .78); }
+.glasscard .glab { flex: none; white-space: nowrap; margin-right: 10px; }
+.glasscard .gval { text-align: right; }
+.herolog { flex: 1; min-height: 0; overflow-y: auto; }
+@media (min-width: 760px) and (orientation: landscape) {
+  .heropanel { min-height: 0; }
+}
+/* 選手データ：master-detail の比率とタブ */
+.tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.tabbtn { flex: 1; padding: 7px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--sub); font-size: 14px; font-weight: 700; cursor: pointer; }
+.tabbtn.on { background: linear-gradient(90deg, #1b2a52, #26386a); color: #fff; border-color: transparent; }
+.tabhide { display: none; }
+.squadlist { overflow: auto; }
+@media (min-width: 760px) and (orientation: landscape) {
+  .lay2.laysquad { grid-template-columns: 1.5fr 1fr; }
+  .squadlist table.squad { font-size: 12px; }
+  .squadlist table.squad th, .squadlist table.squad td { padding: 4px 2px; }
+  .squadlist .pmini { width: 20px; height: 24px; margin-right: 4px; }
+  /* 対戦確認：バナーは固定比率、vs カードが残りを受けて内部スクロールする */
+  .banner.pmb { flex: 0 0 32%; min-height: 0; }
+}

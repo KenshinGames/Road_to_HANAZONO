@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Road to HANAZONO v0.16</title>
-<meta name="description" content="高校ラグビー育成ゲーム v0.16。監督として世代を超えて花園を目指す。">
+<title>Road to HANAZONO v0.17</title>
+<meta name="description" content="高校ラグビー育成ゲーム v0.17。監督として世代を超えて花園を目指す。">
 <meta name="theme-color" content="#f4f7f2" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#101410" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -322,12 +322,54 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
 /* 初回ヒント（最初の月だけ月頭指示に出る1行） */
 .hintcard { background: var(--warn-soft); font-size: 14px; }
 
+/* ===== v0.17: 横画面レイアウト再整理 ===== */
+/* HUD：1行に収めるための圧縮（チップ＋ピルボタン）。横画面では折り返しを禁止する */
+.hud { padding: 6px 10px; gap: 4px 8px; border-radius: 12px; }
+.hud .ttl { font-size: 15px; white-space: nowrap; }
+.hud .chip { background: var(--brand-soft); border-radius: 99px; padding: 2px 10px; font-size: 13px; white-space: nowrap; }
+.hud .chip b { font-variant-numeric: tabular-nums; }
+.hudbtn { flex: none; padding: 5px 12px; border: 1px solid var(--line); border-radius: 99px; background: var(--card); color: var(--ink); font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.hudbtn:active { transform: scale(.97); }
+.hudbtn.icon { padding: 5px 10px; }
+@media (min-width: 760px) and (orientation: landscape) {
+  .hud { flex-wrap: nowrap; overflow: hidden; }
+}
+/* 画面下部の固定アクションバー（決定系ボタンの置き場。コンテンツに重ならない） */
+.actionbar { display: flex; gap: 10px; }
+.actionbar .btn { flex: 1; }
+/* 月頭指示のヒーローパネル：月のバナーを背景に敷き、半透明カードを重ねる（タイトル画面と同じ手法） */
+.heropanel { position: relative; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); min-height: 320px; }
+.heropanel .herobg { position: absolute; inset: 0; border: none; border-radius: 0; box-shadow: none; min-height: 0; }
+.herobody { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 10px; height: 100%; min-height: 0; }
+.glasscard { background: rgba(10, 15, 10, .68); color: #f2f6f2; border: 1px solid rgba(255, 255, 255, .22); border-radius: 12px; padding: 9px 12px; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.glasscard .sub { color: rgba(255, 255, 255, .78); }
+.glasscard .glab { flex: none; white-space: nowrap; margin-right: 10px; }
+.glasscard .gval { text-align: right; }
+.herolog { flex: 1; min-height: 0; overflow-y: auto; }
+@media (min-width: 760px) and (orientation: landscape) {
+  .heropanel { min-height: 0; }
+}
+/* 選手データ：master-detail の比率とタブ */
+.tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.tabbtn { flex: 1; padding: 7px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--sub); font-size: 14px; font-weight: 700; cursor: pointer; }
+.tabbtn.on { background: linear-gradient(90deg, #1b2a52, #26386a); color: #fff; border-color: transparent; }
+.tabhide { display: none; }
+.squadlist { overflow: auto; }
+@media (min-width: 760px) and (orientation: landscape) {
+  .lay2.laysquad { grid-template-columns: 1.5fr 1fr; }
+  .squadlist table.squad { font-size: 12px; }
+  .squadlist table.squad th, .squadlist table.squad td { padding: 4px 2px; }
+  .squadlist .pmini { width: 20px; height: 24px; margin-right: 4px; }
+  /* 対戦確認：バナーは固定比率、vs カードが残りを受けて内部スクロールする */
+  .banner.pmb { flex: 0 0 32%; min-height: 0; }
+}
+
 </style>
 </head>
 <body>
 <div id="app" aria-live="polite"></div>
 <script>
-/* Road to HANAZONO v0.16 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.17 — 横画面 / 月＋すごろく進行 / 世代交代キャリアループ
  * v0.3: 選手データ拡張(身長・体重・性格・特能・信頼度) + 試合の場面連動型停止点 + 敗因の分解表示
  * v0.4: 新入生3層の完成(スカウト＋特別枠) + OB連携
  * v0.5: 立ち絵表現(パーツ組み合わせ式の自動生成) + 試合カットイン + 会話劇 + 季節感
@@ -350,7 +392,13 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
  * v0.16: 試合の采配（後半の戦術変更＝ハーフタイム／後半最初の停止点で攻め方を1回だけ変更でき、対応する勝負どころに +0.04 の小幅補正／
  *        PGキッカー指名＝対戦確認で任意指名。指名時は本人のキック値・特能・調子で成功率が決まり外れることもある（おまかせ時は従来どおり）／
  *        相手エースへのマーク指示＝エースの得点を抑える代わりに他の選手が動きやすくなるトレードオフ（得点ロール -2／+1.5、場面 -0.01〜+0.01）／
- *        交代パネルと編成の控え一覧に疲労・不調・ケガ明けの警告タグ）。指名と戦術変更は試合内の一時データで、セーブ形式は無変更 */
+ *        交代パネルと編成の控え一覧に疲労・不調・ケガ明けの警告タグ）。指名と戦術変更は試合内の一時データで、セーブ形式は無変更
+ * v0.17: 横画面レイアウト再整理（表示構造のみ。ゲームロジック・数値・セーブ形式は無変更）。
+ *        ①HUD を1行に圧縮（状態はチップ、選手一覧／記録・OB は右端ピル、遊び方はアイコンボタン化）
+ *        ②決定系ボタン（指示を確定／目標を決める／キックオフ／新年度を始める・新年度へ）を画面下部の固定アクションバーへ分離
+ *        ③月頭指示の左カラムを「月のバナーを背景＋半透明カード（目標・設備／最近の出来事）」のヒーローパネルに統合し、
+ *          バナーの帯状潰れとラベルの割れを解消 ④選手データを master-detail 化（左=一覧／右=詳細＋能力・プロフィールのタブ切替。
+ *          一覧テーブルと詳細の全項目は保持） ⑤対戦確認の vs カードを内部スクロール化して 1060×600 のはみ出しを解消 */
 (function () {
   'use strict';
   var STORE_KEY = 'hanazono.v02';
@@ -552,6 +600,7 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
   var selKickerId = null; /* v0.16: 対戦確認で指名した PG キッカー（選手ID）。null=おまかせ。startMatch で消費される */
   var selMarkId = null;   /* v0.16: 対戦確認で指名したエースのマークマン（選手ID）。null=なし。同上 */
   var lineupSlot = null;
+  var squadTab = 'stat'; /* v0.17: 選手詳細のタブ（'stat'=能力 / 'prof'=プロフィール）。表示専用でセーブには入れない */
   /* ===== v0.10: 効果音（WebAudio 合成・外部ファイルなし） =====
    * 設定はゲームのセーブとは別キー hanazono.sound に保存する。
    * AudioContext はユーザー操作の流れでのみ生成・再開し、失敗しても例外を外に出さない。
@@ -2705,23 +2754,32 @@ function finishRecruit() {
     if (screen === 'records') return recordsScreen();
     return boardScreen();
   }
+  /* v0.17: HUD は1行固定。状態表示は小さなチップにまとめ、画面遷移ボタンは右端のピルに集約する。
+   * 遊び方はアイコンボタン化。音トグルは運用・テスト上の理由で短いラベル（音ON/音OFF）を残す */
   function hudBtn(label, target) {
-    return h('button', { class: 'btn small', style: 'width:auto;padding:5px 12px', onclick: function () { screen = target; render(); } }, [label]);
+    return h('button', { class: 'hudbtn', onclick: function () { screen = target; render(); } }, [label]);
+  }
+  function hudChip(label, val) {
+    return h('span', { class: 'chip' }, [label + ' ', h('b', null, [val])]);
   }
   function hud() {
     var mo = MONTHS[G.monthIdx] || { m: '—' };
     return h('div', { class: 'hud' }, [
       h('span', { class: 'ttl' }, ['🏉 桜丘高校']),
-      h('span', { class: 'item' }, [G.year + '年目 ・ ' + mo.m]),
-      h('span', { class: 'item' }, ['部の格 ', h('b', null, [gradeOf().n])]),
-      h('span', { class: 'item' }, ['総合力 ', h('b', null, [String(teamPower())])]),
-      h('span', { class: 'item' }, ['評判 ', h('b', null, [String(G.rep)])]),
+      h('span', { class: 'chip' }, [G.year + '年目 ・ ' + mo.m]),
+      hudChip('部の格', gradeOf().n),
+      hudChip('総合力', String(teamPower())),
+      hudChip('評判', String(G.rep)),
       h('span', { class: 'sp' }, []),
       hudBtn('選手一覧', 'squad'),
       hudBtn('記録・OB', 'records'),
-      guideBtn('btn small', 'width:auto;padding:5px 12px'),
-      h('button', { class: 'btn small', style: 'width:auto;padding:5px 12px', onclick: function () { toggleSound(); } }, [soundOn ? '🔊 音ON' : '🔇 音OFF'])
+      h('button', { class: 'hudbtn icon', title: '遊び方', onclick: function () { guideFrom = screen; screen = 'guide'; render(); } }, ['📖']),
+      h('button', { class: 'hudbtn icon', title: soundOn ? 'サウンド ON（タップで OFF）' : 'サウンド OFF（タップで ON）', onclick: function () { toggleSound(); } }, [soundOn ? '🔊 音ON' : '🔇 音OFF'])
     ]);
+  }
+  /* v0.17: 画面下部の固定アクションバー。決定系ボタンはここに置き、コンテンツと重ならないようにする */
+  function actionBar(buttons) {
+    return h('div', { class: 'actionbar' }, buttons);
   }
   function wrap(children) {
     var w = h('div', { class: 'stack shell' });
@@ -2732,7 +2790,7 @@ function finishRecruit() {
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.16'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.17'])]),
       h('div', { class: 'card center title-card' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、進行カードで日々を進め、選手を育てよう。世代を超えて、花園の常連校を目指す。']),
         h('button', { class: 'btn primary', onclick: function () { newGame('normal'); screen = 'goal'; render(); } }, ['監督に就任する（ふつう）']),
@@ -2802,22 +2860,32 @@ function finishRecruit() {
         h('span', { class: 'd' }, [' — ' + gl.d + '（達成ボーナス 評判+' + repGain(4 + gl.rank * 2) + '〜）'])
       ]));
     });
-    var right = [box, h('button', { class: 'btn primary', onclick: function () { G.goalSet = true; save(); screen = 'inst'; render(); } }, ['目標を決めてシーズンを始める'])];
-    wrap([hud(), h('div', { class: 'lay2' }, [col(left), col(right)])]);
+    var right = [box];
+    wrap([hud(), h('div', { class: 'lay2' }, [col(left), col(right)]),
+      actionBar([h('button', { class: 'btn primary', onclick: function () { G.goalSet = true; save(); screen = 'inst'; render(); } }, ['目標を決めてシーズンを始める'])])]);
   }
   function instScreen() {
     var mo = MONTHS[G.monthIdx];
-    var left = [banner('train', 'grow', G.monthIdx)];
-    /* v0.9: 今年の目標と解放済み設備を左カラムに常時表示 */
+    /* v0.17: 左カラムは「月のバナーを背景に敷き、半透明カードを重ねる」ヒーローパネルに統合する
+     * （タイトル画面 v0.9.1 で実績のある手法）。バラ積みカードをやめ、バナーの帯状潰れと、
+     * ラベルが縦に割れる問題（設備など）を解消する。表示内容（目標・設備・難易度・最近の出来事）は従来どおり */
     var gObj = goalOf();
-    left.push(h('div', { class: 'card' }, [
-      h('div', { class: 'rowline' }, [h('span', null, ['🎯 今年の目標']), h('span', null, [gObj.n])]),
-      h('div', { class: 'rowline' }, [h('span', null, ['🏟 設備']), h('span', null, [FACILITIES.filter(function (f) { return hasFacility(f.k); }).map(function (f) { return f.n; }).join('・') || 'なし'])]),
-      G.difficulty === 'challenge' ? h('div', { class: 'rowline' }, [h('span', null, ['難易度']), h('span', null, ['チャレンジ'])]) : h('span', null, [])
-    ]));
+    var heroPanel = h('div', { class: 'heropanel grow' });
+    heroPanel.appendChild(banner('train', 'herobg', G.monthIdx));
+    var heroBody = h('div', { class: 'herobody' });
+    var glass = h('div', { class: 'glasscard' });
+    glass.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'glab' }, ['🎯 今年の目標']), h('span', { class: 'gval' }, [gObj.n])]));
+    glass.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'glab' }, ['🏟 設備']), h('span', { class: 'gval' }, [FACILITIES.filter(function (f) { return hasFacility(f.k); }).map(function (f) { return f.n; }).join('・') || 'なし'])]));
+    if (G.difficulty === 'challenge') glass.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'glab' }, ['難易度']), h('span', { class: 'gval' }, ['チャレンジ'])]));
+    heroBody.appendChild(glass);
     if (G.monthLog && G.monthLog.length) {
-      left.push(h('div', { class: 'card grow scroll' }, [h('div', { class: 'sub' }, ['最近の出来事'])].concat(G.monthLog.map(function (l) { return h('div', null, [l]); }))));
+      var glog = h('div', { class: 'glasscard herolog' });
+      glog.appendChild(h('div', { class: 'sub' }, ['最近の出来事']));
+      G.monthLog.forEach(function (l) { glog.appendChild(h('div', null, [l])); });
+      heroBody.appendChild(glog);
     }
+    heroPanel.appendChild(heroBody);
+    var left = [heroPanel];
     /* v0.15: 先月の成長レポートを作り替え。濃緑ボード＋色つき名前プレート＋「ランク 数値 → ランク 数値」形式
      * （データは v0.13 の growReport をそのまま使用し、様式のみ変更）。変化後の数値は現在の能力から
      * レポートの伸び分を差し引いて逆算し、矢印の幅がレポートの伸び分と一致するようにする。
@@ -2864,7 +2932,7 @@ function finishRecruit() {
       gr.appendChild(h('button', { class: 'btn small grcheck', onclick: function () { G.growReport = null; save(); render(); } }, ['確認した']));
       left.push(gr);
     }
-    var card = h('div', { class: 'card grow' });
+    var card = h('div', { class: 'card grow scroll' });
     card.appendChild(h('div', { class: 'sec' }, [mo.m + 'の練習指示' + (mo.camp ? '（合宿月：実り1.5倍）' : '') + (mo.match != null ? ' ／ 月末に試合あり' : '')]));
     var form = h('div', { class: 'form2' });
     function field(label, sel) { var d = h('div', null, [h('label', { class: 'lab' }, [label]), sel]); return d; }
@@ -2901,8 +2969,9 @@ function finishRecruit() {
     if (!G.hintSeen && G.year === 1 && G.monthIdx === 0) {
       right.push(h('div', { class: 'card hintcard' }, ['💡 まずは全体方針と重点育成する選手を選んで、月を始めよう。練習で選手が育ち、月末には試合が待っている']));
     }
-    right.push(card, h('button', { class: 'btn primary', onclick: function () { startMonth(); } }, ['指示を確定して月を始める']));
-    wrap([hud(), h('div', { class: 'lay2' }, [col(left), col(right)])]);
+    right.push(card);
+    wrap([hud(), h('div', { class: 'lay2' }, [col(left), col(right)]),
+      actionBar([h('button', { class: 'btn primary', onclick: function () { startMonth(); } }, ['指示を確定して月を始める'])])]);
   }
   function boardScreen() {
     var b = G.board;
@@ -2949,6 +3018,10 @@ function finishRecruit() {
     wrap([hud(), h('div', { class: 'lay2' }, [col([boardCard]), col(rightKids)])]);
     var lg = document.querySelector('.log'); if (lg) lg.scrollTop = lg.scrollHeight;
   }
+  /* v0.17: 選手データ画面を master-detail 化（左＝選手リスト／右＝選択中選手の詳細＋上部タブ）。
+   * パワプロの選手データ画面（photo-7）の様式に寄せ、詳細は「能力」「プロフィール」のタブで切り替える。
+   * 一覧テーブルの列構成と詳細の全項目（v0.15 のランク併記・特能タググリッド・調子の推移など）は保持し、配置だけを変える。
+   * タブの両ペインは DOM に残して表示だけを切り替える（切り替えた先にしか無い項目を作らないため） */
   function squadScreen() {
     if (!G.players.some(function (p) { return p.id === selPlayerId; })) selPlayerId = G.players[0] ? G.players[0].id : null;
     var table = h('table', { class: 'squad' });
@@ -2987,7 +3060,40 @@ function finishRecruit() {
       if (sel.id === G.captainId) bannerEl.appendChild(h('span', { class: 'pbadge cap' }, ['©主将']));
       if (sel.injured) bannerEl.appendChild(h('span', { class: 'pbadge inj' }, ['🚑負傷中']));
       detail.appendChild(bannerEl);
-      /* プロフィール帯：立ち絵＋体格・性格などの素性（従来の詳細情報を欠かさない） */
+      /* v0.17: 上部タブ（能力／プロフィール） */
+      detail.appendChild(h('div', { class: 'tabs' }, [
+        h('button', { class: 'tabbtn' + (squadTab === 'stat' ? ' on' : ''), onclick: function () { squadTab = 'stat'; render(); } }, ['能力']),
+        h('button', { class: 'tabbtn' + (squadTab === 'prof' ? ' on' : ''), onclick: function () { squadTab = 'prof'; render(); } }, ['プロフィール'])
+      ]));
+      /* 能力ペイン：能力値（ランク＋数値＋伸びしろメーター）と特能・個性タググリッド */
+      var statPane = h('div', { class: 'tabpane' + (squadTab === 'stat' ? '' : ' tabhide') });
+      statPane.appendChild(h('div', { class: 'sec' }, ['能力']));
+      STATS.forEach(function (s) {
+        var v = sel.stats[s.k];
+        var stage = v >= 99 ? '限界' : (v >= 93 ? '限界間近' : (v >= 85 ? 'あと少し' : ''));
+        var color = v >= 93 ? '#c62f3b' : (v >= 85 ? '#e8862e' : null);
+        var valSpan = h('span', { class: 'pstat-val' }, []);
+        valSpan.appendChild(rankValEl(v, 'lg'));
+        if (stage) valSpan.appendChild(document.createTextNode(' ・' + stage));
+        statPane.appendChild(h('div', { class: 'rowline' }, [
+          h('span', { class: 'sub' }, [s.n]),
+          valSpan
+        ]));
+        statPane.appendChild(h('div', { class: 'meter capmeter' }, [h('div', { style: 'width:' + v + '%' + (color ? ';background:' + color : '') }, [])]));
+      });
+      var totSpan = h('span', { class: 'pstat-val' }, []);
+      totSpan.appendChild(rankValEl(Math.round(overall(sel)), 'lg'));
+      statPane.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['総合']), totSpan]));
+      statPane.appendChild(h('div', { class: 'sec' }, ['特能・個性']));
+      var grid = h('div', { class: 'taggrid' });
+      var names = skillNames(sel);
+      if (!names.length && !sel.trait) grid.appendChild(h('span', { class: 'sub' }, ['なし']));
+      names.forEach(function (n) { grid.appendChild(h('span', { class: 'tag good' }, [n])); });
+      if (sel.trait) grid.appendChild(h('span', { class: 'tag ' + (sel.trait.n === '怪我がち' ? 'bad' : 'mid') }, [sel.trait.n]));
+      statPane.appendChild(grid);
+      detail.appendChild(statPane);
+      /* プロフィールペイン：立ち絵＋素性（体格・性格・ケガ）、記録、調子まわり、信頼度・疲労 */
+      var profPane = h('div', { class: 'tabpane' + (squadTab === 'prof' ? '' : ' tabhide') });
       var head = h('div', { class: 'detail-head' });
       head.appendChild(portraitEl(sel, 'detail-p'));
       var hinfo = h('div', { style: 'flex:1;min-width:0' });
@@ -2999,47 +3105,22 @@ function finishRecruit() {
         hinfo.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['ケガの状態']), h('span', null, [(sel.injSev === 'heavy' ? '重症' : '軽症') + '（' + (sel.injPart || '負傷') + '）・復帰まであと' + sel.injured + 'か月'])]));
       }
       head.appendChild(hinfo);
-      detail.appendChild(head);
-      /* 能力：ランク＋数値の行リスト（伸びしろの段階表示とメーターは従来どおり併記） */
-      detail.appendChild(h('div', { class: 'sec' }, ['能力']));
-      STATS.forEach(function (s) {
-        var v = sel.stats[s.k];
-        var stage = v >= 99 ? '限界' : (v >= 93 ? '限界間近' : (v >= 85 ? 'あと少し' : ''));
-        var color = v >= 93 ? '#c62f3b' : (v >= 85 ? '#e8862e' : null);
-        var valSpan = h('span', { class: 'pstat-val' }, []);
-        valSpan.appendChild(rankValEl(v, 'lg'));
-        if (stage) valSpan.appendChild(document.createTextNode(' ・' + stage));
-        detail.appendChild(h('div', { class: 'rowline' }, [
-          h('span', { class: 'sub' }, [s.n]),
-          valSpan
-        ]));
-        detail.appendChild(h('div', { class: 'meter capmeter' }, [h('div', { style: 'width:' + v + '%' + (color ? ';background:' + color : '') }, [])]));
-      });
-      var totSpan = h('span', { class: 'pstat-val' }, []);
-      totSpan.appendChild(rankValEl(Math.round(overall(sel)), 'lg'));
-      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['総合']), totSpan]));
-      /* 特能・個性：色つきタグのグリッド（特能=緑／個性=青／「怪我がち」は赤で注意色にする） */
-      detail.appendChild(h('div', { class: 'sec' }, ['特能・個性']));
-      var grid = h('div', { class: 'taggrid' });
-      var names = skillNames(sel);
-      if (!names.length && !sel.trait) grid.appendChild(h('span', { class: 'sub' }, ['なし']));
-      names.forEach(function (n) { grid.appendChild(h('span', { class: 'tag good' }, [n])); });
-      if (sel.trait) grid.appendChild(h('span', { class: 'tag ' + (sel.trait.n === '怪我がち' ? 'bad' : 'mid') }, [sel.trait.n]));
-      detail.appendChild(grid);
-      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['今季の記録']), h('span', null, ['トライ ' + (sel.srec ? sel.srec.tries : 0) + ' ／ 好プレー ' + (sel.srec ? sel.srec.plays : 0)])]));
-      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['キャリア通算']), h('span', null, ['トライ ' + (sel.crec ? sel.crec.tries : 0) + ' ／ 好プレー ' + (sel.crec ? sel.crec.plays : 0)])]));
-      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['調子']), h('span', null, [formFace(sel), '（成功率と練習効率に影響）'])]));
+      profPane.appendChild(head);
+      profPane.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['今季の記録']), h('span', null, ['トライ ' + (sel.srec ? sel.srec.tries : 0) + ' ／ 好プレー ' + (sel.srec ? sel.srec.plays : 0)])]));
+      profPane.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['キャリア通算']), h('span', null, ['トライ ' + (sel.crec ? sel.crec.tries : 0) + ' ／ 好プレー ' + (sel.crec ? sel.crec.plays : 0)])]));
+      profPane.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['調子']), h('span', null, [formFace(sel), '（成功率と練習効率に影響）'])]));
       /* v0.13: 調子の推移。直近最大6件を v0.12 の顔アイコン（固定サイズ・ラベルなし）の列で、古い順→最新で並べる */
       var histSpan = h('span', { class: 'formhist' }, []);
       if (sel.formHist && sel.formHist.length) sel.formHist.forEach(function (v) { histSpan.appendChild(formFaceVal(v)); });
       else histSpan.appendChild(document.createTextNode('―'));
-      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['調子の推移']), histSpan]));
-      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['信頼度']), h('span', null, [String(sel.trust) + '（采配の成功率に影響）'])]));
-      detail.appendChild(h('div', { class: 'meter' }, [h('div', { style: 'width:' + sel.trust + '%' }, [])]));
-      detail.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['疲労']), h('span', null, [String(sel.fatigue)])]));
+      profPane.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['調子の推移']), histSpan]));
+      profPane.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['信頼度']), h('span', null, [String(sel.trust) + '（采配の成功率に影響）'])]));
+      profPane.appendChild(h('div', { class: 'meter' }, [h('div', { style: 'width:' + sel.trust + '%' }, [])]));
+      profPane.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['疲労']), h('span', null, [String(sel.fatigue)])]));
+      detail.appendChild(profPane);
     }
-    wrap([hud(), h('div', { class: 'lay2' }, [
-      h('div', { class: 'card grow scroll' }, [h('div', { class: 'sec' }, ['選手一覧（行タップで詳細）']), table]),
+    wrap([hud(), h('div', { class: 'lay2 laysquad' }, [
+      h('div', { class: 'card grow scroll squadlist' }, [h('div', { class: 'sec' }, ['選手データ（行タップで詳細）']), table]),
       col([detail, h('button', { class: 'btn', onclick: function () { screen = G.recruit ? 'recruit' : (G.board ? 'board' : 'inst'); render(); } }, ['戻る'])])
     ])]);
   }
@@ -3136,7 +3217,7 @@ function finishRecruit() {
     var stNow = starters();
     if (selKickerId != null && !stNow.some(function (p) { return p.id === selKickerId; })) selKickerId = null;
     if (selMarkId != null && !stNow.some(function (p) { return p.id === selMarkId; })) selMarkId = null;
-    var vs = h('div', { class: 'card center' }, [
+    var vs = h('div', { class: 'card center grow scroll' }, [
       h('div', { class: 'big' }, ['vs ' + opp.name]),
       h('div', { class: 'sub' }, [opp.note]),
       opp.skill ? h('div', { class: 'sub' }, ['相手の特能：' + opp.skill.n]) : h('span', null, []),
@@ -3201,18 +3282,17 @@ function finishRecruit() {
       prep.appendChild(msel);
     }
     var rightKids = [box, prep,
-      h('button', { class: 'btn', onclick: function () { lineupSlot = null; screen = 'lineup'; render(); } }, ['👥 メンバー編成']),
-      h('button', { class: 'btn primary', onclick: function () { startMatch(mo.match); } }, ['キックオフ'])];
+      h('button', { class: 'btn', onclick: function () { lineupSlot = null; screen = 'lineup'; render(); } }, ['👥 メンバー編成'])];
     if (canSkip(mo.match)) {
       rightKids.push(h('button', { class: 'btn', onclick: function () { skipMatch(mo.match); } }, ['⏩ 結果のみ表示（スキップ）']));
       rightKids.push(h('div', { class: 'sub' }, ['戦力差の大きい格下戦は、経過を省略して結果と勝因・敗因だけを確認できる（決勝・花園では使えない）']));
     }
     /* v0.11: 花園の大一番（初戦・決勝）だけ、雨のナイター写真を試合バナーにする。通常の試合は従来の SVG バナー */
-    var matchBanner = mo.match >= 4 ? photoBanner('rain', 'grow') : banner('match', 'grow');
+    var matchBanner = mo.match >= 4 ? photoBanner('rain', 'pmb') : banner('match', 'pmb');
     wrap([hud(), h('div', { class: 'lay2' }, [
       col([matchBanner, vs]),
       col(rightKids)
-    ])]);
+    ]), actionBar([h('button', { class: 'btn primary', onclick: function () { startMatch(mo.match); } }, ['キックオフ'])])]);
   }
   /* v0.8: 停止点での交代パネル（右カラム・選択肢の下）。
    * 2タップ式：下げる選手 → 入れる選手。負傷交代は回数に数えない */
@@ -3356,7 +3436,8 @@ function finishRecruit() {
           h('h1', null, ['🏆 花園優勝！']),
           h('p', null, ['桜丘高校が全国の頂点に立った ― ' + G.year + '年目のシーズン'])
         ]),
-        h('div', { class: 'lay2' }, [col([result]), col([g, nextBtn])])
+        h('div', { class: 'lay2' }, [col([result]), col([g])]),
+        actionBar([nextBtn])
       ]);
       wrap([hud(), full]);
       return;
@@ -3364,8 +3445,8 @@ function finishRecruit() {
     /* v0.11: 通常のシーズン終了は「卒業の日」イラストをヒーローに（卒業生の送り出しが主役の画面） */
     wrap([hud(), h('div', { class: 'lay2' }, [
       col([photoBanner('graduation', 'grow'), result]),
-      col([g, nextBtn])
-    ])]);
+      col([g])
+    ]), actionBar([nextBtn])]);
   }
   function candHead(p) {
     var d = h('div', { class: 'cand-head' });
@@ -3430,8 +3511,8 @@ function finishRecruit() {
     });
     wrap([hud(), h('div', { class: 'lay2' }, [
       col([left]),
-      col([list, h('button', { class: 'btn primary', onclick: function () { finishRecruit(); } }, ['新年度を始める'])])
-    ])]);
+      col([list])
+    ]), actionBar([h('button', { class: 'btn primary', onclick: function () { finishRecruit(); } }, ['新年度を始める'])])]);
   }
   function recordsScreen() {
     var c = h('div', { class: 'card grow scroll' });
