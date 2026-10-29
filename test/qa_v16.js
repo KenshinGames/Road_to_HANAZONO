@@ -117,7 +117,7 @@ function flat(st, base, fat) {
 
 (async () => {
   /* ---- 0. 静的チェック ---- */
-  check('static: title is v1.1 (v0.25 でバージョン表記を追随)', html.includes('<title>Road to HANAZONO v1.1</title>')); /* v0.26: バージョン表記を v1.1 に追随 */
+  check('static: title is v1.2 (v0.25 でバージョン表記を追随)', html.includes('<title>Road to HANAZONO v1.2</title>')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */
   check('static: STORE_KEY unchanged', html.includes("STORE_KEY = 'hanazono.v02'"));
   ['HT_PLANS', 'htPlanScene', '後半の戦術変更', 'pgChance', 'kickerOf', 'markActive', 'warntag', 'warnReasons',
    'キッカー＆マーク', 'マーク指示', '今日のPGキッカーは', 'ケガ明け'].forEach(s => {

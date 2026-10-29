@@ -76,7 +76,7 @@ const FORM_NAMES = { '-2': '絶不調', '-1': '不調', '0': '普通', '1': '好
   /* ---- 1. タイトル：バージョン ---- */
   {
     const H = await makeDom(null, 111);
-    check('title: shows v1.1 (v0.25 でバージョン表記を追随)', H.text().includes('v1.1')); /* v0.26: バージョン表記を v1.1 に追随 */
+    check('title: shows v1.2 (v0.25 でバージョン表記を追随)', H.text().includes('v1.2')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */
     check('title: title photo still applied', !!H.document.querySelector('.titlephoto'));
     H.window.close();
   }

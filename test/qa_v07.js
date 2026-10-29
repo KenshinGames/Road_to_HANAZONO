@@ -52,15 +52,18 @@ function helpers(window, document) {
     const cap0 = st0.players.find(p => p.id === st0.captainId);
     const maxTrust = Math.max.apply(null, st0.players.map(p => p.trust));
     check('captain: initial captain is the most trusted player', cap0 && cap0.trust === maxTrust, 'cap=' + (cap0 && cap0.trust) + ' max=' + maxTrust);
+    /* v0.27 追随: 月頭指示は 方針・ユニット・強度・校風 がボタン列（.seg[data-k]）、重点・キャプテンがセレクト2個になった。
+     * 検証内容（6項目が揃っている／校風とキャプテンの変更が保存される）は不変 */
     const sels = d.document.querySelectorAll('select');
-    check('ui: six selects on inst screen (team/unit/focus/level/captain/ethos)', sels.length === 6, 'n=' + sels.length);
+    const segKeys = [...d.document.querySelectorAll('.seg[data-k]')].map(x => x.getAttribute('data-k')).join(',');
+    check('ui: six inst fields (team/unit/level/ethos buttons + focus/captain selects)', segKeys === 'team,unit,level,ethos' && sels.length === 2, 'segs=' + segKeys + ' selects=' + sels.length);
     /* 校風を変更できる */
-    sels[5].value = 'passion'; sels[5].onchange(); await sleep(10);
+    d.document.querySelector('.seg[data-k="ethos"] [data-v="passion"]').click(); await sleep(10);
     check('ethos: changing select updates state', h.state().ethos === 'passion');
-    sels[5].value = 'discipline'; sels[5].onchange(); await sleep(10);
+    d.document.querySelector('.seg[data-k="ethos"] [data-v="discipline"]').click(); await sleep(10);
     /* キャプテンを変更できる */
     const other = st0.players.find(p => p.id !== st0.captainId);
-    sels[4].value = String(other.id); sels[4].onchange(); await sleep(10);
+    sels[1].value = String(other.id); sels[1].onchange(); await sleep(10);
     check('captain: changing select updates state', h.state().captainId === other.id);
     d.window.close();
   }

@@ -17,10 +17,11 @@
 ## 2. 現在の状態（2026-10-29 時点）
 
 - **Web 版 1.0 完成**（開発版番 v0.25）。push コミット `136ef33b`。
-- **v1.1（開発版番 v0.26）を Claude Code が作成**（2026-10-30、ブランチ `claude/eager-ptolemy-b66hpu`）。成功率の◎○△表示／おまかせの交互選択／名前100種／場面イラスト3枚。詳細は DESIGN.md の v0.26 と review_v26/。**Pages（main）への反映は main へのマージ後**。
-- **要判断**：v1.1 のおまかせは自動プレイを明確に強くした（ソーク：勝率 0.825→0.856、初優勝 中央値 9→7年、花園優勝 延べ40→61）。数値は未変更。難易度を v1.0 相当に再校正するかは作者判断待ち（review_v26/soak_report.md）。
+- **v1.1（開発版番 v0.26）を Claude Code が作成**（2026-10-30、PR #1 で main にマージ済み・Pages 反映済み）。成功率の◎○△表示／おまかせの交互選択／名前100種／場面イラスト3枚。詳細は DESIGN.md の v0.26 と review_v26/。
+- **v1.2（開発版番 v0.27）を Claude Code が作成**（2026-10-30）。月頭指示のボタン列化（方針はスタメン平均ランク併記）／対戦確認の見出し帯＋キーマン先頭／練習ログの合算／選択中タイルの補足文の色／「n年目卒」／icon-180.png の暫定設置。すべて表示のみ（乱数・数値・セーブ形式は不変、v1.1 と同シードで完全一致）。詳細は DESIGN.md の v0.27 と review_v27/。
+- **難易度は決定済み**：v1.1 のおまかせ強化（自動プレイの勝率 0.825→0.856）は再校正しない（作者が Claude Code の判断に委ね、現状維持に決定）。実機で易しすぎると感じたら WK_SCALE の再校正＋ソーク A/B（review_v26/soak_report.md）。
 - 公開先（GitHub Pages）：https://kenshingames.github.io/Road_to_HANAZONO/v02/
-- 最終監査：全57画面 × 932×430／932×380 で「はみ出し・重なり・枠内見切れ」3点ゼロ、コンソールエラー0。
+- 最終監査：全61画面 × 932×430／932×380 で「はみ出し・重なり・枠内見切れ」3点ゼロ、コンソールエラー0（v0.27 はダークモードでも同じ61画面を監査）。
 - 長期ソーク（12キャリア×20年＝240シーズン）：勝率 0.825、初花園は全キャリア到達（中央値2年）、初優勝 12/12（中央値9年）。**バランス数値は検証済み。変える場合は必ずソークで A/B すること。**
 - 完成度見積もり：Web版1.0として約90%／当初の完成形全体で約55〜60%／iOSリリース定義で約30%。最大の弱点は立ち絵の質（パーツ式 SVG、作者評価 2/10）と iOS 未着手。
 
@@ -31,10 +32,11 @@
 | `DESIGN.md` | 全設計判断・改訂履歴・ランク表・iOS 移植メモ（完成版）。**判断の正はこれ** |
 | `v02/index.html` / `style.css` / `game.js` | ゲーム本体のソース |
 | `v02/play.html` | 単一ファイル版。**`build_play.py` で生成する。手で編集しない** |
-| `test/qa_v02.js` 〜 `qa_v26.js` | 各バージョンの QA（全パスが現行仕様）。jsdom は `cd test && npm install --no-save jsdom` |
+| `test/qa_v02.js` 〜 `qa_v27.js` | 各バージョンの QA（全パスが現行仕様）。jsdom は `cd test && npm install --no-save jsdom` |
 | `review_vXX/` | 各バージョンの監査記録とスクリーンショット |
 | `v02/img/` | 場面イラストの原画 JPEG 8枚（タイトル・優勝・卒業・合宿・雨・冬・練習場・部室）。ゲームは CSS 内の data URI を使い、ここは原画の保管と QA の実在確認用 |
 | `v02/icons/icon-256.png` | play.html に埋め込むアイコン（icon-512.png が無い時に build_play.py が使う） |
+| `v02/icons/icon-180.png` | index.html（Pages の /v02/）のファビコン兼ホーム画面アイコン。v0.27 で icon-256.png から縮小した暫定版 |
 | `review-tools/` | 監査用 puppeteer-core の置き場（node_modules のみ・git 管理外）。`PUPPETEER_SKIP_DOWNLOAD=1 npm install --prefix review-tools puppeteer-core` |
 | `docs/HIGGSFIELD_PLAN.md` | 立ち絵の生成AI化 試作プラン（§6-2） |
 
@@ -74,9 +76,9 @@
 - **Stage 0（アカウント作成・支払い）は作者本人の操作が必要。勝手に契約しないこと。**
 - 2026-10-30 時点：Claude Code セッションに Higgsfield MCP が接続済み（無料プラン・残り40クレジット）。無料プランの書き出しは透かし入りなので、本番素材の試作は月額プラン契約後。
 
-### 6-3. Pages アイコンの手動アップロード（作者作業）
+### 6-3. Pages アイコンの手動アップロード（作者作業 → icon-180 は暫定版で解消）
 
-- `v02/icons/icon-180.png` は未設置。GitHub コネクタ経由ではバイナリを置けないため、作者が GitHub Web からアップロードする（原本はローカルの refs/icon-180.png）。
+- `v02/icons/icon-180.png` は v0.27 で暫定版を設置済み（icon-256.png からの縮小。git で push したため置けた）。作者手元の原本（refs/icon-180.png）の方が良ければ GitHub Web から上書きする。`icon-512.png` は引き続き未設置（build_play.py は icon-256.png で代用）。
 - なお現行キービジュアルには Gilbert ボールのロゴが含まれる。**App Store 提出前に差し替え必須**。
 
 ## 7. 次フェーズ候補（未着手・作者の指示待ち）
@@ -95,6 +97,7 @@
 - Claude Code 側からの要請を受け、`build_play.py`、`test/`（qa_v02〜v25・ソーク2本）、`review_v03〜v25/`（notes・shoot.js・report・ログ・基準版 HTML）、ROADMAP 3点をリポジトリに追加した。QA 回帰と play.html 再生成がリポジトリ単体で可能になった。
 - 未収録のもの：① スクリーンショット（PNG 422枚）。コネクタではバイナリを置けないためで、監査の再実施時は各 review の shoot.js で再生成する。② node_modules。QA には jsdom、撮影には puppeteer が必要（各自 install）。③ `review_v19/work/` は作業中間物で、現行 QA は参照していない。
 - **バイナリ素材はリポジトリに無い（作者の GitHub Web 手動アップロード待ち）**：`v02/icons/icon-180.png`、`v02/icons/icon-512.png`（build_play.py がアイコンの data URI 生成に使う）、`v02/img/scene-winter.jpg`、`v02/img/scene-practice.jpg`、`v02/img/scene-clubroom.jpg`（§6-1 の組み込み対象）。既存の場面イラスト5枚とタイトル絵は style.css 内の data URI から復元可能。
+  - → 2026-10-30 追記：場面イラスト8枚は v0.26 で `v02/img/` に収録、`icon-180.png` は v0.27 で暫定版を収録（Claude Code が git で push）。未収録は `icon-512.png` のみ。
 
 ## 9. 作者との進め方
 

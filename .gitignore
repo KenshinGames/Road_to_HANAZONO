@@ -150,3 +150,4 @@ vite.config.ts.timestamp-*
 
 # 監査スクリーンショットは各 review の shoot.js で再生成する（リポジトリには入れない）
 review_*/screenshots/
+review_*/screenshots_dark/

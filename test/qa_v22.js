@@ -60,11 +60,11 @@ async function baseSave(seed) {
 
 (async () => {
   /* ===== 1. バージョン ===== */
-  check('version: <title> is v1.1', html.includes('<title>Road to HANAZONO v1.1</title>')); /* v0.26: バージョン表記を v1.1 に追随 */
+  check('version: <title> is v1.2', html.includes('<title>Road to HANAZONO v1.2</title>')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */
   {
     const H = load(null, 1);
     await sleep(15);
-    check('version: title screen shows v1.1', H.text().includes('v1.1')); /* v0.26: バージョン表記を v1.1 に追随 */
+    check('version: title screen shows v1.2', H.text().includes('v1.2')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */
     H.window.close();
   }
 
@@ -99,7 +99,9 @@ async function baseSave(seed) {
     H.click('確認した'); await sleep(10);
     const after = H.state();
     check('report: dismiss clears growReport', after.growReport === null);
-    check('report: instruction form appears after dismiss (6 selects)', H.document.querySelectorAll('select').length === 6, 'n=' + H.document.querySelectorAll('select').length);
+    /* v0.27 追随: 指示フォームは ボタン列4（方針・ユニット・強度・校風）＋セレクト2（重点・キャプテン） */
+    check('report: instruction form appears after dismiss (4 button rows + 2 selects)', H.document.querySelectorAll('.seg[data-k]').length === 4 && H.document.querySelectorAll('select').length === 2,
+      'segs=' + H.document.querySelectorAll('.seg[data-k]').length + ' selects=' + H.document.querySelectorAll('select').length);
     check('report: save keys unchanged by the whole flow', Object.keys(after).sort().join(',') === keysBefore);
     H.window.close();
   }
@@ -119,15 +121,19 @@ async function baseSave(seed) {
       check('hero: recent events log lives inside the single glass', !!hero.querySelector('.glasscard .herolog'));
       check('hero: recent events heading present', hero.textContent.includes('最近の出来事'));
     }
+    /* v0.27 追随: ユニット・強度・校風はセレクトからボタン列になった。文言の長さの予算は、ボタン内の表記と
+     * 校風の効果欄（短縮表記 s）に置き換えて同じ趣旨（切れない短さ）で検証する。重点・キャプテンはセレクトのまま */
     const sels = [...H.document.querySelectorAll('select')];
-    check('form: 6 selects present', sels.length === 6, 'n=' + sels.length);
-    if (sels.length === 6) {
+    const segTexts = k => [...H.document.querySelectorAll('.seg[data-k="' + k + '"] .segbtn')].map(b => b.textContent);
+    check('form: 2 selects present (focus/captain)', sels.length === 2, 'n=' + sels.length);
+    check('buttons: unit labels within budget (<=10 chars)', segTexts('unit').length === 3 && segTexts('unit').every(t => t.length <= 10), segTexts('unit').join(' / '));
+    check('buttons: level labels within budget (<=8 chars)', segTexts('level').length === 3 && segTexts('level').every(t => t.length <= 8), segTexts('level').join(' / '));
+    const note = H.document.querySelector('.seg[data-k="ethos"] .segnote');
+    check('buttons: ethos note uses the short label', !!note && note.textContent.length <= 13 && !note.textContent.includes(' ― '), note ? note.textContent : 'none');
+    if (sels.length === 2) {
       const texts = sels.map(s => [...s.options].map(o => o.text));
-      check('select: unit options within budget (<=14 chars)', texts[1].every(t => t.length <= 14), texts[1].join(' / '));
-      check('select: focus options carry no personality/trait suffix', texts[2].every(t => (t.match(/・/g) || []).length === 1 && t.length <= 20), texts[2][0]);
-      check('select: level options within budget (<=10 chars)', texts[3].every(t => t.length <= 10), texts[3].join(' / '));
-      check('select: captain options within budget (<=14 chars)', texts[4].every(t => t.length <= 14), texts[4][0]);
-      check('select: ethos options use the short label', texts[5].every(t => t.length <= 13 && !t.includes(' ― ')), texts[5].join(' / '));
+      check('select: focus options carry no personality/trait suffix', texts[0].every(t => (t.match(/・/g) || []).length === 1 && t.length <= 20), texts[0][0]);
+      check('select: captain options within budget (<=14 chars)', texts[1].every(t => t.length <= 14), texts[1][0]);
     }
     H.window.close();
   }

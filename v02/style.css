@@ -47,6 +47,8 @@ body {
 .choice { text-align: left; }
 .choice .t { font-weight: 700; }
 .choice .d { color: var(--sub); font-size: 13px; font-weight: 400; }
+/* v0.27: 選択中（primary）の目標・戦術では補足文を地の文字色に寄せる。灰色（--sub）のままだと濃い緑の上で読みにくかった */
+.btn.primary.choice .d { color: var(--brand-ink); opacity: .85; }
 /* v0.26: 勝負どころの成功率の目安（◎○△×）。数値の代わりに段階と色で示す */
 .choice .smark { font-size: 15px; font-weight: 800; }
 .smark.sm1 { color: #15803d; } .smark.sm2 { color: #2563b8; } .smark.sm3 { color: #c26a00; } .smark.sm4 { color: #c62f3b; }
@@ -355,7 +357,7 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
   .squadlist table.squad { font-size: 12px; }
   .squadlist table.squad th, .squadlist table.squad td { padding: 4px 2px; }
   .squadlist .pmini { width: 20px; height: 24px; margin-right: 4px; }
-  /* 対戦確認：バナーは固定比率、vs カードが残りを受けて内部スクロールする */
+  /* 対戦確認：バナーは固定比率、vs カードが残りを受けて内部スクロールする（v0.27 以降、バナーは見出し帯 .pmhero の背景で、この指定は効かない） */
   .banner.pmb { flex: 0 0 32%; min-height: 0; }
 }
 
@@ -638,4 +640,54 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
   .slothead { font-size: 12.5px; }
   .tutbar { padding: 5px 10px; font-size: 12.5px; }
   .setrow { padding: 5px 0; }
+}
+
+/* ===== v0.27: 月頭指示のボタン列（選択肢の少ない4項目のセレクトを置き換え） =====
+ * 1行＝左のラベル＋右のボタン列。選択中は淡い緑の面と太い緑の枠（濃い面にするとランク文字の色が読めなくなるため） */
+.segs { display: flex; flex-direction: column; gap: 6px; margin-bottom: 2px; }
+.segrow { display: flex; align-items: center; gap: 8px; }
+.seglab { flex: 0 0 64px; font-size: 13px; color: var(--sub); line-height: 1.25; }
+.seglabsub { display: block; font-size: 10px; }
+.seg { flex: 1; min-width: 0; display: flex; gap: 4px; align-items: stretch; }
+.segbtn {
+  flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 3px 2px; min-height: 36px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--card); color: var(--ink); font: inherit; font-size: 13px; line-height: 1.25; cursor: pointer;
+}
+.segbtn .segt { font-weight: 700; white-space: nowrap; }
+.segbtn .segd { font-size: 11px; color: var(--sub); white-space: nowrap; }
+.segbtn .rkval.sm { font-size: 11px; }
+.segbtn .rkval.sm .rk { font-size: 12px; }
+.segbtn.on { background: var(--brand-soft); border-color: var(--brand); box-shadow: inset 0 0 0 1.5px var(--brand); }
+.segbtn.on .segd { color: var(--ink); }
+.seg .segnote { flex: 1.3 1 0; min-width: 0; align-self: center; font-size: 12px; color: var(--sub); white-space: nowrap; padding-left: 4px; }
+@media (min-width: 760px) and (orientation: landscape) and (max-height: 400px) {
+  .segs { gap: 4px; }
+  .segbtn { min-height: 32px; padding: 2px; }
+}
+
+/* ===== v0.27: 対戦確認の見出し帯（バナーを背景に、vs 相手校と総合力の比較をガラスに載せる） ===== */
+.heropanel.pmhero { flex: none; min-height: 0; }
+.pmhero .herobody { padding: 8px; }
+.pmglass { display: flex; align-items: center; gap: 12px; }
+.pmglass .pmwho { flex: 1; min-width: 0; }
+.pmglass .pmvs { font-size: 18px; font-weight: 800; line-height: 1.3; }
+.pmglass .pmpow { flex: none; display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.pmglass .pmnum { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; color: rgba(255, 255, 255, .82); }
+.pmglass .pmnum.up { color: #ffd94d; }
+.pmcard > :first-child { margin-top: 0; border-top: none; padding-top: 0; }
+.pmcard .pmlineup { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px; }
+/* キーマン対比の列：立ち絵を左、名前と能力を右に置く */
+.kmcol { align-items: stretch; }
+.kmcol .kmhead { text-align: center; }
+.kmbody { display: flex; gap: 8px; align-items: center; }
+.kmbody .portrait { flex: none; }
+.kminfo { flex: 1; min-width: 0; line-height: 1.35; }
+.kminfo .kmname { font-size: 14.5px; }
+.kminfo .rowline { padding: 0; }
+.kminfo .kmskill { line-height: 1.3; }
+@media (min-width: 760px) and (orientation: landscape) and (max-height: 400px) {
+  .pmglass .pmvs { font-size: 16px; }
+  .pmglass .pmnum { font-size: 19px; }
+  .pmhero .herobody { padding: 6px; }
 }

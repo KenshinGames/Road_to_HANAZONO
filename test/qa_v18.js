@@ -103,7 +103,7 @@ function keymanOppOverall(H) {
 
 (async () => {
   /* ---- 0. 静的チェック ---- */
-  check('static: title is v1.1', html.includes('<title>Road to HANAZONO v1.1</title>')) /* v0.25: バージョン表記を追随 */; /* v0.26: バージョン表記を v1.1 に追随 */
+  check('static: title is v1.2', html.includes('<title>Road to HANAZONO v1.2</title>')) /* v0.25: バージョン表記を追随 */; /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */
   check('static: STORE_KEY unchanged', html.includes("STORE_KEY = 'hanazono.v02'"));
   ['oppAceAt', 'genOppAce', 'aceTenure', 'aceStatsOf', 'aceOverallOf', 'acePortraitEl',
    'キーマン対比', 'rivalEvent', 'STREAK_COMM', 'streakOf', 'streakText', 'career.streaks'].forEach(s => {
