@@ -38,6 +38,12 @@ function helpers(w, document) {
   return { text, btn, state, click };
 }
 /* 現在の画面から試合前画面（キックオフボタンが見える状態）まで進めるヘルパー */
+/* v0.27 追随: 対戦確認の相手の総合力は、見出し帯（.pmhero）の比較「総合力 自校 対 相手」の右側の数値に一本化された
+ * （v1.1 までは「相手の総合力 41」行をテキストで探していた）。表示される値そのものを検証する点は不変 */
+function oppPowShown(document) {
+  const nums = [...document.querySelectorAll('.pmhero .pmnum')];
+  return nums.length === 2 ? nums[1].textContent.trim() : null;
+}
 async function gotoPreMatch(h, document) {
   let guard = 0;
   while (guard++ < 400) {
@@ -93,7 +99,7 @@ async function gotoPreMatch(h, document) {
     const d2 = await makeDom(JSON.stringify(st), 777);
     const h2 = helpers(d2.window, d2.document);
     await gotoPreMatch(h2, d2.document);
-    check('difficulty: challenge opp power +3 in preMatch', h2.text().includes('総合力41'), h2.text().slice(0, 200));
+    check('difficulty: challenge opp power +3 in preMatch', oppPowShown(d2.document) === '41', oppPowShown(d2.document));
     d.window.close(); d2.window.close();
   }
 
@@ -109,7 +115,7 @@ async function gotoPreMatch(h, document) {
     check('rival: scouting shows ace with grade', t.includes('白鳥 圭') && t.includes('2年'), t.slice(0, 260));
     check('rival: scouting shows 通算 row', t.includes('帝都との通算'));
     /* 基準: 69 + 年次0 + エース2年ボーナス2 = 71 */
-    check('rival: opp power includes grade bonus (71)', t.includes('総合力71'), t.slice(0, 260));
+    check('rival: opp power includes grade bonus (71)', oppPowShown(d.document) === '71', oppPowShown(d.document));
     d.window.close();
 
     const st3 = JSON.parse(baseSave);
@@ -118,7 +124,7 @@ async function gotoPreMatch(h, document) {
     const d3 = await makeDom(JSON.stringify(st3), 99);
     const h3 = helpers(d3.window, d3.document);
     await gotoPreMatch(h3, d3.document);
-    check('rival: grade 3 ace makes opp stronger (73)', h3.text().includes('総合力73'), h3.text().slice(0, 200));
+    check('rival: grade 3 ace makes opp stronger (73)', oppPowShown(d3.document) === '73', oppPowShown(d3.document));
     d3.window.close();
   }
 
