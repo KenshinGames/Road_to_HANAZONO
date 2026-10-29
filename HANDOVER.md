@@ -85,6 +85,12 @@
 - バイナリ（PNG 等）はコネクタ経由で置けない（§6-3）。画像は data URI としてテキストに埋めるか、作者の手動アップロードに回す。
 - ソーク測定は単一スレッド・逐次で実行する（並列負荷で結果が歪む）。
 
+## 10. 追記（2026-10-30：QA・ビルド一式をリポジトリへ追加）
+
+- Claude Code 側からの要請を受け、`build_play.py`、`test/`（qa_v02〜v25・ソーク2本）、`review_v03〜v25/`（notes・shoot.js・report・ログ・基準版 HTML）、ROADMAP 3点をリポジトリに追加した。QA 回帰と play.html 再生成がリポジトリ単体で可能になった。
+- 未収録のもの：① スクリーンショット（PNG 422枚）。コネクタではバイナリを置けないためで、監査の再実施時は各 review の shoot.js で再生成する。② node_modules。QA には jsdom、撮影には puppeteer が必要（各自 install）。③ `review_v19/work/` は作業中間物で、現行 QA は参照していない。
+- **バイナリ素材はリポジトリに無い（作者の GitHub Web 手動アップロード待ち）**：`v02/icons/icon-180.png`、`v02/icons/icon-512.png`（build_play.py がアイコンの data URI 生成に使う）、`v02/img/scene-winter.jpg`、`v02/img/scene-practice.jpg`、`v02/img/scene-clubroom.jpg`（§6-1 の組み込み対象）。既存の場面イラスト5枚とタイトル絵は style.css 内の data URI から復元可能。
+
 ## 9. 作者との進め方
 
 - 未確定の設計判断は、作り込む前に質問してから実装する。
