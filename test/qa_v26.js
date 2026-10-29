@@ -280,6 +280,8 @@ async function playOmakase(html, seed, maxYear, onWeek) {
     check('photos: December instruction uses the winter art', !!x2.document.querySelector('.photo-winter'), x2.text().slice(0, 80));
     h2.window.close();
     check('size: play.html stays under 3.5MB', Buffer.byteLength(HTML, 'utf8') < 3.5 * 1024 * 1024, Buffer.byteLength(HTML, 'utf8'));
+    const oldUris = HTML_V25.match(/data:image\/jpeg;base64,[A-Za-z0-9+\/=]+/g) || [];
+    check('photos: the 5 existing data URIs are byte-identical to v1.0', oldUris.length === 5 && oldUris.every(u => HTML.includes(u)), oldUris.length);
   }
 
   /* ---- 6. v1.0 の実セーブで継続できる（セーブ形式は不変） ---- */

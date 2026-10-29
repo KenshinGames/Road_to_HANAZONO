@@ -3540,7 +3540,8 @@ function finishRecruit() {
     var heroPanel = h('div', { class: 'heropanel grow' });
     heroPanel.appendChild(photoBanner('clubroom', 'herobg')); /* v0.26: 年初のミーティングは部室のイラスト */
     var heroBody = h('div', { class: 'herobody' });
-    var glass = h('div', { class: 'glasscard glassfill' }, [
+    /* v0.26: 中身は固定の4行だけなので、ガラスは内容の高さに留め、下に部室のイラストを見せる（glassfill だと写真がほぼ隠れた） */
+    var glass = h('div', { class: 'glasscard' }, [
       h('div', { class: 'gtitle' }, ['🎯 ' + G.year + '年目の目標を決めよう']),
       /* v0.24: 表示テキスト最小化。目標の仕組み（達成ボーナスの大小・未達時の扱い）は
        * ガイド「① 年初の目標」へ移し、ここは判断に直結する数値だけを残す */

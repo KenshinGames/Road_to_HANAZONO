@@ -109,7 +109,7 @@ function keymanOppOverall(H) {
    'キーマン対比', 'rivalEvent', 'STREAK_COMM', 'streakOf', 'streakText', 'career.streaks'].forEach(s => {
     check('static: play.html contains ' + s, html.includes(s));
   });
-  check('static: play.html under 2.5MB', Buffer.byteLength(html, 'utf8') < 2500000, Buffer.byteLength(html, 'utf8') + ' bytes');
+  check('static: play.html under 3.5MB', Buffer.byteLength(html, 'utf8') < 3500000, Buffer.byteLength(html, 'utf8') + ' bytes'); /* v0.26: 場面イラスト3枚の追加に伴い上限を 3.5MB に見直し */
 
   const base = await freshSave(777);
   check('save: fresh save has career.streaks = {}', JSON.stringify(JSON.parse(base).career.streaks) === '{}');

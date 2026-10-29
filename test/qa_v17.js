@@ -66,7 +66,7 @@ async function driveToPreMatch(H) {
     check('static: play.html contains ' + s, html.includes(s));
   });
   const uriCount = (html.match(/data:image\/jpeg;base64,\/9j\//g) || []).length;
-  check('static: photo data URIs untouched (5 jpegs)', uriCount === 5, 'count=' + uriCount);
+  check('static: photo data URIs = 5 originals + 3 added in v0.26', uriCount === 8, 'count=' + uriCount); /* v0.26 追随: 冬・練習場・部室の3枚を追加（既存5枚の不変は qa_v26 と review_v26 で確認） */
 
   const base = await freshSave(777);
 

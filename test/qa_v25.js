@@ -207,6 +207,9 @@ async function makeLcgDom(html, seed) {
         if (sels[3] && sels[3].value !== '1') { sels[3].value = '1'; if (sels[3].onchange) sels[3].onchange(); }
         click('指示を確定'); await sleep(2); continue;
       }
+      /* v0.26 追随: 週次は本命ソーク（soak_v19_ab）と同じゲーム内蔵「おまかせ」で進める。先頭カード固定は偏った参照方針で、
+       * 名前生成の乱数経路が変わると同じシードでも花園到達が9年目にずれた（v1.0 でも10年かかるシードがある）。導線の検証が目的のため最適寄りに揃える */
+      if (btn('おまかせ（月末まで自動）')) { click('おまかせ（月末まで自動）'); await sleep(0); continue; }
       const pc = document.querySelector('.pcard');
       if (pc) { pc.click(); await sleep(0); continue; }
       const wc = document.querySelector('.wcard');
