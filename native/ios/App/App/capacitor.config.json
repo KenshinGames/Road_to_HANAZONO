@@ -8,5 +8,10 @@
 		"zoomEnabled": false,
 		"allowsLinkPreview": false
 	},
+	"plugins": {
+		"SystemBars": {
+			"hidden": true
+		}
+	},
 	"packageClassList": []
 }

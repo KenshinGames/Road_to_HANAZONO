@@ -180,6 +180,8 @@ const SAVE_KEYS = ['hanazono.v02', 'hanazono.slot.1', 'hanazono.slot.2', 'hanazo
   check('プラグイン名が native-boot.js と一致', swift.includes('jsName = "HanazonoStore"') && fs.readFileSync(www + '/native-boot.js', 'utf8').includes("'HanazonoStore'"));
   const cfg = JSON.parse(fs.readFileSync(ROOT + '/native/capacitor.config.json', 'utf8'));
   check('capacitor.config：appId・webDir', cfg.appId === 'com.kenshingames.hanazono' && cfg.webDir === 'www');
+  check('capacitor.config：ステータスバーとホームインジケータを隠す（SystemBars）', cfg.plugins && cfg.plugins.SystemBars && cfg.plugins.SystemBars.hidden === true);
+  check('capacitor.config：Xcode 側の写しも同じ設定', JSON.parse(fs.readFileSync(ROOT + '/native/ios/App/App/capacitor.config.json', 'utf8')).plugins.SystemBars.hidden === true);
   check('AppDelegate：音は消音スイッチに従う（.ambient）', fs.readFileSync(ROOT + '/native/ios/App/App/AppDelegate.swift', 'utf8').includes('setCategory(.ambient'));
 
   console.log('[6] native-boot.js（偽のネイティブ橋）');

@@ -7,5 +7,10 @@
     "contentInset": "never",
     "zoomEnabled": false,
     "allowsLinkPreview": false
+  },
+  "plugins": {
+    "SystemBars": {
+      "hidden": true
+    }
   }
 }
