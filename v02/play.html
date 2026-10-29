@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Road to HANAZONO v0.22</title>
+<title>Road to HANAZONO v0.23</title>
 <meta name="description" content="高校ラグビー育成ゲーム v0.22。監督として週ごとに活動を選び、世代を超えて花園を目指す。">
 <meta name="theme-color" content="#f4f7f2" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#101410" media="(prefers-color-scheme: dark)">
@@ -312,7 +312,7 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
 .grrole { background: #07271a; color: #ffd94d; border: 1px solid rgba(255, 217, 77, .5); border-radius: 4px; font-size: 11px; font-weight: 700; padding: 1px 5px; white-space: nowrap; }
 .grplate { display: inline-block; border-radius: 4px; padding: 1px 9px; font-weight: 800; color: #20301f; white-space: nowrap; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .18); }
 .gryear { background: #123a5e; color: #fff; border-radius: 4px; font-size: 11px; font-weight: 700; padding: 1px 5px; white-space: nowrap; }
-.grchg { display: flex; flex-wrap: wrap; gap: 4px 14px; flex: 1; min-width: 180px; font-size: 13px; }
+.grchg { display: flex; flex-wrap: wrap; gap: 4px 10px; flex: 1; min-width: 180px; font-size: 13px; } /* v0.23: 項目間を詰め、全項目が伸びた行でも1行に収まりやすくする */
 .gritem { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .gritem .rkval { font-weight: 700; }
 .grarrow { color: #ffd94d; font-weight: 900; margin: 0 3px; }
@@ -460,6 +460,15 @@ table.cmp td.cmpblurb { font-size: 12px; line-height: 1.5; color: var(--sub); mi
   .wdlgbar .portrait.dlg-p { width: 32px; height: 38px; }
   .wdlgbar .wdlgtx { font-size: 12px; line-height: 1.35; }
 }
+/* v0.23: さらに縦の短い環境（932×380 級）では場面まわりとガラスをもう一段詰める
+ * （932×380 監査で検出した .wscene の 6px / 目標ガラスの 4px のはみ出しへの対策） */
+@media (min-width: 760px) and (orientation: landscape) and (max-height: 400px) {
+  .wsceneov { padding: 8px 12px 0; gap: 4px; }
+  .wdlgbar { margin: auto 8px 6px; }
+  .glasscard { padding: 7px 10px; }
+  .gtitle { margin-bottom: 4px; }
+  .herobody { gap: 6px; }
+}
 
 /* ===== v0.21: 演出と動き（表示専用。レイアウト寸法・配置は変えず、transform と opacity だけで動かす。
  * 重ねるのは得点バナーの固定レイヤー（トーストと同じ考え方）のみで、画面内の要素同士は重ねない。
@@ -524,13 +533,22 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
 /* ガラスカード内の区切り線と見出し（場面背景の上に置く前提の白文字） */
 .glassdiv { border-top: 1px solid rgba(255, 255, 255, .22); margin: 7px 0 2px; }
 .gtitle { font-weight: 800; font-size: 15px; color: #fff; margin-bottom: 6px; }
-.glasscard.glassfill { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.glasscard.glassfill { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; } /* v0.23: 有効高さが小さい環境ではガラスの内容が枠外へ描画されず、内側スクロールで受ける（目標・紹介・指示の各ヒーロー） */
 .glassscroll { overflow-y: auto; }
 .glasscard .tabs { margin-bottom: 4px; }
 /* 週次画面の情報欄：枠を外し、下のログとはヘアラインで区切る */
 .winfo { border: none; border-bottom: 1px solid var(--line); border-radius: 0; box-shadow: none; background: transparent; padding: 2px 2px 8px; }
-/* 成長レポート専用レイアウト：画面幅いっぱいのボードに全行を収める（見切れ・スクロールなし） */
-.grboard.grfull { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 7px 14px; border: 1px solid #062b1c; border-radius: 14px; }
+/* v0.23 実機見切れ修正：週次画面の右カラムは、情報欄を固定（flex:none）し、ログに最低高さ 46px
+ * （1行＋余白が潰れずに収まる高さ）を保証する。有効高さが小さい環境でもログの文字が
+ * 上下見切れないようにし、溢れる分はログ側の内部スクロールで受ける */
+.wtop .winfo { flex: none; }
+.wtop .log { min-height: 46px; }
+/* 成長レポート専用レイアウト：画面幅いっぱいのボードに見出しと行リストを flex 配分する。
+ * v0.23: 行は .grlist（flex:1・min-height:0・内部スクロール）が残り高さを受け、入り切らない分は
+ * リスト側がスクロールする。ボード自体も overflow:hidden にし、行がボード外へ描画されて
+ * 下のアクションバーに重なることを構造的に防ぐ（v0.22 の実機見切れへの対策） */
+.grboard.grfull { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 7px 14px; border: 1px solid #062b1c; border-radius: 14px; overflow: hidden; }
+.grfull .grlist { flex: 1; min-height: 0; overflow-y: auto; }
 .grhead { display: flex; align-items: baseline; gap: 14px; }
 .grhead .grtitle { flex: 1; margin: 0 0 4px; }
 .grhead .grmore { white-space: nowrap; }
@@ -563,7 +581,26 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
 @media (min-width: 760px) and (orientation: landscape) and (max-height: 520px) {
   /* 縦の短い実機寸法ではセレクトとレポート行をさらに詰める */
   select { padding: 7px 9px; font-size: 14px; }
-  .grfull .grrow { padding: 2px 0; }
+  .grfull .grrow { padding: 1px 0; }
+  .grfull .grtitle { font-size: 14px; }
+}
+
+/* ===== v0.23: タイトル画面の高さ対策（BGM 設定行の追加分を吸収する） =====
+ * カード内は flex の gap で余白を管理し、段落マージンの累積で高さが膨らまないようにする。
+ * 縦の短い寸法では写真の余白・見出し・ボタンを段階的に詰め、932×380 でも
+ * ヒーロー（タイトル文字）が画面の上へ押し出されないようにする */
+.titlewrap .title-card { display: flex; flex-direction: column; gap: 8px; }
+.titlewrap .title-card > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+@media (min-width: 760px) and (orientation: landscape) and (max-height: 520px) {
+  .titlewrap.titlephoto { padding: 14px 26px; gap: 8px; }
+  .titlephoto .hero h1 { font-size: 26px; }
+}
+@media (min-width: 760px) and (orientation: landscape) and (max-height: 400px) {
+  .titlewrap.titlephoto { padding: 8px 26px; gap: 6px; }
+  .titlewrap .title-card { gap: 7px; }
+  .titlewrap .title-card .btn { padding: 8px 10px; }
+  .titlephoto .hero h1 { font-size: 22px; }
+  .titlephoto .hero p { font-size: 12px; }
 }
 
 </style>
@@ -571,7 +608,11 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
 <body>
 <div id="app" aria-live="polite"></div>
 <script>
-/* Road to HANAZONO v0.22 — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+/* Road to HANAZONO v0.23 — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+ * v0.23: 音楽＋キャリアの厚み（BGM＝WebAudio 合成の4系統〈タイトル／日常／試合／大一番〉を場面で切替。設定は効果音の
+ *        hanazono.sound とは別キー hanazono.bgm に保存し既存設定は壊さない／OBイベント拡充＝名前と進路を持つ OB の再訪・
+ *        差し入れ・進路のその後を排他スロットで追加／部の格の節目＝gradeSeen で一度だけ祝福し、名門到達後は記録室に
+ *        長期目標〈連覇・次の節目〉と OB ネットワークの見える化を追加。イベント効果は既存範囲内、ソーク A/B で偏りなしを確認）
  * v0.22: デザイン・スリム化＋場面イラスト拡充（枠の入れ子を解消し、区切りは余白と最小限の線で作る＝全体の余白とカード padding を一段詰め、
  *        入れ子枠は .flatbox で外す／成長レポートは月頭指示の隅で見切れさせず専用レイアウトで全行表示／最近の出来事はヒーローの
  *        ガラスカードに統合し潰れない高さを確保／セレクトの選択肢文言とラベルを短縮して文字切れを解消／場面背景（ヒーローパネル）を
@@ -810,6 +851,14 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
     { n: '中堅', min: 70, fresh: 40, count: 8 }, { n: '強豪', min: 110, fresh: 43, count: 9 },
     { n: '名門', min: 160, fresh: 46, count: 10 }
   ];
+  /* v0.23: 部の格が上がった時の節目メッセージ（index は GRADES と対応。0＝弱小は到達節目ではないため空） */
+  var GRADE_UP_MSGS = [
+    '',
+    '地域でも「桜丘は伸びている」と噂されるようになった',
+    '県内でも一目置かれる存在に。練習を見学する中学生も増えてきた',
+    '県の強豪として名前が挙がるようになった。ライバル校も警戒を強めている',
+    '全国に名の知れた名門の仲間入り。ここからは、勝ち続けることが伝統になる。連覇と OB のネットワークが部の新しい財産だ（記録・OB で確認できる）'
+  ];
   var MONTHS = [
     { m: '4月', cells: 12 }, { m: '5月', cells: 12 }, { m: '6月', cells: 12, match: 0 },
     { m: '7月', cells: 12 }, { m: '8月', cells: 12, camp: true }, { m: '9月', cells: 12 },
@@ -1031,6 +1080,134 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
   function soundBtn() {
     return h('button', { class: 'btn', onclick: function () { toggleSound(); } }, [soundOn ? '🔊 サウンド ON' : '🔇 サウンド OFF']);
   }
+  /* ===== v0.23: BGM（WebAudio 合成・外部ファイルなし） =====
+   * 場面で切り替わる4系統（タイトル／日常／試合／大一番＝花園本戦）の短いループを、
+   * 効果音と共有の AudioContext で合成する。設定は効果音の hanazono.sound（'0'/'1' 形式）とは
+   * 別キーの hanazono.bgm に JSON で保存し、既存の効果音設定は一切壊さない（完全な後方互換）。
+   * 自動再生制限のため、初回のユーザー操作（pointerdown）までは開始しない。
+   * タブが背面に回ったらスケジューラを止め、前面に戻ったら再開する。
+   * 時短スキップ（sfxSuppressed）中も BGM は場面の曲をそのまま流す（効果音だけを重ねない従来仕様とは別）。
+   * パターンは決定的（乱数を使わない）で、ゲームの乱数列・判定・セーブには一切影響しない。
+   * AudioContext が無い環境（jsdom 等）では全て無音で素通りする。
+   * QA からは window.__hzBgm() で {on, vol, want, playing, unlocked} を読み取れる */
+  var BGM_KEY = 'hanazono.bgm';
+  var bgmOn = true, bgmVol = 0.65;
+  try {
+    var bgmSaved = JSON.parse(localStorage.getItem(BGM_KEY) || 'null');
+    if (bgmSaved && typeof bgmSaved === 'object') {
+      bgmOn = bgmSaved.on !== false && bgmSaved.on !== 0;
+      if (typeof bgmSaved.v === 'number' && isFinite(bgmSaved.v)) bgmVol = Math.min(1, Math.max(0.05, bgmSaved.v));
+    }
+  } catch (e) {}
+  function saveBgm() { try { localStorage.setItem(BGM_KEY, JSON.stringify({ on: bgmOn ? 1 : 0, v: bgmVol })); } catch (e) {} }
+  function mf(m) { return 440 * Math.pow(2, (m - 69) / 12); } /* MIDI ノート→周波数 */
+  /* 4小節ループ： chords=小節ごとのパッド和音（MIDI）、bass=小節ごとの根音、lead=32ステップ中の旋律（MIDI、無いステップは無音）、
+   * arp=和音の分散和音（日常のみ）、drive=8分音符で根音を刻む（試合系） */
+  var BGM_TRACKS = {
+    title: { bpm: 76, chords: [[57, 60, 64], [53, 57, 60], [55, 60, 64], [55, 59, 62]], bass: [45, 41, 48, 43], lead: { 0: 69, 4: 72, 8: 76, 12: 74, 16: 72, 20: 69, 24: 67, 28: 64 }, arp: 0, drive: 0 },
+    daily: { bpm: 96, chords: [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]], bass: [48, 45, 41, 43], lead: { 0: 72, 6: 74, 10: 76, 16: 79, 22: 76, 26: 74 }, arp: 1, drive: 0 },
+    match: { bpm: 112, chords: [[50, 53, 57], [46, 50, 53], [53, 57, 60], [48, 52, 55]], bass: [38, 34, 41, 36], lead: { 0: 62, 8: 65, 16: 69, 24: 65 }, arp: 0, drive: 1 },
+    big: { bpm: 122, chords: [[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62]], bass: [33, 29, 36, 31], lead: { 0: 69, 4: 76, 12: 81, 16: 79, 20: 76, 28: 72 }, arp: 0, drive: 1 }
+  };
+  var BGM = { playing: null, step: 0, nextT: 0, timer: null, gain: null, unlocked: false };
+  function bgmGainNode(ac) {
+    if (!BGM.gain) { BGM.gain = ac.createGain(); BGM.gain.gain.value = 0.16 * bgmVol; BGM.gain.connect(ac.destination); }
+    return BGM.gain;
+  }
+  function bnote(m, t0, dur, v, type) {
+    var ac = audioCtx(); if (!ac) return;
+    try {
+      var osc = ac.createOscillator(), g = ac.createGain();
+      osc.type = type || 'triangle';
+      osc.frequency.setValueAtTime(mf(m), t0);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(v, t0 + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g); g.connect(bgmGainNode(ac));
+      osc.start(t0); osc.stop(t0 + dur + 0.05);
+    } catch (e) {}
+  }
+  function bgmSchedule() {
+    var ac = audioCtx(); if (!ac || !BGM.playing) return;
+    var tr = BGM_TRACKS[BGM.playing]; if (!tr) return;
+    var stepDur = 60 / tr.bpm / 2; /* 8分音符 */
+    while (BGM.nextT < ac.currentTime + 0.35) {
+      var st = BGM.step, bar = Math.floor(st / 8) % 4, s8 = st % 8, t0 = BGM.nextT;
+      var chord = tr.chords[bar], root = tr.bass[bar];
+      if (s8 === 0) for (var ci = 0; ci < chord.length; ci++) bnote(chord[ci], t0, stepDur * 7.6, 0.035, 'sine'); /* パッド */
+      if (tr.drive) {
+        bnote(root, t0, stepDur * 0.9, 0.11, 'triangle');
+        if (s8 % 2 === 1) bnote(root + 12, t0, stepDur * 0.5, 0.045, 'triangle');
+      } else {
+        if (s8 === 0) bnote(root, t0, stepDur * 3.5, 0.09, 'sine');
+        if (s8 === 4) bnote(root + 7, t0, stepDur * 2.5, 0.055, 'sine');
+        if (tr.arp) bnote(chord[st % chord.length] + 12, t0, stepDur * 0.8, 0.026, 'triangle');
+      }
+      var ld = tr.lead[st % 32];
+      if (ld) bnote(ld, t0, stepDur * 1.8, 0.05, 'sine');
+      BGM.step++; BGM.nextT += stepDur;
+    }
+  }
+  function bgmStopSched() { if (BGM.timer) { clearInterval(BGM.timer); BGM.timer = null; } }
+  function bgmHalt() { /* 完全停止（BGM OFF 時）。予約済みの短い音はフェードして鳴り切る */
+    bgmStopSched(); BGM.playing = null;
+    if (BGM.gain && AC) { try { BGM.gain.gain.setTargetAtTime(0.0001, AC.currentTime, 0.03); } catch (e) {} }
+  }
+  function bgmStart(track) {
+    var ac = audioCtx(); if (!ac) return;
+    bgmStopSched();
+    BGM.playing = track; BGM.step = 0; BGM.nextT = ac.currentTime + 0.06;
+    try { bgmGainNode(ac).gain.setTargetAtTime(0.16 * bgmVol, ac.currentTime, 0.05); } catch (e) {}
+    BGM.timer = setInterval(bgmSchedule, 120);
+    bgmSchedule();
+  }
+  /* いまの画面で流すべき系統。ガイド表示中は曲を変えない（null ではなく「現状維持」を返すため BGM.playing を返す） */
+  function bgmWanted() {
+    if (!bgmOn) return null;
+    if (!G) return 'title';
+    if (screen === 'guide') return BGM.playing;
+    if (screen === 'match') return (M && M.oppIdx >= 4) ? 'big' : 'match';
+    if (screen === 'preMatch') { var mi2 = MONTHS[G.monthIdx] ? MONTHS[G.monthIdx].match : null; return (mi2 != null && mi2 >= 4) ? 'big' : 'match'; }
+    return 'daily';
+  }
+  function bgmSync() {
+    var want = bgmWanted();
+    if (!want) { if (BGM.playing) bgmHalt(); return; }
+    if (!BGM.unlocked) return; /* 初回タップまでは鳴らさない（自動再生制限） */
+    if (typeof document !== 'undefined' && document.hidden) return;
+    if (BGM.playing === want && BGM.timer) return;
+    if (BGM.playing !== want) { bgmStart(want); return; }
+    /* 背面で止めていたスケジューラの再開 */
+    var ac = audioCtx(); if (!ac) return;
+    BGM.nextT = ac.currentTime + 0.06;
+    BGM.timer = setInterval(bgmSchedule, 120);
+    bgmSchedule();
+  }
+  function toggleBgm() { bgmOn = !bgmOn; saveBgm(); bgmSync(); render(); }
+  function setBgmVol(v) {
+    bgmVol = v; saveBgm();
+    if (BGM.gain && AC) { try { BGM.gain.gain.setTargetAtTime(0.16 * bgmVol, AC.currentTime, 0.03); } catch (e) {} }
+    render();
+  }
+  function bgmBtn() {
+    return h('button', { class: 'btn', onclick: function () { toggleBgm(); } }, [bgmOn ? '🎵 BGM ON' : '🎵 BGM OFF']);
+  }
+  function bgmVolBtns() {
+    return [[0.35, '小'], [0.65, '中'], [1, '大']].map(function (d) {
+      return h('button', { class: 'btn small' + (Math.abs(bgmVol - d[0]) < 0.01 ? ' primary' : ''), onclick: function () { setBgmVol(d[0]); } }, ['音量' + d[1]]);
+    });
+  }
+  try {
+    document.addEventListener('pointerdown', function () { BGM.unlocked = true; bgmSync(); }, true);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) bgmStopSched(); /* 背面ではスケジューラを止める（BGM.playing は保持し、前面復帰で再開） */
+      else bgmSync();
+    });
+    window.__hzBgm = function () {
+      var w = null; try { w = bgmWanted(); } catch (e) {}
+      return { on: bgmOn, vol: bgmVol, want: w, playing: BGM.playing, unlocked: BGM.unlocked };
+    };
+  } catch (e) {}
   var guideFrom = 'title'; /* 遊び方ガイドから戻る先 */
   function guideBtn(cls, sty) {
     var at = { class: cls, onclick: function () { guideFrom = screen; screen = 'guide'; render(); } };
@@ -1247,7 +1424,7 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
     namePool = {};
     G = {
       year: 1, monthIdx: 0, players: [], obs: [], rep: 30, nextId: 1,
-      career: { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0, wins: 0, maxBest: 0, achv: {}, seasonHist: [], oppRec: {}, captains: [], streaks: {} },
+      career: { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0, wins: 0, maxBest: 0, achv: {}, seasonHist: [], oppRec: {}, captains: [], streaks: {}, titleStreak: 0, bestTitleStreak: 0 },
       season: { wins: 0, losses: 0, result: '予選敗退', bestWin: 0, hanaWins: 0, hanaTitle: false, injuries: 0 },
       inst: { team: 'sta', unit: 'FW', focus: 1, level: 0 },
       captainId: null, ethos: 'discipline', lineup: null,
@@ -1313,7 +1490,16 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
     G.players.forEach(fixPlayer);
     /* v0.6: 通算記録の欠けたフィールドを補完（花園優勝回数など） */
     if (!G.career || typeof G.career !== 'object') G.career = { hana: 0, hanaWins: 0, titles: 0, hanaTitles: 0, seasonHist: [], oppRec: {}, captains: [], streaks: {} };
-    ['hana', 'hanaWins', 'titles', 'hanaTitles', 'wins', 'maxBest'].forEach(function (k) {
+    /* v0.23: 花園の連覇記録（長期目標の素材）。欠けている旧セーブは、記録済みのシーズン別成績
+     * （seasonHist）から導出する（推測ではなく記録からの復元。seasonHist が無い古いセーブは 0 から育てる） */
+    if (typeof G.career.titleStreak !== 'number' || !isFinite(G.career.titleStreak) || typeof G.career.bestTitleStreak !== 'number' || !isFinite(G.career.bestTitleStreak)) {
+      var shT = Array.isArray(G.career.seasonHist) ? G.career.seasonHist : [], runT = 0, bestT = 0, curT = 0;
+      shT.forEach(function (sh) { if (sh && String(sh.result || '').indexOf('花園優勝') >= 0) { runT++; if (runT > bestT) bestT = runT; } else runT = 0; });
+      for (var ti2 = shT.length - 1; ti2 >= 0; ti2--) { if (shT[ti2] && String(shT[ti2].result || '').indexOf('花園優勝') >= 0) curT++; else break; }
+      if (typeof G.career.titleStreak !== 'number' || !isFinite(G.career.titleStreak)) G.career.titleStreak = curT;
+      if (typeof G.career.bestTitleStreak !== 'number' || !isFinite(G.career.bestTitleStreak)) G.career.bestTitleStreak = bestT;
+    }
+    ['hana', 'hanaWins', 'titles', 'hanaTitles', 'wins', 'maxBest', 'titleStreak', 'bestTitleStreak'].forEach(function (k) {
       if (typeof G.career[k] !== 'number' || !isFinite(G.career[k])) G.career[k] = 0;
     });
     /* v0.10: 実績。最高到達（倒した相手の最大index）を今季と履歴結果から復元し、判定できる実績はトーストなしで補完する */
@@ -1395,6 +1581,9 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
     if (!Array.isArray(G.facSeen)) {
       G.facSeen = FACILITIES.filter(function (f) { return gradeIdx() >= f.gi; }).map(function (f) { return f.k; });
     }
+    /* v0.23: 部の格の節目を祝った最高位。旧セーブは現在の格を到達済みとして初期化する（遡っては祝わない） */
+    if (typeof G.gradeSeen !== 'number' || !isFinite(G.gradeSeen)) G.gradeSeen = gradeIdx();
+    G.gradeSeen = clamp(Math.round(G.gradeSeen), 0, GRADES.length - 1);
     /* v0.15: 初回ヒントの表示済みフラグ。旧セーブは「最初の月（1年目・4月）にいる場合だけ未表示」として移行する */
     if (typeof G.hintSeen !== 'boolean') G.hintSeen = !(G.year === 1 && G.monthIdx === 0);
     if (!G.players.some(function (p) { return p.id === G.captainId; })) {
@@ -1730,6 +1919,16 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
     var s = (G.career && G.career.streaks) ? G.career.streaks[name] : 0;
     return (typeof s === 'number' && isFinite(s)) ? s : 0;
   }
+  /* v0.23: 長期目標の「次の節目」（表示専用。記録済みの優勝回数と連覇カウントから出す） */
+  function longGoalText() {
+    var t = (G.career && G.career.hanaTitles) || 0, ts = (G.career && G.career.titleStreak) || 0;
+    if (!t) return 'まずは花園初優勝 ―― 名門の歴史はここから';
+    if (ts < 2) return '花園2連覇まで あと1回（来年も優勝で達成）';
+    if (ts < 3) return '花園3連覇まで あと' + (3 - ts) + '回';
+    if (t < 5) return '通算5回目の花園優勝まで あと' + (5 - t) + '回';
+    if (t < 10) return '通算10回目の花園優勝まで あと' + (10 - t) + '回';
+    return '優勝 ' + t + ' 回・' + ts + '連覇中。前人未到の記録を伸ばし続けよう';
+  }
   function streakText(st) {
     if (st >= 2) return '目下 ' + st + '連勝中';
     if (st <= -2) return '目下 ' + (-st) + '連敗中';
@@ -1774,6 +1973,17 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
     if (newFac.length) {
       G.facSeen = (G.facSeen || []).concat(newFac.map(function (f) { return f.k; }));
       G.board.log.push('🏟 設備が解放された！ ' + newFac.map(function (f) { return f.n + '（' + f.d + '）'; }).join('／'));
+    }
+    /* v0.23: 部の格が上がったら節目として一度だけ知らせる（G.gradeSeen で管理し、格が下がって
+     * 再び上がっても祝い直さない）。名門では長期目標への誘い文も GRADE_UP_MSGS 側に含む */
+    var giNow = gradeIdx();
+    if (giNow > (G.gradeSeen || 0)) {
+      for (var gg = (G.gradeSeen || 0) + 1; gg <= giNow; gg++) {
+        G.board.log.push('🎉 部の格が「' + GRADES[gg].n + '」に上がった！ ' + GRADE_UP_MSGS[gg]);
+      }
+      G.gradeSeen = giNow;
+      var capG = captainOf();
+      if (capG && !G.board.dlg) G.board.dlg = { pid: capG.id, text: dlgLine(capG, 'gradeup') };
     }
     screen = 'board';
     save(); render();
@@ -2113,8 +2323,50 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
     G.rep += repGain(3);
     return { t: '📰 スポーツ紙が「桜丘の ' + op.name + ' への ' + c.st + '連勝」を取り上げた。注目度が上がった（評判 +' + repGain(3) + '）', dlg: dlg };
   }
+  /* v0.23: OBイベントの拡充。卒業生（G.obs）がいる時だけ、名前と進路を持つ OB が
+   * 再訪・差し入れ・進路のその後として登場する（従来の無名 OB 来訪とは別枠の排他スロット。
+   * ライバルイベントと同じ流儀で、材料が無ければ乱数を引かずに従来の抽選へ落ちるため、
+   * OB がいない序盤の乱数列は従来と変わらない）。進路（ob.path）は OB 名鑑の記録と
+   * 同一データを使うので、名鑑表示と矛盾しない。効果はすべて既存イベントの範囲内に収める
+   * （次の試合 +2／評判 repGain(3)／全員の疲労 -8／1年生の信頼 +3。既存の無名 OB 来訪は +3） */
+  function obEvent() {
+    if (!G.obs.length) return null;
+    if (Math.random() >= 0.12) return null;
+    var ob = pick(G.obs);
+    var cap = captainOf();
+    var dlg = cap ? { pid: cap.id, text: dlgLine(cap, 'obVisit') } : null;
+    var kinds = ['visit', 'gift', 'path'];
+    if (G.obs.length >= 10) kinds.push('network');
+    var kind = pick(kinds);
+    if (kind === 'gift') {
+      G.players.forEach(function (p) { p.fatigue = Math.max(0, p.fatigue - 8); });
+      return { t: '🎁 OBの ' + ob.name + 'さん（' + ob.year + '年卒・' + ob.pos + '）から差し入れが届いた。練習後の補食に全員が舌鼓を打ち、疲労が少し抜けた', dlg: dlg };
+    }
+    if (kind === 'network') {
+      G.rep += repGain(3);
+      return { t: '🤝 OB会の集まりで、現役への支援が申し合わされた。OBネットワークは ' + G.obs.length + ' 人に育ち、部の評判も押し上げた（評判 +' + repGain(3) + '）。このつながりは、勧誘での OB 紹介にも生きている', dlg: dlg };
+    }
+    if (kind === 'path') {
+      if (ob.path === '大学でラグビー継続') {
+        G.rep += repGain(3);
+        return { t: '📰 OBの近況。' + ob.name + 'さん（' + ob.year + '年卒）は大学でもラグビーを続け、先日の試合に出場したという。先輩の活躍が部の注目度を上げた（評判 +' + repGain(3) + '）', dlg: dlg };
+      }
+      if (ob.path === '実業団へ就職') {
+        G.nextBonus = Math.min(bonusCap(), G.nextBonus + 2);
+        return { t: '💼 OBの ' + ob.name + 'さん（' + ob.year + '年卒）が仕事の合間に顔を出し、社会人ラグビーの厳しさと面白さを語ってくれた。選手たちの目の色が変わった（次の試合 +2）', dlg: dlg };
+      }
+      if (ob.path === '大学進学（受験）') {
+        G.players.filter(function (p) { return p.year === 1; }).forEach(function (p) { gainTrust(p, 3); });
+        return { t: '🎓 OBの ' + ob.name + 'さん（' + ob.year + '年卒）から、大学での勉強と文武両道の近況が届いた。1年生たちの意欲と信頼が育った', dlg: dlg };
+      }
+      /* 進路が未記録の旧 OB は再訪として扱う（下へ落ちる） */
+    }
+    G.nextBonus = Math.min(bonusCap(), G.nextBonus + 2);
+    return { t: '🏉 OBの ' + ob.name + 'さん（' + ob.year + '年卒・' + ob.pos + '）が練習に顔を出し、後輩に混ざって汗を流した。「グラウンドは変わらないな」と笑う先輩の姿に、士気が上がった（次の試合 +2）', dlg: dlg };
+  }
   function rollEvent() {
     var re = rivalEvent(); if (re) return re;
+    var oe = obEvent(); if (oe) return oe;
     var r = Math.random();
     if (r < 0.24) return null;
     var healthy = G.players.filter(function (p) { return !p.injured; });
@@ -2949,8 +3201,11 @@ if (G.history.length > 60) G.history = G.history.slice(-60);
 if (!Array.isArray(G.career.seasonHist)) G.career.seasonHist = [];
 G.career.seasonHist.push({ y: G.year, result: G.season.result, w: G.season.wins, l: G.season.losses, grade: gradeOf().n, goal: goalObj.n, goalOk: !!goalEval.ok });
 if (G.career.seasonHist.length > 30) G.career.seasonHist = G.career.seasonHist.slice(-30);
+/* v0.23: 花園の連覇カウント（長期目標の素材。記録のみで勝敗の数式には使わない。seasonEnd は1シーズンに1回だけ通る） */
+if (G.season.hanaTitle) { G.career.titleStreak = (G.career.titleStreak || 0) + 1; if (G.career.titleStreak > (G.career.bestTitleStreak || 0)) G.career.bestTitleStreak = G.career.titleStreak; }
+else G.career.titleStreak = 0;
 G.summary = {
-result: G.season.result, wins: G.season.wins, losses: G.season.losses,
+result: G.season.result, wins: G.season.wins, losses: G.season.losses, titleStreak: G.career.titleStreak || 0,
 goalEval: goalEval,
 grade: gradeOf().n, grads: grads.map(function (p) { return { name: p.name, pos: POSITIONS[p.posIdx].p, avg: Math.round(overall(p))};}),
 firstHana: G.qualified && G.career.hana === 1,
@@ -3297,7 +3552,11 @@ function finishRecruit() {
       senior: { 'リーダー気質': '基礎が一番大事だ。焦らなくていい', '真面目': '分からないことは何でも聞いて。去年の自分を見ているようだ', '熱血': '1年、遠慮するな！ ガンガンいけ！', 'default': '教えることで、自分の基礎も固まります' },
       future2: { '熱血': '進路は決めた。あとは花園で全部出すだけです！', '真面目': 'やるべきことは終わりました。最後の冬に集中します', 'default': '決めました。あとはこのチームで勝つだけです' },
       /* v0.18: ライバル専用イベントのキャプテンの一言 */
-      rival: { '熱血': 'あの相手には、絶対に負けたくないっす！', 'リーダー気質': '相手のことより、自分たちのラグビーを磨こう', 'クール': '…データは見た。次は勝ち方も変わる', 'default': '次の対戦が楽しみです。全力でぶつかります' }
+      rival: { '熱血': 'あの相手には、絶対に負けたくないっす！', 'リーダー気質': '相手のことより、自分たちのラグビーを磨こう', 'クール': '…データは見た。次は勝ち方も変わる', 'default': '次の対戦が楽しみです。全力でぶつかります' },
+      /* v0.23: 名前のある OB の再訪・差し入れ・近況への現役（主将）の一言 */
+      obVisit: { '熱血': '先輩、見ててください！ 俺たち、もっと強くなります！', 'リーダー気質': '伝統をつないでくれて、ありがとうございます', 'クール': '…先輩の代を超えるのが、恩返しだと思ってます', 'default': '先輩、ありがとうございます！ 次の試合、絶対に勝ちます' },
+      /* v0.23: 部の格が上がった節目での主将の一言 */
+      gradeup: { '熱血': 'この部の名に恥じない戦いを、毎年続けましょう！', 'リーダー気質': 'ここからが本当の勝負。伝統は自分たちで作るものだ', 'クール': '…格が上がっても、やることは変わらない', 'default': '先輩たちが作ってくれた伝統を、次につなげます' }
     };
     var m = T[kind] || {};
     return m[p.person] || m['default'] || '';
@@ -3436,6 +3695,7 @@ function finishRecruit() {
   }
   function render() {
     sanitize();
+    bgmSync(); /* v0.23: 画面に合わせて BGM の系統を同期する（未解禁・背面・OFF では何もしない） */
     /* v0.21: 実効画面キーが変わった時だけ入場演出を予約する */
     var fxKey = !G ? 'title' : screen;
     FX.enterPending = !FX.off && FX.lastKey !== fxKey;
@@ -3491,13 +3751,14 @@ function finishRecruit() {
   function col(children) { return h('div', { class: 'col' }, children); }
   function titleScreen() {
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.22'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v0.23'])]),
       h('div', { class: 'card center title-card' }, [
         h('p', null, ['弱小・桜丘高校ラグビー部の監督に就任した。月頭に練習指示を出し、1週間ごとに活動を選んで選手を育てよう。世代を超えて、花園の常連校を目指す。']),
         h('button', { class: 'btn primary', onclick: function () { newGame('normal'); screen = 'goal'; render(); } }, ['監督に就任する（ふつう）']),
         h('button', { class: 'btn', onclick: function () { newGame('challenge'); screen = 'goal'; render(); } }, ['監督に就任する（チャレンジ）']),
         h('p', { class: 'sub' }, ['難易度は開始時だけの選択。チャレンジは相手が少し強く（全校+3）、評判の伸びが渋い（×0.7）']),
-        h('div', { class: 'hand', style: 'margin-top:10px;justify-content:center' }, [guideBtn('btn'), soundBtn()])
+        h('div', { class: 'hand', style: 'margin-top:10px;justify-content:center' }, [guideBtn('btn'), soundBtn(), bgmBtn()]),
+        h('div', { class: 'hand', style: 'margin-top:8px;justify-content:center;align-items:center' }, [h('span', { class: 'sub' }, ['BGM音量'])].concat(bgmVolBtns()))
       ])
     ]);
     mount(h('div', { class: 'stack shell' }, [inner]));
@@ -3551,7 +3812,7 @@ function finishRecruit() {
     var heroBody = h('div', { class: 'herobody' });
     var glass = h('div', { class: 'glasscard glassfill' }, [
       h('div', { class: 'gtitle' }, ['🎯 ' + G.year + '年目の目標を決めよう']),
-      h('p', null, ['シーズンの物差しになる目標を1つ選ぶ。達成すれば評判が上がり、格上の目標を達成すればなお大きい。届かなくても罰は小さい（評判-3）から、思い切って高い目標を掲げるのも監督の腕の見せどころ。']),
+      h('p', null, ['シーズンの物差しになる目標を1つ選ぶ。達成すれば評判が上がり、格上の目標ならなお大きい。届かなくても罰は小さい（評判-3）。思い切って高い目標を掲げるのも監督の腕の見せどころ。']), /* v0.23: 932×380 で最終行がガラス下端に張り付いたため文を締めた */
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['現在の部の格']), h('span', null, [gradeOf().n])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['昨季の結果']), h('span', null, [G.history.length ? G.history[G.history.length - 1].result : '―（初年度）'])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['おすすめの目標']), h('span', null, [rec.n])])
@@ -3659,6 +3920,12 @@ function finishRecruit() {
     head.appendChild(h('div', { class: 'grtitle' }, ['〜 ' + G.growReport.label + 'の成長レポート 〜']));
     if (G.growReport.rows.length > 10) head.appendChild(h('div', { class: 'sub grmore' }, ['ほか ' + (G.growReport.rows.length - 10) + ' 名も成長した']));
     gr.appendChild(head);
+    /* v0.23 実機見切れ修正：行は専用リスト（.grlist＝flex:1 / min-height:0 / 内部スクロール）に収める。
+     * v0.22 は行をボード直下の通常フローに置いていたため、有効高さが小さい実機環境では
+     * 最終行がボードの外へ描画され、固定アクションバーに半分重なって見えた。
+     * リスト側が残り高さを受けてスクロールする構造にし、ボタンと構造的に重ならないようにする */
+    var grList = h('div', { class: 'grlist' });
+    gr.appendChild(grList);
     var lineupNow = lineupIds();
     /* v0.21: その月のレポートを初めて表示する時だけ、行を上から順にライズさせ数値をポップさせる
      * （月頭指示の再描画では繰り返さない。遅延は CSS 変数 --fxd で行と子要素に共有する） */
@@ -3693,7 +3960,7 @@ function finishRecruit() {
         chg.appendChild(ti);
       }
       rowEl.appendChild(chg);
-      gr.appendChild(rowEl);
+      grList.appendChild(rowEl);
     });
     wrap([hud(), gr,
       actionBar([h('button', { class: 'btn primary', onclick: function () { G.growReport = null; save(); render(); } }, ['確認した（' + mo.m + 'の指示へ）'])])]);
@@ -4278,7 +4545,8 @@ function finishRecruit() {
       s.firstHana ? h('p', null, ['🎉 創部以来、初の花園出場！']) : h('span', null, []),
       h('div', { class: 'rowline' }, [h('span', null, ['部の格']), h('span', { class: 'big' }, [s.grade])]),
       h('div', { class: 'rowline' }, [h('span', null, ['通算 花園出場']), h('span', null, [G.career.hana + '回'])]),
-      h('div', { class: 'rowline' }, [h('span', null, ['通算 花園優勝']), h('span', null, [G.career.hanaTitles + '回'])])
+      h('div', { class: 'rowline' }, [h('span', null, ['通算 花園優勝']), h('span', null, [G.career.hanaTitles + '回'])]),
+      (s.titleStreak || 0) >= 2 ? h('div', { class: 'rowline' }, [h('span', null, ['🏆 花園連覇']), h('span', { class: 'big' }, [s.titleStreak + '連覇中！'])]) : h('span', null, [])
     ]);
     var g = h('div', { class: 'card grow scroll' });
     if (s.stars && s.stars.length) {
@@ -4558,6 +4826,10 @@ function finishRecruit() {
     c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['花園出場']), h('span', null, [G.career.hana + '回'])]));
     c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['花園での勝利']), h('span', null, [G.career.hanaWins + '勝'])]));
     c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['花園優勝']), h('span', null, [G.career.hanaTitles + '回'])]));
+    /* v0.23: 長期目標（名門のその先）。進捗はすべて記録済みデータ（優勝回数・連覇・OB）から出す */
+    c.appendChild(h('div', { class: 'sec' }, ['🎯 長期目標']));
+    c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['花園の連覇']), h('span', null, [(G.career.bestTitleStreak || 0) ? ('歴代最長 ' + G.career.bestTitleStreak + '連覇' + ((G.career.titleStreak || 0) >= 2 ? '／現在 ' + G.career.titleStreak + '連覇中' : '')) : 'まだ連覇はない'])]));
+    c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['次の節目']), h('span', null, [longGoalText()])]));
     if (G.rival) {
       c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['帝都学園との通算']), h('span', null, [G.rivalW + '勝 ' + G.rivalL + '敗'])]));
       c.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['現在の帝都エース']), h('span', null, [G.rival.name + '（' + G.rival.grade + '年・' + G.rival.pos + '）'])]));
@@ -4645,6 +4917,19 @@ function finishRecruit() {
       ]));
     });
     var o = h('div', { class: 'scroll flatbox', style: 'height:100%' });
+    /* v0.23: OBネットワークの見える化（名鑑の集計。進路は OB レコードの path をそのまま使うため名鑑と矛盾しない） */
+    o.appendChild(h('div', { class: 'sec' }, ['🤝 OBネットワーク']));
+    if (!G.obs.length) o.appendChild(h('div', { class: 'sub' }, ['卒業生が巣立つと、ここにネットワークが育つ。OBは勧誘の紹介や差し入れで部を支えてくれる']));
+    else {
+      var pathCounts = {};
+      G.obs.forEach(function (x) { var pk = x.path || '進路未記録'; pathCounts[pk] = (pathCounts[pk] || 0) + 1; });
+      o.appendChild(h('div', { class: 'rowline' }, [h('span', null, ['OB総数']), h('span', null, [G.obs.length + '人'])]));
+      Object.keys(pathCounts).forEach(function (pk) {
+        o.appendChild(h('div', { class: 'rowline' }, [h('span', null, [pk]), h('span', null, [pathCounts[pk] + '人'])]));
+      });
+      var latestOb = G.obs[G.obs.length - 1];
+      o.appendChild(h('div', { class: 'sub' }, ['最新のOB：' + latestOb.name + '（' + latestOb.year + '年卒・' + (latestOb.path || '進路未記録') + '）。OBの紹介は勧誘の成功率を押し上げる']));
+    }
     o.appendChild(h('div', { class: 'sec' }, ['OB名鑑（' + G.obs.length + '人）']));
     if (!G.obs.length) o.appendChild(h('div', { class: 'sub' }, ['まだ卒業生がいない']));
     G.obs.slice().reverse().forEach(function (x) {

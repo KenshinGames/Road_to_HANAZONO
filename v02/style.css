@@ -296,7 +296,7 @@ table.squad tr.prow.sel td { background: var(--brand-soft); }
 .grrole { background: #07271a; color: #ffd94d; border: 1px solid rgba(255, 217, 77, .5); border-radius: 4px; font-size: 11px; font-weight: 700; padding: 1px 5px; white-space: nowrap; }
 .grplate { display: inline-block; border-radius: 4px; padding: 1px 9px; font-weight: 800; color: #20301f; white-space: nowrap; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .18); }
 .gryear { background: #123a5e; color: #fff; border-radius: 4px; font-size: 11px; font-weight: 700; padding: 1px 5px; white-space: nowrap; }
-.grchg { display: flex; flex-wrap: wrap; gap: 4px 14px; flex: 1; min-width: 180px; font-size: 13px; }
+.grchg { display: flex; flex-wrap: wrap; gap: 4px 10px; flex: 1; min-width: 180px; font-size: 13px; } /* v0.23: 項目間を詰め、全項目が伸びた行でも1行に収まりやすくする */
 .gritem { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .gritem .rkval { font-weight: 700; }
 .grarrow { color: #ffd94d; font-weight: 900; margin: 0 3px; }
@@ -444,6 +444,15 @@ table.cmp td.cmpblurb { font-size: 12px; line-height: 1.5; color: var(--sub); mi
   .wdlgbar .portrait.dlg-p { width: 32px; height: 38px; }
   .wdlgbar .wdlgtx { font-size: 12px; line-height: 1.35; }
 }
+/* v0.23: さらに縦の短い環境（932×380 級）では場面まわりとガラスをもう一段詰める
+ * （932×380 監査で検出した .wscene の 6px / 目標ガラスの 4px のはみ出しへの対策） */
+@media (min-width: 760px) and (orientation: landscape) and (max-height: 400px) {
+  .wsceneov { padding: 8px 12px 0; gap: 4px; }
+  .wdlgbar { margin: auto 8px 6px; }
+  .glasscard { padding: 7px 10px; }
+  .gtitle { margin-bottom: 4px; }
+  .herobody { gap: 6px; }
+}
 
 /* ===== v0.21: 演出と動き（表示専用。レイアウト寸法・配置は変えず、transform と opacity だけで動かす。
  * 重ねるのは得点バナーの固定レイヤー（トーストと同じ考え方）のみで、画面内の要素同士は重ねない。
@@ -508,13 +517,22 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
 /* ガラスカード内の区切り線と見出し（場面背景の上に置く前提の白文字） */
 .glassdiv { border-top: 1px solid rgba(255, 255, 255, .22); margin: 7px 0 2px; }
 .gtitle { font-weight: 800; font-size: 15px; color: #fff; margin-bottom: 6px; }
-.glasscard.glassfill { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.glasscard.glassfill { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; } /* v0.23: 有効高さが小さい環境ではガラスの内容が枠外へ描画されず、内側スクロールで受ける（目標・紹介・指示の各ヒーロー） */
 .glassscroll { overflow-y: auto; }
 .glasscard .tabs { margin-bottom: 4px; }
 /* 週次画面の情報欄：枠を外し、下のログとはヘアラインで区切る */
 .winfo { border: none; border-bottom: 1px solid var(--line); border-radius: 0; box-shadow: none; background: transparent; padding: 2px 2px 8px; }
-/* 成長レポート専用レイアウト：画面幅いっぱいのボードに全行を収める（見切れ・スクロールなし） */
-.grboard.grfull { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 7px 14px; border: 1px solid #062b1c; border-radius: 14px; }
+/* v0.23 実機見切れ修正：週次画面の右カラムは、情報欄を固定（flex:none）し、ログに最低高さ 46px
+ * （1行＋余白が潰れずに収まる高さ）を保証する。有効高さが小さい環境でもログの文字が
+ * 上下見切れないようにし、溢れる分はログ側の内部スクロールで受ける */
+.wtop .winfo { flex: none; }
+.wtop .log { min-height: 46px; }
+/* 成長レポート専用レイアウト：画面幅いっぱいのボードに見出しと行リストを flex 配分する。
+ * v0.23: 行は .grlist（flex:1・min-height:0・内部スクロール）が残り高さを受け、入り切らない分は
+ * リスト側がスクロールする。ボード自体も overflow:hidden にし、行がボード外へ描画されて
+ * 下のアクションバーに重なることを構造的に防ぐ（v0.22 の実機見切れへの対策） */
+.grboard.grfull { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 7px 14px; border: 1px solid #062b1c; border-radius: 14px; overflow: hidden; }
+.grfull .grlist { flex: 1; min-height: 0; overflow-y: auto; }
 .grhead { display: flex; align-items: baseline; gap: 14px; }
 .grhead .grtitle { flex: 1; margin: 0 0 4px; }
 .grhead .grmore { white-space: nowrap; }
@@ -547,5 +565,24 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
 @media (min-width: 760px) and (orientation: landscape) and (max-height: 520px) {
   /* 縦の短い実機寸法ではセレクトとレポート行をさらに詰める */
   select { padding: 7px 9px; font-size: 14px; }
-  .grfull .grrow { padding: 2px 0; }
+  .grfull .grrow { padding: 1px 0; }
+  .grfull .grtitle { font-size: 14px; }
+}
+
+/* ===== v0.23: タイトル画面の高さ対策（BGM 設定行の追加分を吸収する） =====
+ * カード内は flex の gap で余白を管理し、段落マージンの累積で高さが膨らまないようにする。
+ * 縦の短い寸法では写真の余白・見出し・ボタンを段階的に詰め、932×380 でも
+ * ヒーロー（タイトル文字）が画面の上へ押し出されないようにする */
+.titlewrap .title-card { display: flex; flex-direction: column; gap: 8px; }
+.titlewrap .title-card > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+@media (min-width: 760px) and (orientation: landscape) and (max-height: 520px) {
+  .titlewrap.titlephoto { padding: 14px 26px; gap: 8px; }
+  .titlephoto .hero h1 { font-size: 26px; }
+}
+@media (min-width: 760px) and (orientation: landscape) and (max-height: 400px) {
+  .titlewrap.titlephoto { padding: 8px 26px; gap: 6px; }
+  .titlewrap .title-card { gap: 7px; }
+  .titlewrap .title-card .btn { padding: 8px 10px; }
+  .titlephoto .hero h1 { font-size: 22px; }
+  .titlephoto .hero p { font-size: 12px; }
 }
