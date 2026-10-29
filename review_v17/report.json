@@ -1,0 +1,107 @@
+{
+  "errors": [],
+  "screens": {
+    "01_title": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": []
+    },
+    "02_goal": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "03_inst": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "04_board": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "05_squad_stat": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "06_squad_prof": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "07_records": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "08_guide": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "09_inst_camp": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "10_prematch": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "11_lineup": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "12_match": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": []
+    },
+    "13_subpanel": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": []
+    },
+    "14_prematch_hana": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "15_summary": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "16_recruit": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "17_summary_champion": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    }
+  },
+  "preReached": true,
+  "sceneReached": true,
+  "hanaReached": true
+}

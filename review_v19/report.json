@@ -1,0 +1,74 @@
+{
+  "errors": [],
+  "screens": {
+    "00_inst": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "01_weekly_april_w1": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "02_weekly_april_w2": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "03_weekly_june_match": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "04_prematch": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "05_weekly_august_camp": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "06_weekly_migrated": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "hudH": 45
+    },
+    "07_guide": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": []
+    }
+  },
+  "facts": {
+    "weeklyFacts": {
+      "cards": 9,
+      "hasStatus": true,
+      "hasScene": true,
+      "weekText": "4月 第1週",
+      "autoBtn": true
+    },
+    "afterOneWeek": {
+      "title": "4月 第2週",
+      "logLines": 1
+    },
+    "autoReachedNextMonth": true,
+    "juneReachedPreMatch": true,
+    "augustPhoto": true,
+    "migrated": {
+      "weekly": true,
+      "week": 2,
+      "cards": 9
+    },
+    "guideWeekly": true
+  }
+}

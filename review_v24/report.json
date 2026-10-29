@@ -1,0 +1,1460 @@
+{
+  "errors": [],
+  "screens": {
+    "01_title_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {},
+      "metrics": {},
+      "clip": []
+    },
+    "21_settings_title_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          50,
+          920,
+          366
+        ],
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "metrics": {
+        "actionBtn": "◀ 戻る"
+      },
+      "clip": []
+    },
+    "20_guide_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          50,
+          920,
+          422
+        ]
+      },
+      "metrics": {},
+      "clip": []
+    },
+    "02_goal_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          116,
+          920,
+          366
+        ],
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "目標を決めてシーズンを始める"
+      },
+      "clip": []
+    },
+    "03_inst_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          116,
+          920,
+          366
+        ],
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "指示を確定して月を始める"
+      },
+      "clip": []
+    },
+    "04_inst_grow_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "grlist": {
+          "clientH": 264,
+          "scrollH": 264,
+          "rows": 10
+        },
+        "actionBtn": "確認した（5月の指示へ）"
+      },
+      "clip": []
+    },
+    "04c_inst_grow10_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "grlist": {
+          "clientH": 264,
+          "scrollH": 425,
+          "rows": 10
+        },
+        "actionBtn": "確認した（5月の指示へ）"
+      },
+      "clip": []
+    },
+    "04b_inst_may_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          366
+        ],
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "指示を確定して月を始める"
+      },
+      "clip": []
+    },
+    "09_squad_stat_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "metrics": {},
+      "clip": []
+    },
+    "10_squad_prof_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "metrics": {},
+      "clip": []
+    },
+    "18_records_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          366
+        ]
+      },
+      "hudH": 45,
+      "metrics": {},
+      "clip": []
+    },
+    "22_settings_game_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          103,
+          920,
+          366
+        ],
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "◀ 戻る"
+      },
+      "clip": []
+    },
+    "05_weekly_w1_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          61,
+          596,
+          235
+        ],
+        ".wcards": [
+          12,
+          243,
+          920,
+          352
+        ],
+        ".wstatus": [
+          12,
+          360,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          61,
+          920,
+          235
+        ],
+        ".log": [
+          606,
+          136,
+          920,
+          235
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "wlog": {
+          "clientH": 97,
+          "scrollH": 97
+        }
+      },
+      "clip": []
+    },
+    "05t_weekly_tut_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          108,
+          596,
+          267
+        ],
+        ".wcards": [
+          12,
+          275,
+          920,
+          370
+        ],
+        ".wstatus": [
+          12,
+          378,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          108,
+          920,
+          267
+        ],
+        ".log": [
+          606,
+          174,
+          920,
+          267
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "wlog": {
+          "clientH": 91,
+          "scrollH": 91
+        }
+      },
+      "clip": []
+    },
+    "06_weekly_dlg_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          61,
+          596,
+          235
+        ],
+        ".wcards": [
+          12,
+          243,
+          920,
+          352
+        ],
+        ".wstatus": [
+          12,
+          360,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          61,
+          920,
+          235
+        ],
+        ".log": [
+          606,
+          136,
+          920,
+          235
+        ],
+        ".dlg": [
+          21,
+          178,
+          587,
+          226
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "wlog": {
+          "clientH": 97,
+          "scrollH": 116
+        }
+      },
+      "clip": []
+    },
+    "07_weekly_june_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          61,
+          596,
+          235
+        ],
+        ".wcards": [
+          12,
+          243,
+          920,
+          352
+        ],
+        ".wstatus": [
+          12,
+          360,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          61,
+          920,
+          235
+        ],
+        ".log": [
+          606,
+          136,
+          920,
+          235
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "wlog": {
+          "clientH": 97,
+          "scrollH": 97
+        }
+      },
+      "clip": []
+    },
+    "11_prematch_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          116,
+          920,
+          366
+        ],
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "キックオフ"
+      },
+      "clip": []
+    },
+    "12_lineup_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "metrics": {},
+      "clip": []
+    },
+    "13_match_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          167,
+          920,
+          422
+        ],
+        ".log": [
+          12,
+          167,
+          483,
+          422
+        ]
+      },
+      "metrics": {},
+      "clip": []
+    },
+    "19_match_done_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          167,
+          920,
+          422
+        ],
+        ".log": [
+          12,
+          167,
+          483,
+          422
+        ]
+      },
+      "metrics": {},
+      "clip": []
+    },
+    "08_weekly_august_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          61,
+          596,
+          235
+        ],
+        ".wcards": [
+          12,
+          243,
+          920,
+          352
+        ],
+        ".wstatus": [
+          12,
+          360,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          61,
+          920,
+          235
+        ],
+        ".log": [
+          606,
+          136,
+          920,
+          235
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "wlog": {
+          "clientH": 97,
+          "scrollH": 97
+        }
+      },
+      "clip": []
+    },
+    "14_summary_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          366
+        ],
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "新年度へ（新入生を迎える）"
+      },
+      "clip": []
+    },
+    "15_recruit_cards_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          366
+        ],
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "新年度を始める"
+      },
+      "clip": []
+    },
+    "16_recruit_cmp_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ],
+        ".cmpcard": [
+          12,
+          160,
+          920,
+          366
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "新年度を始める"
+      },
+      "clip": []
+    },
+    "17_intro_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          366
+        ],
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "次へ進む"
+      },
+      "clip": []
+    },
+    "23_title_slots_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {},
+      "metrics": {},
+      "clip": []
+    },
+    "24_title_slot2_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {},
+      "metrics": {},
+      "clip": []
+    },
+    "s_weekly_dlg_1060_h430": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          61,
+          679,
+          384
+        ],
+        ".wcards": [
+          12,
+          392,
+          1048,
+          518
+        ],
+        ".wstatus": [
+          12,
+          526,
+          1048,
+          592
+        ],
+        ".lay2": [
+          12,
+          61,
+          1048,
+          384
+        ],
+        ".log": [
+          689,
+          136,
+          1048,
+          384
+        ],
+        ".dlg": [
+          23,
+          311,
+          668,
+          373
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "wlog": {
+          "clientH": 246,
+          "scrollH": 246
+        }
+      },
+      "clip": []
+    },
+    "s_recruit_cmp_1060_h430": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "rects": {
+        ".actionbar": [
+          12,
+          544,
+          1048,
+          592
+        ],
+        ".cmpcard": [
+          12,
+          160,
+          1048,
+          536
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "新年度を始める"
+      },
+      "clip": []
+    },
+    "s_intro_1060_h430": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          1048,
+          536
+        ],
+        ".actionbar": [
+          12,
+          544,
+          1048,
+          592
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "次へ進む"
+      },
+      "clip": []
+    },
+    "01_title_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {},
+      "metrics": {},
+      "clip": []
+    },
+    "21_settings_title_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          50,
+          920,
+          316
+        ],
+        ".actionbar": [
+          12,
+          324,
+          920,
+          372
+        ]
+      },
+      "metrics": {
+        "actionBtn": "◀ 戻る"
+      },
+      "clip": []
+    },
+    "20_guide_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          50,
+          920,
+          372
+        ]
+      },
+      "metrics": {},
+      "clip": []
+    },
+    "02_goal_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          112,
+          920,
+          316
+        ],
+        ".actionbar": [
+          12,
+          324,
+          920,
+          372
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "目標を決めてシーズンを始める"
+      },
+      "clip": []
+    },
+    "03_inst_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          112,
+          920,
+          316
+        ],
+        ".actionbar": [
+          12,
+          324,
+          920,
+          372
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "指示を確定して月を始める"
+      },
+      "clip": []
+    },
+    "04_inst_grow_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".actionbar": [
+          12,
+          324,
+          920,
+          372
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "grlist": {
+          "clientH": 214,
+          "scrollH": 245,
+          "rows": 10
+        },
+        "actionBtn": "確認した（5月の指示へ）"
+      },
+      "clip": []
+    },
+    "04c_inst_grow10_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".actionbar": [
+          12,
+          324,
+          920,
+          372
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "grlist": {
+          "clientH": 214,
+          "scrollH": 425,
+          "rows": 10
+        },
+        "actionBtn": "確認した（5月の指示へ）"
+      },
+      "clip": []
+    },
+    "04b_inst_may_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          316
+        ],
+        ".actionbar": [
+          12,
+          324,
+          920,
+          372
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "指示を確定して月を始める"
+      },
+      "clip": []
+    },
+    "09_squad_stat_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          372
+        ]
+      },
+      "hudH": 45,
+      "metrics": {},
+      "clip": []
+    },
+    "10_squad_prof_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          372
+        ]
+      },
+      "hudH": 45,
+      "metrics": {},
+      "clip": []
+    },
+    "18_records_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          316
+        ]
+      },
+      "hudH": 45,
+      "metrics": {},
+      "clip": []
+    },
+    "22_settings_game_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          103,
+          920,
+          316
+        ],
+        ".actionbar": [
+          12,
+          324,
+          920,
+          372
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "◀ 戻る"
+      },
+      "clip": []
+    },
+    "05_weekly_w1_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          61,
+          596,
+          185
+        ],
+        ".wcards": [
+          12,
+          193,
+          920,
+          302
+        ],
+        ".wstatus": [
+          12,
+          310,
+          920,
+          372
+        ],
+        ".lay2": [
+          12,
+          61,
+          920,
+          185
+        ],
+        ".log": [
+          606,
+          136,
+          920,
+          185
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "wlog": {
+          "clientH": 47,
+          "scrollH": 47
+        }
+      },
+      "clip": []
+    },
+    "05t_weekly_tut_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          108,
+          596,
+          217
+        ],
+        ".wcards": [
+          12,
+          225,
+          920,
+          320
+        ],
+        ".wstatus": [
+          12,
+          328,
+          920,
+          372
+        ],
+        ".lay2": [
+          12,
+          108,
+          920,
+          217
+        ],
+        ".log": [
+          606,
+          174,
+          920,
+          217
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "wlog": {
+          "clientH": 41,
+          "scrollH": 41
+        }
+      },
+      "clip": []
+    },
+    "06_weekly_dlg_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          61,
+          596,
+          185
+        ],
+        ".wcards": [
+          12,
+          193,
+          920,
+          302
+        ],
+        ".wstatus": [
+          12,
+          310,
+          920,
+          372
+        ],
+        ".lay2": [
+          12,
+          61,
+          920,
+          185
+        ],
+        ".log": [
+          606,
+          136,
+          920,
+          185
+        ],
+        ".dlg": [
+          21,
+          130,
+          587,
+          178
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "wlog": {
+          "clientH": 47,
+          "scrollH": 116
+        }
+      },
+      "clip": []
+    },
+    "07_weekly_june_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          61,
+          596,
+          185
+        ],
+        ".wcards": [
+          12,
+          193,
+          920,
+          302
+        ],
+        ".wstatus": [
+          12,
+          310,
+          920,
+          372
+        ],
+        ".lay2": [
+          12,
+          61,
+          920,
+          185
+        ],
+        ".log": [
+          606,
+          136,
+          920,
+          185
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "wlog": {
+          "clientH": 47,
+          "scrollH": 47
+        }
+      },
+      "clip": []
+    },
+    "11_prematch_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          112,
+          920,
+          316
+        ],
+        ".actionbar": [
+          12,
+          324,
+          920,
+          372
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "キックオフ"
+      },
+      "clip": []
+    },
+    "12_lineup_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          372
+        ]
+      },
+      "hudH": 45,
+      "metrics": {},
+      "clip": []
+    },
+    "13_match_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          163,
+          920,
+          372
+        ],
+        ".log": [
+          12,
+          163,
+          483,
+          372
+        ]
+      },
+      "metrics": {},
+      "clip": []
+    },
+    "19_match_done_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          163,
+          920,
+          372
+        ],
+        ".log": [
+          12,
+          163,
+          483,
+          372
+        ]
+      },
+      "metrics": {},
+      "clip": []
+    },
+    "08_weekly_august_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          61,
+          596,
+          185
+        ],
+        ".wcards": [
+          12,
+          193,
+          920,
+          302
+        ],
+        ".wstatus": [
+          12,
+          310,
+          920,
+          372
+        ],
+        ".lay2": [
+          12,
+          61,
+          920,
+          185
+        ],
+        ".log": [
+          606,
+          136,
+          920,
+          185
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "wlog": {
+          "clientH": 47,
+          "scrollH": 47
+        }
+      },
+      "clip": []
+    },
+    "14_summary_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          316
+        ],
+        ".actionbar": [
+          12,
+          324,
+          920,
+          372
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "新年度へ（新入生を迎える）"
+      },
+      "clip": []
+    },
+    "15_recruit_cards_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          316
+        ],
+        ".actionbar": [
+          12,
+          324,
+          920,
+          372
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "新年度を始める"
+      },
+      "clip": []
+    },
+    "16_recruit_cmp_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".actionbar": [
+          12,
+          324,
+          920,
+          372
+        ],
+        ".cmpcard": [
+          12,
+          160,
+          920,
+          316
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "新年度を始める"
+      },
+      "clip": []
+    },
+    "17_intro_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          316
+        ],
+        ".actionbar": [
+          12,
+          324,
+          920,
+          372
+        ]
+      },
+      "hudH": 45,
+      "metrics": {
+        "actionBtn": "次へ進む"
+      },
+      "clip": []
+    },
+    "23_title_slots_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {},
+      "metrics": {},
+      "clip": []
+    },
+    "24_title_slot2_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {},
+      "metrics": {},
+      "clip": []
+    }
+  },
+  "facts": {
+    "drive": {
+      "recruitCands": 3,
+      "introList": 7
+    },
+    "titleHeroTop_h430": 48,
+    "tutGoal_h430": true,
+    "tutInst_h430": true,
+    "mayGrow": true,
+    "fxGrowMid": 10,
+    "herologMay": {
+      "clientH": 159,
+      "scrollH": 404
+    },
+    "tutWeekly_h430": true,
+    "fxKmMid": "kmcol fx-kml",
+    "reachedPreMatch": true,
+    "tutPreMatch_h430": true,
+    "backToPreMatch": true,
+    "tutMatch_h430": true,
+    "fxMatch": {
+      "banner": true,
+      "cutin": true,
+      "win": true
+    },
+    "matchStarted": true,
+    "titleHeroTop_h380": 39,
+    "tutGoal_h380": true,
+    "tutInst_h380": true,
+    "tutWeekly_h380": true,
+    "tutPreMatch_h380": true,
+    "tutMatch_h380": true,
+    "clipKinds": {}
+  }
+}

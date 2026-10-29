@@ -1,0 +1,72 @@
+===== qa_v02 =====
+
+ALL PASS
+===== qa_v03 =====
+
+ALL PASS
+===== qa_v04 =====
+
+ALL PASS
+===== qa_v05 =====
+
+ALL PASS
+===== qa_v06 =====
+
+ALL PASS
+===== qa_v07 =====
+
+ALL PASS
+===== qa_v08 =====
+
+ALL PASS
+===== qa_v09 =====
+
+ALL PASS (51 checks)
+===== qa_v10 =====
+
+ALL PASS
+===== qa_v11 =====
+
+ALL PASS
+===== qa_v12 =====
+
+ALL PASS
+===== qa_v13 =====
+
+ALL PASS
+===== qa_v14 =====
+PASS | records(empty): captains section lists the first captain
+ALL PASS
+===== qa_v15 =====
+PASS | winter: January banner is not a photo banner
+ALL PASS
+===== qa_v16 =====
+PASS | soak: at least one career reaches Hanazono within 5 years | reached Hanazono: 3/3 median year 1 | won Hanazono title: 1/3 years: 3 | 
+ALL PASS
+===== qa_v17 =====
+
+ALL PASS
+===== qa_v18 =====
+
+ALL PASS
+===== qa_v19 =====
+
+ALL PASS
+===== qa_v20 =====
+
+ALL PASS
+===== qa_v21 =====
+
+qa_v21: ALL PASS
+===== qa_v22 =====
+PASS | photo hook: unregistered key falls back to SVG banner
+ALL PASS
+===== qa_v23 =====
+PASS | migration: titleStreak initialized
+ALL PASS
+===== qa_v24 =====
+
+qa_v24: 68 passed, 0 failed
+===== qa_v25 =====
+
+qa_v25: 18 passed, 0 failed

@@ -1,0 +1,32 @@
+{
+  "attempts": [
+    {
+      "tag": "weak22_worst",
+      "ended": "matchLimit",
+      "matches": 1
+    },
+    {
+      "tag": "gallant_stat36",
+      "ended": "summary",
+      "matches": 5
+    },
+    {
+      "tag": "gallant_stat34",
+      "ended": "gallant",
+      "matches": 4
+    }
+  ],
+  "loseEnds": [
+    {
+      "strat": "best",
+      "ctrlText": "試合終了：敗因の内訳\n\n🌟 格上に善戦！ 評判+4・経験ボーナスが入った\n\n能力差\n38%\n采配（勝負どころ 3/5 成功）\n16%\n調子・疲労\n31%\n相手の特能（大舞台に強いエース）\n15%\n\n敗因の目安。練習指示と采配で一番大きい要素を潰していこう\n\n次へ",
+      "score": "桜丘高校 8 試合終了 帝都学園 10"
+    }
+  ],
+  "gallant": {
+    "strat": "best",
+    "ctrlText": "試合終了：敗因の内訳\n\n🌟 格上に善戦！ 評判+4・経験ボーナスが入った\n\n能力差\n38%\n采配（勝負どころ 3/5 成功）\n16%\n調子・疲労\n31%\n相手の特能（大舞台に強いエース）\n15%\n\n敗因の目安。練習指示と采配で一番大きい要素を潰していこう\n\n次へ",
+    "score": "桜丘高校 8 試合終了 帝都学園 10"
+  },
+  "badHits": []
+}

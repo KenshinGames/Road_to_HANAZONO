@@ -1,0 +1,580 @@
+{
+  "errors": [],
+  "screens": {
+    "01_title": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {},
+      "clip": []
+    },
+    "20_guide": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          50,
+          920,
+          422
+        ]
+      },
+      "clip": []
+    },
+    "02_goal": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          366
+        ],
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "03_inst": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          366
+        ],
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "04_inst_grow": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "04b_inst_may": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          366
+        ],
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "09_squad_stat": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "10_squad_prof": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "18_records": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          366
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "05_weekly_w1": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          61,
+          596,
+          235
+        ],
+        ".wcards": [
+          12,
+          243,
+          920,
+          352
+        ],
+        ".wstatus": [
+          12,
+          360,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          61,
+          920,
+          235
+        ],
+        ".log": [
+          606,
+          136,
+          920,
+          235
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "06_weekly_dlg": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          61,
+          596,
+          235
+        ],
+        ".wcards": [
+          12,
+          243,
+          920,
+          352
+        ],
+        ".wstatus": [
+          12,
+          360,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          61,
+          920,
+          235
+        ],
+        ".log": [
+          606,
+          136,
+          920,
+          235
+        ],
+        ".dlg": [
+          21,
+          178,
+          587,
+          226
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "07_weekly_june": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          61,
+          596,
+          235
+        ],
+        ".wcards": [
+          12,
+          243,
+          920,
+          352
+        ],
+        ".wstatus": [
+          12,
+          360,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          61,
+          920,
+          235
+        ],
+        ".log": [
+          606,
+          136,
+          920,
+          235
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "11_prematch": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          366
+        ],
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "12_lineup": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "13_match": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          112,
+          920,
+          422
+        ],
+        ".log": [
+          12,
+          112,
+          483,
+          422
+        ]
+      },
+      "clip": []
+    },
+    "19_match_done": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          112,
+          920,
+          422
+        ],
+        ".log": [
+          12,
+          112,
+          483,
+          422
+        ]
+      },
+      "clip": []
+    },
+    "08_weekly_august": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          61,
+          596,
+          235
+        ],
+        ".wcards": [
+          12,
+          243,
+          920,
+          352
+        ],
+        ".wstatus": [
+          12,
+          360,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          61,
+          920,
+          235
+        ],
+        ".log": [
+          606,
+          136,
+          920,
+          235
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "14_summary": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          366
+        ],
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "15_recruit_cards": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          366
+        ],
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "16_recruit_cmp": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ],
+        ".cmpcard": [
+          12,
+          160,
+          920,
+          366
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "17_intro": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          920,
+          366
+        ],
+        ".actionbar": [
+          12,
+          374,
+          920,
+          422
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "s_weekly_dlg_1060": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          61,
+          679,
+          384
+        ],
+        ".wcards": [
+          12,
+          392,
+          1048,
+          518
+        ],
+        ".wstatus": [
+          12,
+          526,
+          1048,
+          592
+        ],
+        ".lay2": [
+          12,
+          61,
+          1048,
+          384
+        ],
+        ".log": [
+          689,
+          136,
+          1048,
+          384
+        ],
+        ".dlg": [
+          23,
+          311,
+          668,
+          373
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "s_recruit_cmp_1060": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "rects": {
+        ".actionbar": [
+          12,
+          544,
+          1048,
+          592
+        ],
+        ".cmpcard": [
+          12,
+          160,
+          1048,
+          536
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    },
+    "s_intro_1060": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          61,
+          1048,
+          536
+        ],
+        ".actionbar": [
+          12,
+          544,
+          1048,
+          592
+        ]
+      },
+      "hudH": 45,
+      "clip": []
+    }
+  },
+  "facts": {
+    "drive": {
+      "recruitCands": 3,
+      "introList": 7
+    },
+    "mayGrow": true,
+    "fxGrowMid": 10,
+    "herologMay": {
+      "clientH": 209,
+      "scrollH": 404
+    },
+    "fxKmMid": "kmcol fx-kml",
+    "reachedPreMatch": true,
+    "backToPreMatch": true,
+    "fxMatch": {
+      "banner": true,
+      "cutin": true,
+      "win": true
+    },
+    "matchStarted": true,
+    "clipKinds": {}
+  }
+}
