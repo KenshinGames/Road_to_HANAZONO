@@ -73,7 +73,7 @@ const STAT_KEYS = ['spd', 'pow', 'pas', 'kik', 'tak', 'sta'];
   });
   {
     const H = await makeDom(null, 111);
-    check('title: shows v1.0 (v0.25 でバージョン表記を追随)', H.text().includes('v1.0'));
+    check('title: shows v1.1 (v0.25 でバージョン表記を追随)', H.text().includes('v1.1')); /* v0.26: バージョン表記を v1.1 に追随 */
     H.window.close();
   }
 
@@ -315,7 +315,7 @@ const STAT_KEYS = ['spd', 'pow', 'pas', 'kik', 'tak', 'sta'];
       const opts = [...H.document.querySelectorAll('.choices .btn.choice')];
       if (opts.length && t.includes('成功率の目安')) {
         let best = opts[0], bp = -1;
-        opts.forEach(o => { const m = o.textContent.match(/(\d+)%/); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
+        opts.forEach(o => { const m = (o.dataset.p ? [0, o.dataset.p] : o.textContent.match(/(\d+)%/)); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
         best.click(); await sleep(2); continue;
       }
       if (H.btn('試合を進める')) { H.click('試合を進める'); await sleep(2); continue; }

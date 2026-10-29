@@ -59,9 +59,9 @@ async function driveToPreMatch(H) {
 
 (async () => {
   /* ---- 0. 静的チェック ---- */
-  check('static: title is v1.0', html.includes('<title>Road to HANAZONO v1.0</title>')) /* v0.25: バージョン表記を追随 */;
+  check('static: title is v1.1', html.includes('<title>Road to HANAZONO v1.1</title>')) /* v0.25: バージョン表記を追随 */; /* v0.26: バージョン表記を v1.1 に追随 */
   check('static: STORE_KEY unchanged', html.includes("STORE_KEY = 'hanazono.v02'"));
-  check('static: play.html size <= 2.5MB', Buffer.byteLength(html, 'utf8') <= 2500000, 'bytes=' + Buffer.byteLength(html, 'utf8'));
+  check('static: play.html size <= 3.5MB', Buffer.byteLength(html, 'utf8') <= 3500000, /* v0.26: 場面イラスト3枚（data URI 約1MB）の追加に伴い上限を 3.5MB に見直し */ 'bytes=' + Buffer.byteLength(html, 'utf8'));
   ['.actionbar', '.heropanel', '.herobg', '.glasscard', '.hudbtn', '.hud .chip', '.tabbtn', '.tabhide', '.laysquad', '.pmb'].forEach(s => {
     check('static: play.html contains ' + s, html.includes(s));
   });

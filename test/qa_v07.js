@@ -207,7 +207,7 @@ function helpers(window, document) {
       const opts = [...document.querySelectorAll('.choices .btn.choice')];
       if (opts.length && t.includes('成功率の目安')) {
         let best = opts[0], bp = -1;
-        opts.forEach(o => { const m = o.textContent.match(/(\d+)%/); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
+        opts.forEach(o => { const m = (o.dataset.p ? [0, o.dataset.p] : o.textContent.match(/(\d+)%/)); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
         best.click(); await sleep(2); continue;
       }
       if (btn('試合を進める')) { click('試合を進める'); await sleep(2); continue; }

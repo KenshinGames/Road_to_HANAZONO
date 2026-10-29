@@ -71,12 +71,12 @@ const FORM_NAMES = { '-2': '絶不調', '-1': '不調', '0': '普通', '1': '好
   });
   const uriCount = (html.match(/data:image\/jpeg;base64,\/9j\//g) || []).length;
   check('static: jpeg data URIs >= 5 (title + 4 scenes)', uriCount >= 5, 'count=' + uriCount);
-  check('static: play.html size <= 2.5MB', Buffer.byteLength(html, 'utf8') <= 2500000, 'bytes=' + Buffer.byteLength(html, 'utf8')); /* v0.15: デザイン統一の CSS/JS 追加に伴い、最終チェック基準の 2.5MB に上限を見直し */
+  check('static: play.html size <= 3.5MB', Buffer.byteLength(html, 'utf8') <= 3500000, /* v0.26: 場面イラスト3枚（data URI 約1MB）の追加に伴い上限を 3.5MB に見直し */ 'bytes=' + Buffer.byteLength(html, 'utf8')); /* v0.15: デザイン統一の CSS/JS 追加に伴い、最終チェック基準の 2.5MB に上限を見直し */
 
   /* ---- 1. タイトル：バージョン ---- */
   {
     const H = await makeDom(null, 111);
-    check('title: shows v1.0 (v0.25 でバージョン表記を追随)', H.text().includes('v1.0'));
+    check('title: shows v1.1 (v0.25 でバージョン表記を追随)', H.text().includes('v1.1')); /* v0.26: バージョン表記を v1.1 に追随 */
     check('title: title photo still applied', !!H.document.querySelector('.titlephoto'));
     H.window.close();
   }
@@ -139,7 +139,7 @@ const FORM_NAMES = { '-2': '絶不調', '-1': '不調', '0': '普通', '1': '好
     const st = JSON.parse(base);
     st.monthIdx = 3; st.goalSet = true; st.board = null; st.summary = null; st.recruit = null;
     const H = await makeDom({ 'hanazono.v02': JSON.stringify(st) }, 214);
-    check('camp: july keeps svg banner', !!H.document.querySelector('.banner svg'));
+    check('camp: july shows the practice-field photo, not camp', !!H.document.querySelector('.photobanner.photo-practice')); /* v0.26 追随: 7月は練習場の写真になった（8月だけ camp の検証は不変） */
     check('camp: no camp photo in july', !H.document.querySelector('.photo-camp'));
     H.window.close();
   }
@@ -147,7 +147,7 @@ const FORM_NAMES = { '-2': '絶不調', '-1': '不調', '0': '普通', '1': '好
     const st = JSON.parse(base);
     st.monthIdx = 9; st.goalSet = true; st.board = null; st.summary = null; st.recruit = null;
     const H = await makeDom({ 'hanazono.v02': JSON.stringify(st) }, 215);
-    check('camp: january keeps svg banner (winter slot reserved, not yet filled)', !!H.document.querySelector('.banner svg') && !H.document.querySelector('.photo-camp'));
+    check('camp: january shows the winter photo, not camp', !!H.document.querySelector('.photobanner.photo-winter') && !H.document.querySelector('.photo-camp')); /* v0.26 追随: 冬の受け口に実画像が入った */
     H.window.close();
   }
 

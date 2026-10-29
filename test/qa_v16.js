@@ -65,7 +65,7 @@ function sceneChoices(H) { return [...H.document.querySelectorAll('.choices .btn
 function pctOf(H, sub) {
   const b = sceneChoices(H).find(x => x.textContent.includes(sub));
   if (!b) return null;
-  const m = b.textContent.match(/(\d+)%/);
+  const m = (b.dataset.p ? [0, b.dataset.p] : b.textContent.match(/(\d+)%/));
   return m ? +m[1] : null;
 }
 /* 次の勝負どころ（選択肢表示）まで試合を進める。試合が終わっていたら false */
@@ -89,7 +89,7 @@ async function driveMatchToEnd(H) {
     const cs = sceneChoices(H);
     if (cs.length && H.text().includes('成功率の目安')) {
       let best = cs[0], bp = -1;
-      cs.forEach(o => { const m = o.textContent.match(/(\d+)%/); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
+      cs.forEach(o => { const m = (o.dataset.p ? [0, o.dataset.p] : o.textContent.match(/(\d+)%/)); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
       best.click(); await sleep(1); continue;
     }
     if (H.btn('試合を進める')) { H.click('試合を進める'); await sleep(1); continue; }
@@ -117,7 +117,7 @@ function flat(st, base, fat) {
 
 (async () => {
   /* ---- 0. 静的チェック ---- */
-  check('static: title is v1.0 (v0.25 でバージョン表記を追随)', html.includes('<title>Road to HANAZONO v1.0</title>'));
+  check('static: title is v1.1 (v0.25 でバージョン表記を追随)', html.includes('<title>Road to HANAZONO v1.1</title>')); /* v0.26: バージョン表記を v1.1 に追随 */
   check('static: STORE_KEY unchanged', html.includes("STORE_KEY = 'hanazono.v02'"));
   ['HT_PLANS', 'htPlanScene', '後半の戦術変更', 'pgChance', 'kickerOf', 'markActive', 'warntag', 'warnReasons',
    'キッカー＆マーク', 'マーク指示', '今日のPGキッカーは', 'ケガ明け'].forEach(s => {

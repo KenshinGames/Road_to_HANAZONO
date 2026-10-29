@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """play.html 生成: index.html に style.css / game.js をインライン化し、
-アイコンリンク2か所を icon-512.png 由来の 256px PNG data URI に置換する。"""
+アイコンリンク2か所を icon-512.png 由来の 256px PNG data URI に置換する
+（icon-512.png が無い時は同じ 256px 版の icon-256.png を使う）。"""
 import base64, io, os
 from PIL import Image
 
@@ -9,10 +10,15 @@ html = open(base + 'index.html', encoding='utf-8').read()
 css = open(base + 'style.css', encoding='utf-8').read()
 js = open(base + 'game.js', encoding='utf-8').read()
 
-img = Image.open(base + 'icons/icon-512.png').convert('RGB').resize((256, 256), Image.LANCZOS)
-buf = io.BytesIO()
-img.save(buf, 'PNG', optimize=True)
-b64 = base64.b64encode(buf.getvalue()).decode()
+if os.path.exists(base + 'icons/icon-512.png'):
+    img = Image.open(base + 'icons/icon-512.png').convert('RGB').resize((256, 256), Image.LANCZOS)
+    buf = io.BytesIO()
+    img.save(buf, 'PNG', optimize=True)
+    b64 = base64.b64encode(buf.getvalue()).decode()
+else:
+    # v0.26: icon-512.png はリポジトリ未収録（作者の手動アップロード待ち）。v1.0 の play.html に
+    # 埋め込まれていた 256px 版をそのまま書き出した icon-256.png を使う（出力は従来と同一バイト）
+    b64 = base64.b64encode(open(base + 'icons/icon-256.png', 'rb').read()).decode()
 
 out = html.replace('<link rel="stylesheet" href="style.css">', '<style>\n' + css + '\n</style>')
 out = out.replace('<link rel="icon" type="image/png" href="icons/icon-180.png">',

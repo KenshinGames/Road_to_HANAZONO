@@ -67,9 +67,9 @@ function H(dom) {
 (async () => {
   /* ---- 1. バージョン表記 ---- */
   {
-    check('version: document title is v1.0', HTML.includes('<title>Road to HANAZONO v1.0</title>'));
+    check('version: document title is v1.1', HTML.includes('<title>Road to HANAZONO v1.1</title>')); /* v0.26: バージョン表記を v1.1 に追随 */
     const h = await makeDom(HTML, null, 1);
-    check('version: hero shows v1.0', H(h).text().includes('v1.0'));
+    check('version: hero shows v1.1', H(h).text().includes('v1.1')); /* v0.26: バージョン表記を v1.1 に追随 */
     h.window.close();
   }
 
@@ -101,9 +101,10 @@ function H(dom) {
     check('migration: tutorial auto-completed for existing-save device', JSON.parse(x.ls('hanazono.tut') || '{}').done === 1);
     check('migration: no tutorial bar for existing player', !x.document.querySelector('.tutbar'));
     const saveAfterFirst = x.ls('hanazono.v02');
+    const slotsAfterFirst = x.ls('hanazono.slots'); /* v0.26 追随: 新しい jsdom は close 後の localStorage 参照で例外になるため、close 前に読む（検証内容は不変） */
     h.window.close();
     /* 冪等性: もう一度読み直しても同じ */
-    const h2 = await makeDom(HTML, { 'hanazono.v02': saveAfterFirst, 'hanazono.slots': x.ls('hanazono.slots') || '{"v":1,"active":1}', 'hanazono.tut': '{"step":5,"done":1}' }, 777);
+    const h2 = await makeDom(HTML, { 'hanazono.v02': saveAfterFirst, 'hanazono.slots': slotsAfterFirst || '{"v":1,"active":1}', 'hanazono.tut': '{"step":5,"done":1}' }, 777);
     const x2 = H(h2);
     check('migration: second boot is idempotent (state unchanged)', JSON.stringify(x2.state()) === JSON.stringify(JSON.parse(saveAfterFirst)));
     check('migration: second boot still auto-continues', !!x2.document.querySelector('.hud'));

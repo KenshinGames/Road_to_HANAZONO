@@ -60,11 +60,11 @@ async function baseSave(seed) {
 
 (async () => {
   /* ===== 1. バージョン ===== */
-  check('version: <title> is v1.0', html.includes('<title>Road to HANAZONO v1.0</title>'));
+  check('version: <title> is v1.1', html.includes('<title>Road to HANAZONO v1.1</title>')); /* v0.26: バージョン表記を v1.1 に追随 */
   {
     const H = load(null, 1);
     await sleep(15);
-    check('version: title screen shows v1.0', H.text().includes('v1.0'));
+    check('version: title screen shows v1.1', H.text().includes('v1.1')); /* v0.26: バージョン表記を v1.1 に追随 */
     H.window.close();
   }
 

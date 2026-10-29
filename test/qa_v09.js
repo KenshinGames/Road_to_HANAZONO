@@ -144,7 +144,7 @@ async function gotoPreMatch(h, document) {
       const opts = [...d.document.querySelectorAll('.choices .btn.choice')];
       if (opts.length && t.includes('成功率の目安')) {
         let best = opts[0], bp = -1;
-        opts.forEach(o => { const m = o.textContent.match(/(\d+)%/); const p2 = m ? +m[1] : 0; if (p2 > bp) { bp = p2; best = o; } });
+        opts.forEach(o => { const m = (o.dataset.p ? [0, o.dataset.p] : o.textContent.match(/(\d+)%/)); const p2 = m ? +m[1] : 0; if (p2 > bp) { bp = p2; best = o; } });
         best.click(); await sleep(2); continue;
       }
       if (h.btn('試合を進める')) { h.click('試合を進める'); await sleep(2); continue; }
@@ -331,7 +331,7 @@ async function gotoPreMatch(h, document) {
       const opts = [...d.document.querySelectorAll('.choices .btn.choice')];
       if (opts.length && t.includes('成功率の目安')) {
         let best = opts[0], bp = -1;
-        opts.forEach(o => { const m = o.textContent.match(/(\d+)%/); const p2 = m ? +m[1] : 0; if (p2 > bp) { bp = p2; best = o; } });
+        opts.forEach(o => { const m = (o.dataset.p ? [0, o.dataset.p] : o.textContent.match(/(\d+)%/)); const p2 = m ? +m[1] : 0; if (p2 > bp) { bp = p2; best = o; } });
         best.click(); await sleep(1); continue;
       }
       if (h.btn('試合を進める')) { h.click('試合を進める'); await sleep(1); continue; }

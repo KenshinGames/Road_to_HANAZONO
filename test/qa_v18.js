@@ -66,7 +66,7 @@ async function driveMatchToEnd(H) {
     const cs = sceneChoices(H);
     if (cs.length && H.text().includes('成功率の目安')) {
       let best = cs[0], bp = -1;
-      cs.forEach(o => { const m = o.textContent.match(/(\d+)%/); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
+      cs.forEach(o => { const m = (o.dataset.p ? [0, o.dataset.p] : o.textContent.match(/(\d+)%/)); const p = m ? +m[1] : 0; if (p > bp) { bp = p; best = o; } });
       best.click(); await sleep(1); continue;
     }
     if (H.btn('試合を進める')) { H.click('試合を進める'); await sleep(1); continue; }
@@ -103,7 +103,7 @@ function keymanOppOverall(H) {
 
 (async () => {
   /* ---- 0. 静的チェック ---- */
-  check('static: title is v1.0', html.includes('<title>Road to HANAZONO v1.0</title>')) /* v0.25: バージョン表記を追随 */;
+  check('static: title is v1.1', html.includes('<title>Road to HANAZONO v1.1</title>')) /* v0.25: バージョン表記を追随 */; /* v0.26: バージョン表記を v1.1 に追随 */
   check('static: STORE_KEY unchanged', html.includes("STORE_KEY = 'hanazono.v02'"));
   ['oppAceAt', 'genOppAce', 'aceTenure', 'aceStatsOf', 'aceOverallOf', 'acePortraitEl',
    'キーマン対比', 'rivalEvent', 'STREAK_COMM', 'streakOf', 'streakText', 'career.streaks'].forEach(s => {
