@@ -1,5 +1,5 @@
 #!/bin/bash
-# v0.28 の検証一式を逐次実行する（並列にしない）。回帰 → ソーク同値性 → 実ブラウザ監査（ライト／ダーク）
+# v0.28 の検証一式を逐次実行する（並列にしない）。回帰 → ソーク同値性 → 実ブラウザ監査（ライト／ダーク／iPhone 実寸の模擬）
 # 各 QA の出力は QA_OUT（既定 /tmp）に置く。TMPDIR は変えないこと（長いパスにすると Chromium のソケットパスが長すぎて起動しない）
 cd "$(dirname "$0")/../test"
 : > ../review_v28/regression.log
@@ -13,4 +13,5 @@ echo "SOAK DONE rc=$?" >> ../review_v28/regression.log
 cd ../review_v28
 timeout 900 node shoot.js > shoot_run.log 2>&1; echo "AUDIT LIGHT rc=$? $(head -1 shoot_run.log)" >> regression.log
 DARK=1 timeout 900 node shoot.js > shoot_dark.log 2>&1; echo "AUDIT DARK rc=$? $(head -1 shoot_dark.log)" >> regression.log
+IOS=1 timeout 1800 node shoot.js > shoot_ios.log 2>&1; echo "AUDIT IOS rc=$? $(head -1 shoot_ios.log)" >> regression.log
 echo "ALL DONE" >> regression.log

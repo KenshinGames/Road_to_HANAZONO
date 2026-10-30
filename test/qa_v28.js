@@ -90,6 +90,10 @@ const SAVE_KEYS = ['hanazono.v02', 'hanazono.slot.1', 'hanazono.slot.2', 'hanazo
   check('コード欄は 16px（iOS の入力欄の自動拡大を起こさない）', /\.xfercode\s*\{[^}]*font:\s*16px/.test(CSS));
   check('play.html は 3.5MB 以下', HTML.length <= 3.5 * 1024 * 1024, HTML.length);
 
+  check('iPhone 横画面の帯（760〜960px）の詰め方がある', /@media \(min-width: 760px\) and \(max-width: 960px\) and \(orientation: landscape\) \{[\s\S]*?\.hud \.ttl, \.hud \.hudlbl \{ display: none; \}/.test(CSS));
+  check('ホームインジケータ分の余白を詰める（下のセーフエリアから 12px 引く）', CSS.includes('padding-bottom: calc(8px + max(0px, env(safe-area-inset-bottom) - 12px))'));
+  check('HUD の音ボタンは文字を span に分けた（textContent は従来どおり）', JS.includes("[soundOn ? '🔊' : '🔇', h('span', { class: 'hudlbl' }, [soundOn ? ' 音ON' : ' 音OFF'])]"));
+
   console.log('[2] 書き出し（2スロット入りの端末 A）');
   const A = H(await makeDom(Object.assign({ 'hanazono.sound': '0' }, FIX)));
   const r0 = A.window.__rnd;

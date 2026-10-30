@@ -1,4 +1,9 @@
 /* v0.28（v1.3）実ブラウザ監査: v0.27 ハーネスをそのまま使い、引き継ぎ画面を追加で撮る。
+ *   追加: 環境変数 IOS=1 で iPhone アプリ（全画面の WKWebView）の実寸を模擬する。横画面の CSS 寸法と
+ *         セーフエリア（Dynamic Island／ノッチ側の左右、ホームインジケータの下）を、play.html の env(safe-area-inset-*) を
+ *         固定値に置き換えたコピーで再現する（Chromium は env() の値を外から与えられないため）。
+ *         寸法は IOS_DEVICES（作者の実機 iPhone 15 Pro ほか）。出力は screenshots_ios／report_ios.json。
+ *         932×430／932×380 の監査はノッチなし・全幅の想定で、実機アプリより横幅が約200px広い点に注意。
  *   追加: 23 タイトル起点の引き継ぎ（23=空欄／23b=読み込めるコードを貼った状態＝中身の確認表示／23c=上書きの確認中）、
  *         24 ゲーム中（HUD あり）の引き継ぎ。コードは test/fixtures/save_2slots.json から game.js と同じ形式で作る。
  * v0.27（v1.2）実ブラウザ監査: v0.26 ハーネスをそのまま使う。月頭指示（03／04b／08c）はボタン列、対戦確認（11／fx1）は見出し帯＋キーマン先頭の新レイアウトになる。
@@ -38,7 +43,24 @@ const { JSDOM } = require(path.join(__dirname, '..', 'test', 'node_modules', 'js
 
 const ROOT = path.join(__dirname, '..');
 const DARK = !!process.env.DARK;
-const SHOTS = path.join(__dirname, DARK ? 'screenshots_dark' : 'screenshots');
+const IOS = !!process.env.IOS;
+/* iPhone 横画面（アプリ全画面）の CSS 寸法とセーフエリア。top は横画面では 0 */
+const IOS_DEVICES = [
+  { tag: '_ip15p', W: 852, H: 393, l: 59, r: 59, b: 21, name: 'iPhone 15 Pro（作者の実機）・15・16' },
+  { tag: '_ipmini', W: 812, H: 375, l: 50, r: 50, b: 21, name: 'iPhone 12/13 mini（ノッチ機で最小）' },
+  { tag: '_ip17p', W: 874, H: 402, l: 62, r: 62, b: 20, name: 'iPhone 16 Pro・17 Pro（高さ 400 の境を超える）' },
+  { tag: '_ippm', W: 932, H: 430, l: 59, r: 59, b: 21, name: 'iPhone 14/15 Pro Max・Plus' },
+  { tag: '_ip17pm', W: 956, H: 440, l: 62, r: 62, b: 20, name: 'iPhone 16 Pro Max・17 Pro Max（最大）' }
+];
+const SHOTS = path.join(__dirname, IOS ? 'screenshots_ios' : (DARK ? 'screenshots_dark' : 'screenshots'));
+let PLAY = path.join(ROOT, 'v02', 'play.html');
+function useInsets(dev) {
+  const src = fs.readFileSync(path.join(ROOT, 'v02', 'play.html'), 'utf8');
+  const val = { top: 0, right: dev.r, bottom: dev.b, left: dev.l };
+  const out = src.replace(/env\(safe-area-inset-(top|right|bottom|left)(?:,\s*[^)]*)?\)/g, (m, k) => val[k] + 'px');
+  PLAY = path.join(require('os').tmpdir(), 'hz_ios_emu' + dev.tag + '.html');
+  fs.writeFileSync(PLAY, out);
+}
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const report = { errors: [], screens: {}, facts: {} };
 const HTML = fs.readFileSync(path.join(ROOT, 'v02', 'play.html'), 'utf8');
@@ -176,7 +198,7 @@ async function newPage(browser, seedJson, W, H, extraPreset) {
       if (xp) for (const k of Object.keys(xp)) localStorage.setItem(k, xp[k]);
     } catch (e) {}
   }, seedJson || null, extraPreset || null);
-  await page.goto('file://' + path.join(ROOT, 'v02', 'play.html'), { waitUntil: 'load' });
+  await page.goto('file://' + PLAY, { waitUntil: 'load' });
   await sleep(650);
   /* あらすじモーダルが出ていたら閉じる（監査は背後の画面を対象にする） */
   await page.evaluate(() => {
@@ -401,7 +423,7 @@ const clickCard = async (page, sub) => {
     await pf.setViewport({ width: MW, height: MH, deviceScaleFactor: 2 });
     const sv = await mayInstSave();
     await pf.evaluateOnNewDocument((sj) => { try { if (sj) localStorage.setItem('hanazono.v02', sj); } catch (e) {} }, sv);
-    await pf.goto('file://' + path.join(ROOT, 'v02', 'play.html'), { waitUntil: 'load' });
+    await pf.goto('file://' + PLAY, { waitUntil: 'load' });
     await pf.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('グラウンドへ戻る')); if (b) b.click(); });
     await sleep(180);
     report.facts.fxGrowMid = await pf.evaluate(() => document.querySelectorAll('.grrow.fx-grow').length);
@@ -564,15 +586,19 @@ const clickCard = async (page, sub) => {
   await q3.close();
   }
   }
-  await runSet(932, 430, '_h430', true);
-  await runSet(932, 380, '_h380', false);
+  if (IOS) {
+    for (const dev of IOS_DEVICES) { useInsets(dev); await runSet(dev.W, dev.H, dev.tag, false); }
+  } else {
+    await runSet(932, 430, '_h430', true);
+    await runSet(932, 380, '_h380', false);
+  }
 
   await browser.close();
   /* v0.22: 見切れ検出の集計（種別ごとの件数）を facts に残す */
   const clipKinds = {};
   Object.values(report.screens).forEach(s => (s.clip || []).forEach(c => { const k = c.split(':')[0]; clipKinds[k] = (clipKinds[k] || 0) + 1; }));
   report.facts.clipKinds = clipKinds;
-  fs.writeFileSync(path.join(__dirname, DARK ? 'report_dark.json' : 'report.json'), JSON.stringify(report, null, 2));
+  fs.writeFileSync(path.join(__dirname, IOS ? 'report_ios.json' : (DARK ? 'report_dark.json' : 'report.json')), JSON.stringify(report, null, 2));
   const bad = Object.entries(report.screens).filter(([, s]) => s.issues.length);
   console.log('errors:', report.errors.length, '| screens:', Object.keys(report.screens).length, '| clip kinds:', JSON.stringify(clipKinds), '| screens with issues:', bad.map(([n]) => n).join(', ') || 'none');
   /* v0.25: 設計原則の集計（入れ子カード／長文段落／クレジット） */

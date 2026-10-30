@@ -729,6 +729,58 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
   .xfercode { min-height: 44px; }
 }
 
+/* ===== v0.28: iPhone の横画面（アプリ・Safari とも。CSS 幅 812〜956px の帯）=====
+ * 左右に Dynamic Island／ノッチのセーフエリア（47〜62px）が入るため、中身の幅は約 690〜810px と、
+ * 932×430 監査（中身 904px）より 100〜200px 狭い。この帯だけ HUD・活動カード・指示のボタン列を詰める。
+ * 下のホームインジケータ分の余白（21px 前後）は、指示器にボタンが重ならない範囲で詰める（中身の高さを確保する）。
+ * 監査は review_v28/shoot.js の IOS=1（セーフエリアを固定値にした実寸の模擬）で行う */
+@media (min-width: 760px) and (max-width: 960px) and (orientation: landscape) {
+  #app { padding-bottom: calc(8px + max(0px, env(safe-area-inset-bottom) - 12px)); }
+  /* HUD：校名（飾り）と音ボタンの文字を隠し、余白を詰めて1行に収める */
+  .hud { gap: 4px 6px; padding: 5px 8px; }
+  .hud .ttl, .hud .hudlbl { display: none; }
+  .hud .chip { padding: 2px 8px; font-size: 12.5px; }
+  .hud .hudbtn { padding: 5px 9px; font-size: 12.5px; }
+  .hud .hudbtn.icon { padding: 5px 8px; }
+  /* 週次の活動カード：9枚が1列に並ぶ幅（1枚 約70px）に合わせて文字と余白を詰める */
+  .wcards { gap: 5px; }
+  .wcard { padding: 5px 2px 4px; gap: 1px; border-radius: 12px; }
+  .wcard .wic { font-size: 18px; line-height: 1.25; }
+  .wcard .wnm { font-size: 11.5px; line-height: 1.25; white-space: nowrap; letter-spacing: -.02em; }
+  .wcard .wdsc { font-size: 9.5px; line-height: 1.25; min-height: 24px; }
+  .wcard .wbadge { font-size: 9.5px; min-height: 12px; }
+  /* 月頭指示のボタン列：ラベル列と文字を詰める（6択の能力名がボタンからはみ出さない） */
+  .seglab { width: 56px; }
+  .segbtn { padding: 3px 1px; }
+  .segbtn .segt { font-size: 11.5px; letter-spacing: -.02em; }
+  .segbtn .segd, .segbtn .rkval.sm { font-size: 10.5px; }
+  select { font-size: 12px; padding: 6px 4px; letter-spacing: -.02em; }
+  .form2 { column-gap: 8px; }
+  /* 月頭指示は右（操作）カラムを広げる：6択の能力名と、重点・キャプテンの名前が余裕をもって収まるように */
+  .lay2.layinst { grid-template-columns: .8fr 1.2fr; }
+  .layinst .glasscard { font-size: 14px; }
+  .layinst .glasscard .gval { white-space: nowrap; }
+  /* 対戦確認のキーマン対比：能力名（スピード等）が2行に割れないよう文字を一段小さく */
+  .kminfo { font-size: 13px; }
+  .kminfo .kmname { font-size: 13.5px; }
+  /* タイトル：縦 400px 以下向けの詰め方を、iPhone の横画面では高さにかかわらず使う
+   * （16/17 Pro の 874×402 は 400 の境をわずかに超え、ホームインジケータ分も引かれて見出しが上に押し出されていた） */
+  .titlewrap.titlephoto { padding: 8px 26px; gap: 6px; }
+  .titlewrap .title-card { gap: 7px; }
+  .titlewrap .title-card .btn { padding: 8px 10px; }
+  .titlephoto .hero h1 { font-size: 22px; }
+  .titlephoto .hero p { font-size: 12px; }
+}
+/* iPhone mini 級（横 812px・縦 375px）だけ、さらに一段詰める */
+@media (min-width: 760px) and (max-width: 830px) and (orientation: landscape) {
+  select { font-size: 11.5px; }
+}
+@media (min-width: 760px) and (max-width: 960px) and (orientation: landscape) and (max-height: 385px) {
+  .titlewrap .title-card { gap: 6px; }
+  .titlewrap .title-card .btn { padding: 7px 10px; }
+  .slotcol { padding: 4px 8px; }
+}
+
 </style>
 </head>
 <body>
@@ -4282,7 +4334,7 @@ function finishRecruit() {
   function hud() {
     var mo = MONTHS[G.monthIdx] || { m: '—' };
     return h('div', { class: 'hud' }, [
-      h('span', { class: 'ttl' }, ['🏉 桜丘高校']),
+      h('span', { class: 'ttl' }, ['🏉 桜丘高校']), /* v0.28: iPhone の横画面では隠す（CSS） */
       h('span', { class: 'chip' }, [G.year + '年目 ・ ' + mo.m]),
       hudChip('部の格', gradeOf().n),
       hudChip('総合力', String(teamPower())),
@@ -4292,7 +4344,7 @@ function finishRecruit() {
       hudBtn('記録・OB', 'records'),
       h('button', { class: 'hudbtn icon', title: '遊び方', onclick: function () { guideFrom = screen; screen = 'guide'; render(); } }, ['📖']),
       h('button', { class: 'hudbtn icon', title: '設定', onclick: function () { openSettings(); } }, ['⚙']), /* v0.24: 設定画面への入口 */
-      h('button', { class: 'hudbtn icon', title: soundOn ? 'サウンド ON（タップで OFF）' : 'サウンド OFF（タップで ON）', onclick: function () { toggleSound(); } }, [soundOn ? '🔊 音ON' : '🔇 音OFF'])
+      h('button', { class: 'hudbtn icon', title: soundOn ? 'サウンド ON（タップで OFF）' : 'サウンド OFF（タップで ON）', onclick: function () { toggleSound(); } }, [soundOn ? '🔊' : '🔇', h('span', { class: 'hudlbl' }, [soundOn ? ' 音ON' : ' 音OFF'])]) /* v0.28: 文字部分は iPhone の横画面で隠せるよう span に分けた（textContent は従来どおり） */
     ]);
   }
   /* v0.17: 画面下部の固定アクションバー。決定系ボタンはここに置き、コンテンツと重ならないようにする */

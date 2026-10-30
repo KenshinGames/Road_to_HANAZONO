@@ -3546,7 +3546,7 @@ function finishRecruit() {
   function hud() {
     var mo = MONTHS[G.monthIdx] || { m: '—' };
     return h('div', { class: 'hud' }, [
-      h('span', { class: 'ttl' }, ['🏉 桜丘高校']),
+      h('span', { class: 'ttl' }, ['🏉 桜丘高校']), /* v0.28: iPhone の横画面では隠す（CSS） */
       h('span', { class: 'chip' }, [G.year + '年目 ・ ' + mo.m]),
       hudChip('部の格', gradeOf().n),
       hudChip('総合力', String(teamPower())),
@@ -3556,7 +3556,7 @@ function finishRecruit() {
       hudBtn('記録・OB', 'records'),
       h('button', { class: 'hudbtn icon', title: '遊び方', onclick: function () { guideFrom = screen; screen = 'guide'; render(); } }, ['📖']),
       h('button', { class: 'hudbtn icon', title: '設定', onclick: function () { openSettings(); } }, ['⚙']), /* v0.24: 設定画面への入口 */
-      h('button', { class: 'hudbtn icon', title: soundOn ? 'サウンド ON（タップで OFF）' : 'サウンド OFF（タップで ON）', onclick: function () { toggleSound(); } }, [soundOn ? '🔊 音ON' : '🔇 音OFF'])
+      h('button', { class: 'hudbtn icon', title: soundOn ? 'サウンド ON（タップで OFF）' : 'サウンド OFF（タップで ON）', onclick: function () { toggleSound(); } }, [soundOn ? '🔊' : '🔇', h('span', { class: 'hudlbl' }, [soundOn ? ' 音ON' : ' 音OFF'])]) /* v0.28: 文字部分は iPhone の横画面で隠せるよう span に分けた（textContent は従来どおり） */
     ]);
   }
   /* v0.17: 画面下部の固定アクションバー。決定系ボタンはここに置き、コンテンツと重ならないようにする */

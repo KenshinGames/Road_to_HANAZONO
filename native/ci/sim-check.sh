@@ -10,17 +10,30 @@ APP=build/Build/Products/Debug-iphonesimulator/App.app
 BID=com.kenshingames.hanazono
 WAIT=15
 
-# iPhone の Pro（Max でない）を優先して選ぶ
+# 機種は SIM_DEVICE（例 "iPhone 15 Pro"）。入っていなければ最新の iOS ランタイムで作る。未指定なら Pro（Max でない）の最新
+SIM_DEVICE="${SIM_DEVICE:-}"
 UDID=$(xcrun simctl list devices available -j | python3 -c '
 import json, sys
+want = sys.argv[1]
 d = json.load(sys.stdin)["devices"]
 c = [(k, x) for k, v in d.items() if "iOS" in k for x in v if x["name"].startswith("iPhone")]
 c.sort(key=lambda kx: kx[0])
-pro = [kx for kx in c if "Pro" in kx[1]["name"] and "Max" not in kx[1]["name"]]
-pick = (pro or c)[-1]
-print(pick[1]["udid"])
-print("simulator:", pick[1]["name"], pick[0], file=sys.stderr)
-')
+if want:
+    c = [kx for kx in c if kx[1]["name"] == want]
+else:
+    c = [kx for kx in c if "Pro" in kx[1]["name"] and "Max" not in kx[1]["name"]] or c
+if c:
+    print(c[-1][1]["udid"])
+' "$SIM_DEVICE")
+if [ -z "$UDID" ]; then
+  RT=$(xcrun simctl list runtimes -j | python3 -c '
+import json, sys
+r = [x for x in json.load(sys.stdin)["runtimes"] if x.get("platform") == "iOS" and x.get("isAvailable")]
+print(r[-1]["identifier"])')
+  TYPE="com.apple.CoreSimulator.SimDeviceType.${SIM_DEVICE// /-}"
+  UDID=$(xcrun simctl create "$SIM_DEVICE" "$TYPE" "$RT")
+fi
+echo "simulator: $(xcrun simctl list devices -j | python3 -c 'import json,sys; u=sys.argv[1]; print([x["name"] for v in json.load(sys.stdin)["devices"].values() for x in v if x["udid"]==u][0])' "$UDID") ($UDID)"
 xcrun simctl boot "$UDID"
 xcrun simctl bootstatus "$UDID" -b > /dev/null
 xcrun simctl install "$UDID" "$APP"

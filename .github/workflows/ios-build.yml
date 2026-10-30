@@ -21,6 +21,15 @@ jobs:
   simulator:
     runs-on: macos-latest
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - device: iPhone 15 Pro   # 作者の実機（852×393）
+            slug: iphone15pro
+          - device: iPhone 17 Pro   # 874×402（縦 400 の境を超える）
+            slug: iphone17pro
+    name: simulator (${{ matrix.device }})
     steps:
       - uses: actions/checkout@v4
 
@@ -51,6 +60,8 @@ jobs:
           tail -n 5 sim-out/build.log
 
       - name: Run in Simulator (screenshots and save mirror)
+        env:
+          SIM_DEVICE: ${{ matrix.device }}
         run: bash native/ci/sim-check.sh
 
       # 成果物を開けない環境（ブラウザなしのレビュー等）でも画面を確かめられるよう、縮小した JPEG を base64 でログに出す
@@ -68,6 +79,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ios-simulator
+          name: ios-simulator-${{ matrix.slug }}
           path: sim-out/
           if-no-files-found: ignore
