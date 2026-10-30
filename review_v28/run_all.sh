@@ -11,6 +11,7 @@ echo "REGRESSION DONE" >> ../review_v28/regression.log
 timeout 5400 node soak_v19_ab.js 2 20 > ../review_v28/soak_v28_2x20.log 2>&1
 echo "SOAK DONE rc=$?" >> ../review_v28/regression.log
 cd ../review_v28
+mkdir -p screenshots screenshots_dark screenshots_ios
 timeout 900 node shoot.js > shoot_run.log 2>&1; echo "AUDIT LIGHT rc=$? $(head -1 shoot_run.log)" >> regression.log
 DARK=1 timeout 900 node shoot.js > shoot_dark.log 2>&1; echo "AUDIT DARK rc=$? $(head -1 shoot_dark.log)" >> regression.log
 IOS=1 timeout 1800 node shoot.js > shoot_ios.log 2>&1; echo "AUDIT IOS rc=$? $(head -1 shoot_ios.log)" >> regression.log

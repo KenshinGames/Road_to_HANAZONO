@@ -28,3 +28,7 @@ qa_v27 rc=0 NG=0 ALL PASS 11s
 qa_v28 rc=0 NG=0 ALL PASS (57 ok, 0 NG) 10s
 REGRESSION DONE
 SOAK DONE rc=0
+AUDIT LIGHT rc=0 errors: 0 | screens: 69 | clip kinds: {} | screens with issues: none
+AUDIT DARK rc=0 errors: 0 | screens: 69 | clip kinds: {} | screens with issues: none（初回は screenshots_dark 未作成で中断 → 作成して再実行）
+AUDIT IOS rc=0 errors: 0 | screens: 165 | clip kinds: {} | screens with issues: none
+ALL DONE
