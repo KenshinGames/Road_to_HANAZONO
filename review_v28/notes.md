@@ -68,3 +68,12 @@
 - iPhone SE 系（667×375）は固定レイアウトの帯（横 760px 以上）の外で、ページ全体のスクロール表示になる。iPad は iPhone アプリとして動く。
 - 正式アイコン・ストア素材・プライバシーポリシー・IAP（docs/IOS.md §7）。
 - 実機での最終確認（docs/IOS.md §8 のチェックリスト）。
+
+## 追記（2026-11-01、マージ後）：Bundle ID をほかのアプリに合わせた
+
+- 作者の指示「BundleIDは他のアプリも参照して欲しい！」。作者のほかのアプリは `jp.kenshingames.rugby7v7`（App Store で公開中）・
+  `jp.kenshingames.yohaku` で、どちらも `jp.kenshingames.<小文字の名前>`。HANAZONO も `com.kenshingames.hanazono` → **`jp.kenshingames.hanazono`** に変えた。
+  App Store Connect には未登録で実機にも入れていないので、失うセーブや控えはない。
+- 署名のチームも Rugby 7v7 と同じ `J5SS42XR6B`（Kenshin Takada）をプロジェクトに入れ、Xcode で Team を選ぶ手間を省いた。
+- 変えた所：Xcode のプロジェクト設定（Debug・Release）・`native/capacitor.config.json` と Xcode 側の写し・`native/ci/sim-check.sh`・docs。
+  `test/qa_v28.js` に「4か所で同じ ID・旧 ID が残っていない・チームが入っている」の検査を足した（57 → 59項目）。

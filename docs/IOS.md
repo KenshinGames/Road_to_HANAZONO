@@ -26,10 +26,11 @@
 2. 最新の Xcode で `native/ios/App/App.xcodeproj` を開く。
    初回は Swift パッケージ（Capacitor 本体）の取得が自動で始まるので、左下の進捗が終わるまで1〜2分待つ。
    **Node.js や npm は不要**（ゲームの中身は `native/ios/App/App/public/` にコミット済み）。
-3. 左の一覧で一番上の「App」→ TARGETS の「App」→ **Signing & Capabilities** タブ。
-   - **Team** に自分の Apple Developer のチームを選ぶ。
-   - Bundle Identifier は `com.kenshingames.hanazono`。**App Store Connect に登録すると以後は変えられない**ので、
-     別の ID にしたい場合はこの時点で変える（変えたら `native/capacitor.config.json` の appId も同じ値に）。
+3. 左の一覧で一番上の「App」→ TARGETS の「App」→ **Signing & Capabilities** タブで、次の2つを確かめる。
+   - **Team** は Rugby 7v7 と同じ「Kenshin Takada」（J5SS42XR6B）を設定済み。違うチームが出ていたら選び直す。
+   - Bundle Identifier は `jp.kenshingames.hanazono`。ほかのアプリ（`jp.kenshingames.rugby7v7`・`jp.kenshingames.yohaku`）と同じ形にしてある。
+     **App Store Connect に登録すると以後は変えられない**。変える場合は、プロジェクト設定・`native/capacitor.config.json` の appId・
+     `native/ci/sim-check.sh` の BID を同じ値にそろえる（`test/qa_v28.js` が食い違いを検出する）。
 4. iPhone をケーブルでつなぐ。初回だけ iPhone の「設定 → プライバシーとセキュリティ → デベロッパモード」を ON（再起動あり）。
 5. Xcode 上部の実行先で自分の iPhone を選び、▶（Run）。ホーム画面に「HANAZONO」が入って起動します。
 
@@ -37,7 +38,7 @@
 
 1. https://appstoreconnect.apple.com → 「アプリ」→ ＋ →「新規 App」
    - プラットフォーム iOS／名前（App Store 上で他と重複できない。例：Road to HANAZONO）／主言語 日本語／
-     バンドル ID `com.kenshingames.hanazono`／SKU は任意（例 hanazono）。
+     バンドル ID `jp.kenshingames.hanazono`（一覧に出ない時は Xcode で一度 ▶ するか、Apple Developer の Identifiers で登録）／SKU は任意（例 hanazono）。
 2. Xcode の実行先を「Any iOS Device (arm64)」にして、メニュー **Product → Archive**。
 3. 終わると Organizer が開くので **Distribute App → App Store Connect → Upload**（あとは既定のまま）。
 4. App Store Connect の **TestFlight** タブで処理完了（10〜30分）を待ち、内部テスターに自分を追加。

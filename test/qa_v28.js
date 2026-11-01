@@ -183,7 +183,19 @@ const SAVE_KEYS = ['hanazono.v02', 'hanazono.slot.1', 'hanazono.slot.2', 'hanazo
   const swift = fs.readFileSync(ROOT + '/native/ios/App/App/HanazonoStorePlugin.swift', 'utf8');
   check('プラグイン名が native-boot.js と一致', swift.includes('jsName = "HanazonoStore"') && fs.readFileSync(www + '/native-boot.js', 'utf8').includes("'HanazonoStore'"));
   const cfg = JSON.parse(fs.readFileSync(ROOT + '/native/capacitor.config.json', 'utf8'));
-  check('capacitor.config：appId・webDir', cfg.appId === 'com.kenshingames.hanazono' && cfg.webDir === 'www');
+  check('capacitor.config：appId・webDir', cfg.appId === 'jp.kenshingames.hanazono' && cfg.webDir === 'www');
+  /* v0.28 追記：Bundle ID は作者のほかのアプリ（jp.kenshingames.rugby7v7・jp.kenshingames.yohaku）と同じ形。
+     Xcode・Capacitor の写し・シミュレータ確認の4か所が同じ値で、旧 ID が残っていないこと */
+  {
+    const BID = 'jp.kenshingames.hanazono';
+    const cfgIos = JSON.parse(fs.readFileSync(ROOT + '/native/ios/App/App/capacitor.config.json', 'utf8'));
+    const sim = fs.readFileSync(ROOT + '/native/ci/sim-check.sh', 'utf8');
+    check('Bundle ID が4か所で一致（jp.kenshingames.hanazono）',
+      (pbx.match(/PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);/g) || []).length === 2 &&
+      (pbx.match(/PRODUCT_BUNDLE_IDENTIFIER = jp\.kenshingames\.hanazono;/g) || []).length === 2 &&
+      cfgIos.appId === BID && sim.includes('BID=' + BID) && !/com\.kenshingames/.test(pbx + sim + JSON.stringify(cfgIos)));
+    check('署名のチームはほかのアプリと同じ（Kenshin Takada）', (pbx.match(/DEVELOPMENT_TEAM = J5SS42XR6B;/g) || []).length === 2);
+  }
   check('capacitor.config：ステータスバーとホームインジケータを隠す（SystemBars）', cfg.plugins && cfg.plugins.SystemBars && cfg.plugins.SystemBars.hidden === true);
   check('capacitor.config：Xcode 側の写しも同じ設定', JSON.parse(fs.readFileSync(ROOT + '/native/ios/App/App/capacitor.config.json', 'utf8')).plugins.SystemBars.hidden === true);
   check('AppDelegate：音は消音スイッチに従う（.ambient）', fs.readFileSync(ROOT + '/native/ios/App/App/AppDelegate.swift', 'utf8').includes('setCategory(.ambient'));
