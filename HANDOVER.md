@@ -49,6 +49,7 @@
 | `tools/embed_fonts.py` | 和文フォントを game.js・index.html で使う文字に subset し、style.css の `@fonts` 節へ data URI で入れる（v0.29）。**game.js に新しい漢字を足したら流し直す**（流し忘れは qa_v29 が検出）。入手手順はスクリプト冒頭 |
 | `v02/fonts/` | 埋め込みフォントの SIL OFL 1.1 のライセンス文（M PLUS Rounded 1c・Dela Gothic One） |
 | `.claude/skills/frontend-design/` | Anthropic 公式のデザイン指針スキル（無改変・Apache 2.0）。HANAZONO の Claude Code セッションで自動的に読み込まれる。§4 の決定事項がこのスキルより優先。出どころと消す条件は同じフォルダの `SOURCE.md` |
+| `.claude/settings.json` | このリポジトリの Claude Code セッションの設定（2026-11-01、作者「コンテキストが35%を超えたら、作業完了後に自動で会話を圧縮」）。`CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS=350000`＝待機中の自動圧縮（idle compaction）の境を、Claude Opus 5.5 の文脈 100万トークンの 35% に下げる（既定 20万・下限 10万）。作業の途中では圧縮しない（35% で作業中も圧縮する `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` は入れていない）。新しいセッションから効く |
 
 ## 4. 絶対に守る設計原則（作者の決定事項）
 
