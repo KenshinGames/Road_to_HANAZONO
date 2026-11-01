@@ -7,7 +7,7 @@ set -euo pipefail
 OUT=sim-out
 mkdir -p "$OUT"
 APP=build/Build/Products/Debug-iphonesimulator/App.app
-BID=com.kenshingames.hanazono
+BID=jp.kenshingames.hanazono
 WAIT=15
 
 # 機種は SIM_DEVICE（例 "iPhone 15 Pro"）。入っていなければ最新の iOS ランタイムで作る。未指定なら Pro（Max でない）の最新

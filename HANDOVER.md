@@ -90,7 +90,8 @@
 
 - **iOS 移植 → 着手済み（v0.28、2026-10-30）**。殻（Capacitor 8）・セーブの引き継ぎと二重化・macOS でのビルド確認まで完了。
   残り：作者の実機確認（docs/IOS.md §8 のチェックリスト）→ TestFlight → 正式アイコン・スクリーンショット・プライバシーポリシー URL・ストア文言 → IAP（v1.0 定義）。
-  **Bundle ID（com.kenshingames.hanazono）と capacitor.config の hostname／iosScheme は変えない**（セーブの置き場所が変わる）。
+  **Bundle ID（jp.kenshingames.hanazono。作者のほかのアプリ jp.kenshingames.rugby7v7・yohaku と同じ形。署名チームも同じ J5SS42XR6B）と
+  capacitor.config の hostname／iosScheme は変えない**（セーブの置き場所が変わる）。
 - **デザイン作り込みの優先順位**（調査済み）：① ストア／タイトルの顔 ② フォント・デザイントークン統一（埋め込みは OFL の無料フォントのみ。有料フォントは罠）③ 立ち絵パーツキットの外注（推定8〜20万円、Higgsfield 試作の結果次第）④ UI コア3画面 ⑤ 動き（CSS/JS で大半到達可能。Spine／Live2D は自動生成選手に適用できず優先度最低）⑥ 音源の素材化（歓声・笛・BGM。UI 音は WebAudio 継続）。
 
 ## 8. push 手順の注意（事故の教訓）
