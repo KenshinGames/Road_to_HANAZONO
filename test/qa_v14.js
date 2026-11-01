@@ -82,7 +82,7 @@ const STAT_KEYS = ['spd', 'pow', 'pas', 'kik', 'tak', 'sta'];
   });
   {
     const H = await makeDom(null, 111);
-    check('title: shows v1.2 (v0.25 でバージョン表記を追随)', H.text().includes('v1.2')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */
+    check('title: shows v1.3 (v0.25 でバージョン表記を追随)', H.text().includes('v1.3')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.3 に追随 */
     H.window.close();
   }
 

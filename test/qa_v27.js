@@ -129,8 +129,8 @@ function fingerprint(st) {
 
 (async () => {
   /* ---- 1. 静的：バージョン・CSS・文言・アイコン ---- */
-  check('version: <title> is v1.2', HTML.includes('<title>Road to HANAZONO v1.2</title>'));
-  check('version: hero text is v1.2', JS.includes("'高校ラグビー育成シミュレーション v1.2'"));
+  check('version: <title> is v1.3', HTML.includes('<title>Road to HANAZONO v1.3</title>')); /* v0.28: バージョン表記を v1.3 に追随 */
+  check('version: hero text is v1.3', JS.includes("'高校ラグビー育成シミュレーション v1.3'")); /* v0.28: バージョン表記を v1.3 に追随 */
   check('css: selected choice subtext uses the brand ink (not --sub)', /\.btn\.primary\.choice \.d \{ color: var\(--brand-ink\)/.test(CSS));
   check('wording: OB year reads "n年目卒" everywhere (9 strings, no bare n年卒)', !/'年卒/.test(JS) && (JS.match(/'年目卒/g) || []).length === 9);
   const icon = fs.readFileSync(__dirname + '/../v02/icons/icon-180.png');

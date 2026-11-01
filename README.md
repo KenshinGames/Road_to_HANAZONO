@@ -5,6 +5,7 @@
 - 企画メモ: [DESIGN.md](DESIGN.md)
 - 試作 v0.1: `proto/` フォルダ（1シーズン完結の初期試作）
 - v0.2: `v02/` フォルダ（`v02/play.html` が単体で遊べる版。横画面・すごろく進行・世代交代ループ）
+- iOS 版: `native/` フォルダ（Capacitor。中身は `v02/` と同じゲーム）。Xcode での実機インストール・TestFlight の手順は [docs/IOS.md](docs/IOS.md)
 
 ## 試作 v0 で遊べること
 

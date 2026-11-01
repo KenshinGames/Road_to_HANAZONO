@@ -1,0 +1,5 @@
+/* Road to HANAZONO — iOS 版だけに足すスタイル（Web 版には入らない）
+ * アプリとして自然な手ざわりにする：長押しで文字が選択されたり、リンクのメニューが出たりしないようにする。
+ * 文字を入力・コピーする欄（引き継ぎコードなど）は従来どおり選択できる */
+html, body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; overscroll-behavior: none; }
+textarea, input, [contenteditable="true"] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }

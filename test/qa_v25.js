@@ -78,15 +78,15 @@ async function makeLcgDom(html, seed) {
 (async () => {
   /* ---- 1. バージョン表記 v1.0 とクレジット ---- */
   {
-    check('version: document title is v1.2', HTML.includes('<title>Road to HANAZONO v1.2</title>')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */
+    check('version: document title is v1.3', HTML.includes('<title>Road to HANAZONO v1.3</title>')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.3 に追随 */
     check('version: no stale v0.24 in document title/hero source', !HTML.includes('Road to HANAZONO v0.24') && !HTML.includes('育成シミュレーション v0.24'));
     const h = await makeDom(HTML, null, 1);
     const x = H(h);
-    check('version: hero shows v1.2', x.text().includes('高校ラグビー育成シミュレーション v1.2')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */
+    check('version: hero shows v1.3', x.text().includes('高校ラグビー育成シミュレーション v1.3')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.3 に追随 */
     check('credits: title carries the credit line', x.text().includes('制作：Kenshin Takada') && x.text().includes('Muse との共同開発'));
     x.click('📖'); await sleep(20);
     check('credits: guide has a credits section', x.text().includes('クレジット') && x.text().includes('Kenshin Takada') && x.text().includes('Muse（AI）との共同開発'));
-    check('credits: guide credits name the series and version', x.text().includes('100アプリチャレンジ #47') && x.text().includes('v1.2（Web版）')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */
+    check('credits: guide credits name the series and version', x.text().includes('100アプリチャレンジ #47') && x.text().includes('v1.3（Web版）')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.3 に追随 */
     h.window.close();
   }
 
