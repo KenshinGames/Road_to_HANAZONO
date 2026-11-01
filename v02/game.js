@@ -1,6 +1,11 @@
-/* Road to HANAZONO v1.4（Web版） — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+/* Road to HANAZONO v1.5（Web版） — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+ * v1.5（v0.30）: 週次画面のシンプル化（作者「文字が多すぎる。ゲームっぽく、不要な部分を削ってシンプルで分かりやすく」）。
+ *        文の案内をやめて記号と札に：場面＝「◯月 第◯週」＋今月の予定表（選んだ活動のアイコン）＋合宿と次の試合（VS）の札、
+ *        右の列＝疲労のゲージ（色で注意）とケガ人・週の記録（結果だけ）・おまかせ、活動カード＝アイコン・名前・効果の札
+ *        （説明文は遊び方のガイド「週の活動」へ）。日付と次の試合を重ねて出していた最下部のステータスバーはなくした。
+ *        表示のみで、ゲームの数値・判定・乱数消費・セーブ形式・localStorage キーは不変）
  * v1.4（v0.29）: 見た目の作り直し（作者が提示したパワプロ系の参照画像〈練習メニュー・選手データ・成長レポート〉の様式へ）。
- *        空の背景と縞、紺の輪郭と固い影の盤面、紺の見出し札、白いボタンと緑の決定ボタン、選択中は金、能力ランクは色の札、
+ *        空の背景と縞、紺の輪郭と固い影の盤面、紺の見出し札、白いボタンと緑の決定ボタン、選択中は金、能力ランクは色の文字（札にしない）、
  *        名前はポジションの組ごとの色札、練習カードは系統色、和文フォント（M PLUS Rounded 1c・Dela Gothic One）を埋め込み。
  *        ダークモードはナイター（夜空と照明）。表示のみで、ゲームの数値・判定・乱数消費・セーブ形式・localStorage キーは不変）
  * v1.3（v0.28）: セーブの引き継ぎコード（設定 → 引き継ぎ。3スロット分を1つの文字列に書き出し、別の端末や iOS 版で読み込む。
@@ -336,16 +341,18 @@
   var WK_EV_CHANCE = 0.24;
   function wkScale() { return WK_SCALE * (MONTHS[G.monthIdx].cells >= 12 ? 1 : WK_SHORT_MUL); }
   var WK_ALIGN_MUL = 1.15; /* 活動カードの能力が月の全体方針（inst.team）と一致した週の小さなボーナス */
+  /* v0.30: fx＝活動カードに出す効果の札（表示のみ。'up'＝上がる・'down'＝下がる（どちらも良い向き）・'cost'＝代償）。
+   * 説明文 d はカードから外し、遊び方のガイド「週の活動」とカードの title に回した（作者「文字が多すぎる」） */
   var WEEK_ACTS = [
-    { k: 'scrum', n: 'スクラム強化', ic: '🏉', stat: 'pow', unit: 'FW', d: 'FWと全体のパワー' },
-    { k: 'lineout', n: 'ラインアウト', ic: '🎯', stat: 'pas', unit: 'SP', d: 'セットピースと全体のパス' },
-    { k: 'kick', n: 'キック練習', ic: '🦵', stat: 'kik', unit: 'SP', d: 'キッカー陣と全体のキック' },
-    { k: 'bk', n: 'BK展開', ic: '🏃', stat: 'spd', unit: 'BK', d: 'BKと全体のスピード' },
-    { k: 'fitness', n: 'フィットネス', ic: '💪', stat: 'sta', unit: null, fatMul: 1.25, d: '全員のスタミナ（疲労多め）' },
-    { k: 'defense', n: 'ディフェンス', ic: '🛡', stat: 'tak', unit: null, d: '全員のタックル' },
-    { k: 'video', n: 'ビデオ分析', ic: '📋', cell: 'meet', d: '作戦会議。次の試合の準備が進む' },
-    { k: 'mental', n: 'メンタル', ic: '🧘', d: '調子を整え、信頼を深める' },
-    { k: 'rest', n: '休養・ケア', ic: '💊', cell: 'rec', d: '疲労とケガを回復' }
+    { k: 'scrum', n: 'スクラム強化', ic: '🏉', stat: 'pow', unit: 'FW', d: 'FWと全体のパワー', fx: [['パワー', 'up']] },
+    { k: 'lineout', n: 'ラインアウト', ic: '🎯', stat: 'pas', unit: 'SP', d: 'セットピースと全体のパス', fx: [['パス', 'up']] },
+    { k: 'kick', n: 'キック練習', ic: '🦵', stat: 'kik', unit: 'SP', d: 'キッカー陣と全体のキック', fx: [['キック', 'up']] },
+    { k: 'bk', n: 'BK展開', ic: '🏃', stat: 'spd', unit: 'BK', d: 'BKと全体のスピード', fx: [['スピード', 'up']] },
+    { k: 'fitness', n: 'フィットネス', ic: '💪', stat: 'sta', unit: null, fatMul: 1.25, d: '全員のスタミナ（疲労多め）', fx: [['スタミナ', 'up'], ['疲労', 'cost']] },
+    { k: 'defense', n: 'ディフェンス', ic: '🛡', stat: 'tak', unit: null, d: '全員のタックル', fx: [['タックル', 'up']] },
+    { k: 'video', n: 'ビデオ分析', ic: '📋', cell: 'meet', d: '作戦会議。次の試合の準備が進む', fx: [['試合準備', 'up']] },
+    { k: 'mental', n: 'メンタル', ic: '🧘', d: '調子を整え、信頼を深める', fx: [['調子', 'up'], ['信頼', 'up']] },
+    { k: 'rest', n: '休養・ケア', ic: '💊', cell: 'rec', d: '疲労とケガを回復', fx: [['疲労', 'down'], ['ケガ', 'down']] }
   ];
   function weekAct(key) { return WEEK_ACTS.filter(function (a) { return a.k === key; })[0] || WEEK_ACTS[0]; }
 
@@ -3629,7 +3636,7 @@ function finishRecruit() {
     /* v1.0: クレジット（制作表記）。詳細はガイドのクレジット節にも置く */
     kids.push(h('p', { class: 'sub', style: 'text-align:center;margin-top:2px' }, ['制作：Kenshin Takada ／ Muse との共同開発']));
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v1.4'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v1.5'])]),
       h('div', { class: 'card center title-card' }, kids)
     ]);
     mount(h('div', { class: 'stack shell' }, [inner]));
@@ -3651,6 +3658,11 @@ function finishRecruit() {
      ['⑤ シーズン終了', '結果を振り返り、3年生は卒業してOB名鑑へ'],
      ['⑥ 勧誘', 'スカウト候補・特別枠・一般入部で新チームを作って新年度へ。候補は「比較」表示で能力や成功率を見比べられ、成功率の内訳も確認できる。入部した新入生は紹介画面でお披露目される']].forEach(function (r) {
       L.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
+    });
+    /* v0.30: 週次の活動カードから外した説明文はここに（HANDOVER §4-5：説明文はガイド等の詳細ページへ） */
+    L.appendChild(h('div', { class: 'sec' }, ['🗂 週の活動']));
+    WEEK_ACTS.forEach(function (a) {
+      L.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [a.ic + ' ' + a.n]), h('span', { class: 'sub' }, [a.d])]));
     });
     var R = h('div', { class: 'grow scroll flatbox' });
     R.appendChild(h('div', { class: 'sec' }, ['👀 画面の見方']));
@@ -3685,7 +3697,7 @@ function finishRecruit() {
      ['開発', 'Muse（AI）との共同開発'],
      ['シリーズ', '100アプリチャレンジ #47'],
      ['フォント', 'M PLUS Rounded 1c ／ Dela Gothic One（SIL Open Font License 1.1）'], /* v0.29: 埋め込みフォントの表記 */
-     ['バージョン', 'v1.4（Web版）']].forEach(function (r) {
+     ['バージョン', 'v1.5（Web版）']].forEach(function (r) {
       R.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
     });
     R.appendChild(h('button', { class: 'btn', style: 'margin-top:12px', onclick: function () { tutReplay(guideFrom); back(); } }, ['🎓 チュートリアルをもう一度見る'])); /* v0.24: 実地ガイドの再表示（戻り先の画面のステップから） */
@@ -3892,20 +3904,20 @@ function finishRecruit() {
     wrap([hud(), gr,
       actionBar([h('button', { class: 'btn primary', onclick: function () { G.growReport = null; save(); render(); } }, ['確認した（' + mo.m + 'の指示へ）'])])]);
   }
-  /* v0.19: 次の試合の案内（週次画面の情報欄とステータスバーで使う） */
-  function nextMatchText() {
+  /* v0.19: 次の試合の案内。v0.30 から週次の場面の札に出すため、相手の名前と時期（今月なら「月末」）を分けて返す */
+  function nextMatchInfo() {
     for (var j = 0; j < MONTHS.length - G.monthIdx; j++) {
       var mm = MONTHS[G.monthIdx + j];
-      if (mm.match != null) {
-        var nm = effOpp(mm.match).name;
-        return j === 0 ? '今月末：' + nm + '戦' : mm.m + '：' + nm + '戦';
-      }
+      if (mm.match != null) return { name: effOpp(mm.match).name, when: j === 0 ? '月末' : mm.m };
     }
-    return '今季の試合は終了';
+    return null;
   }
-  /* v0.19: 週次プランニング画面。パワプロの練習メニュー様式（場面背景＋下部の大きな活動カード列＋
-   * 最下部のステータスバー）で作る「ゲーム感」強化の本命画面。情報は右カラム（状況＋会話＋ログ）、
-   * 操作（活動カードとおまかせ）は下段に置き、v0.17 の固定レイアウト原則（HUD 1行・全体スクロールなし）を守る */
+  /* v0.19: 週次プランニング画面。パワプロの練習メニュー様式（場面背景＋下部の大きな活動カード列）で作る
+   * 「ゲーム感」強化の本命画面。v0.30（作者「文字が多すぎる。ゲームっぽく、不要な部分を削ってシンプルに」）で
+   * 文の案内をやめ、記号と札に置き換えた：
+   *   場面＝「◯月 第◯週」と週の丸＋合宿と次の試合（VS）の札／右の列＝疲労のゲージ（色で注意）とケガ・週の記録・おまかせ／
+   *   下段＝活動カード（アイコン・名前・効果の札）。日付と次の試合を重ねて出していた最下部のステータスバーはなくした。
+   * 横画面・全体スクロールなし・情報は左／操作は右の原則（HANDOVER §4）を守る */
   function weeklyScreen() {
     var b = G.board, mo = MONTHS[G.monthIdx];
     /* v0.20 実機レイアウト修正：場面は「背景として敷く」箱にし、会話は場面の下部バー（半透明）へ移した。
@@ -3914,16 +3926,28 @@ function finishRecruit() {
     var scene = h('div', { class: 'wscene' });
     scene.appendChild(banner(mo.match != null ? 'match' : 'train', 'wscenebg', G.monthIdx));
     var sov = h('div', { class: 'wsceneov' });
-    var dots = h('div', { class: 'wdots' });
-    for (var di = 0; di < WEEKS_PER_MONTH; di++) dots.appendChild(h('span', { class: 'wdot' + (di < b.week ? ' done' : (di === b.week ? ' now' : '')) }, []));
+    /* v0.30: 週の丸は「今月の予定表」に：済んだ週は選んだ活動のアイコン（系統の色）、今週は金の縁、先の週は空き */
+    /* 旧方式（盤面）から移した月は前半の週の記録がないため、記録は後ろの週から当てる（足りない週は「済」の印だけ） */
+    var dots = h('div', { class: 'wdots' }), pOff = b.week - b.picks.length;
+    for (var di = 0; di < WEEKS_PER_MONTH; di++) {
+      var pk = (di < b.week && di >= pOff) ? weekAct(b.picks[di - pOff]) : null;
+      dots.appendChild(h('span', pk ? { class: 'wdot done', 'data-k': pk.k, title: '第' + (di + 1) + '週：' + pk.n } :
+        { class: 'wdot' + (di < b.week ? ' done' : (di === b.week ? ' now' : '')) }, [pk ? pk.ic : '']));
+    }
     var titlerow = h('div', { class: 'wtitlerow' });
     titlerow.appendChild(h('div', { class: 'wtitle' }, [mo.m + ' 第' + (b.week + 1) + '週']));
     titlerow.appendChild(dots);
     sov.appendChild(titlerow);
-    sov.appendChild(h('div', { class: 'wsub' }, [
-      mo.camp ? '夏合宿の月。練習の実りが1.5倍になる' :
-      (mo.match != null ? '月末に ' + effOpp(mo.match).name + ' との試合がある。今週の活動を選ぼう' : '今週の活動を選ぼう')
-    ]));
+    /* v0.30: 合宿と次の試合は札で（文の案内「月末に ◯◯ との試合がある。今週の活動を選ぼう」の置き換え） */
+    var tags = h('div', { class: 'wtags' });
+    if (mo.camp) tags.appendChild(h('span', { class: 'wtag wtcamp' }, ['夏合宿', ' ', h('b', null, ['練習×1.5'])]));
+    var nm = nextMatchInfo();
+    if (nm) {
+      tags.appendChild(h('span', { class: 'wtag wtvs' + (nm.when === '月末' ? ' soon' : '') }, [
+        h('span', { class: 'wtwhen' }, [nm.when]), ' ', h('span', { class: 'wtvsb' }, ['VS']), ' ', h('b', null, [nm.name])
+      ]));
+    }
+    if (tags.childNodes.length) sov.appendChild(tags);
     scene.appendChild(sov);
     if (b.dlg) {
       var dp = G.players.filter(function (p) { return p.id === b.dlg.pid; })[0];
@@ -3937,34 +3961,45 @@ function finishRecruit() {
         scene.appendChild(dg);
       }
     }
-    var info = h('div', { class: 'winfo' }); /* v0.22: 枠を外し、下のログとはヘアラインで区切る（スリム化） */
-    info.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['チーム平均疲労']), h('span', null, [String(avgFatigue())])]));
-    info.appendChild(h('div', { class: 'meter' }, [h('div', { style: 'width:' + avgFatigue() + '%' }, [])]));
-    info.appendChild(h('div', { class: 'rowline' }, [
-      h('span', { class: 'sub' }, ['怪我人 ' + G.players.filter(function (p) { return p.injured; }).length + '人']),
-      h('span', null, [nextMatchText()])
+    /* v0.30: 情報欄は1行のゲージ。疲労の色はガイドの目安（70以上で練習効率も試合の成功率も大きく落ちる）に合わせ、
+     * 50未満＝緑・50〜69＝黄・70以上＝赤。ケガ人がいれば赤い札（表示のみ。判定には使わない） */
+    var fat = avgFatigue(), injN = G.players.filter(function (p) { return p.injured; }).length;
+    var info = h('div', { class: 'winfo wgauge' + (b.log.length ? '' : ' solo') }); /* v0.22: 枠を外し、下のログとはヘアラインで区切る（スリム化） */
+    info.appendChild(h('div', { class: 'wfat ' + (fat >= 70 ? 'f-hi' : (fat >= 50 ? 'f-mid' : 'f-lo')) }, [
+      h('span', { class: 'wglab' }, ['疲労']),
+      h('div', { class: 'meter' }, [h('div', { style: 'width:' + Math.min(100, fat) + '%' }, [])]),
+      h('b', { class: 'wgval' }, [String(fat)])
     ]));
-    var log = h('div', { class: 'log grow' });
-    (b.log.length ? b.log : ['月が始まった。今週の活動を選ぼう']).forEach(function (ln) { log.appendChild(h('div', null, [ln])); });
-    var rightKids = [info, log];
+    info.appendChild(h('span', { class: 'winj' + (injN ? ' on' : '') }, ['ケガ', ' ', h('b', null, [String(injN)])]));
+    /* 週の記録は結果だけ。月の初め（まだ記録がない週）は箱ごと出さない（決まり文句「月が始まった。今週の活動を選ぼう」の空欄をなくす） */
+    var rightKids = [info];
+    if (b.log.length) {
+      var log = h('div', { class: 'log grow' });
+      b.log.forEach(function (ln) { log.appendChild(h('div', null, [ln])); });
+      rightKids.push(log);
+    }
+    /* おまかせは操作なので右の列の下に（v0.29 までは最下部のステータスバーの右端）。文言は従来どおり */
+    rightKids.push(h('button', { class: 'btn primary wauto', onclick: function () { autoMonth(); } }, ['⏩ おまかせ（月末まで自動）']));
     var cards = h('div', { class: 'wcards' });
     var recKey = autoWeekKey();
     WEEK_ACTS.forEach(function (a) {
-      var kids = [h('span', { class: 'wic' }, [a.ic]), h('span', { class: 'wnm' }, [a.n]), h('span', { class: 'wdsc' }, [a.d])];
+      var fx = h('span', { class: 'wfx' });
+      (a.fx || []).forEach(function (f) {
+        fx.appendChild(h('span', { class: 'fx ' + (f[1] === 'cost' ? 'cost' : 'good') }, [f[0], h('i', null, [f[1] === 'down' ? '▼' : '▲'])]));
+      });
+      var kids = [h('span', { class: 'wic' }, [a.ic]), h('span', { class: 'wnm' }, [a.n]), fx];
       var badge = a.k === recKey ? '⭐おすすめ' : (a.stat && a.stat === G.inst.team ? '方針一致' : null);
-      kids.push(h('span', { class: 'wbadge' }, [badge || '']));
-      cards.appendChild(h('button', { class: 'wcard pcard' + (a.k === recKey ? ' rec' : ''), 'data-k': a.k /* v0.29: 系統色（CSS）用 */, onclick: (function (k) { return function () { pickWeek(k); }; })(a.k) }, kids));
+      kids.push(h('span', { class: 'wbadge' + (badge === '方針一致' ? ' pol' : '') }, [badge || '']));
+      cards.appendChild(h('button', { class: 'wcard pcard' + (a.k === recKey ? ' rec' : ''), 'data-k': a.k /* v0.29: 系統色（CSS）用 */,
+        title: a.n + '：' + a.d /* v0.30: 説明文はカードに出さず、ここ（PC のカーソル・読み上げ）とガイドに */,
+        onclick: (function (k) { return function () { pickWeek(k); }; })(a.k) }, kids));
     });
-    var sbar = h('div', { class: 'wstatus' });
-    sbar.appendChild(h('span', { class: 'wstext' }, [G.year + '年目 ' + mo.m + ' 第' + (b.week + 1) + '週（あと' + (WEEKS_PER_MONTH - b.week) + '週で月末）']));
-    sbar.appendChild(h('span', { class: 'wstext sub' }, [nextMatchText()]));
-    sbar.appendChild(h('button', { class: 'btn primary wauto', onclick: function () { autoMonth(); } }, ['⏩ おまかせ（月末まで自動）']));
     var wkids = [hud()]; /* v0.24: チュートリアルバー（通常フロー）。週次は高さが詰まっているため、
-     * バー表示中はバー自体を細くし、活動カードとステータスバーも一段詰める（CSS の .hastut） */
+     * バー表示中はバー自体を細くし、活動カードも一段詰める（CSS の .hastut） */
     var tbW = tutBar();
-    if (tbW) { tbW.classList.add('tutsm'); cards.classList.add('hastut'); sbar.classList.add('hastut'); wkids.push(tbW); }
+    if (tbW) { tbW.classList.add('tutsm'); cards.classList.add('hastut'); wkids.push(tbW); }
     wkids.push(h('div', { class: 'lay2 wtop' + (tbW ? ' hastut' : '') }, [col([scene]), col(rightKids)]));
-    wkids.push(cards); wkids.push(sbar);
+    wkids.push(cards);
     wrap(wkids);
     var lg = document.querySelector('.log'); if (lg) lg.scrollTop = lg.scrollHeight;
   }

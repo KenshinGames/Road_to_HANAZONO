@@ -129,8 +129,8 @@ function fingerprint(st) {
 
 (async () => {
   /* ---- 1. 静的：バージョン・CSS・文言・アイコン ---- */
-  check('version: <title> is v1.4', HTML.includes('<title>Road to HANAZONO v1.4</title>')); /* v0.28: バージョン表記を v1.4 に追随 */ /* v0.29: バージョン表記を v1.4 に追随 */
-  check('version: hero text is v1.4', JS.includes("'高校ラグビー育成シミュレーション v1.4'")); /* v0.28: バージョン表記を v1.4 に追随 */ /* v0.29: バージョン表記を v1.4 に追随 */
+  check('version: <title> is v1.5', HTML.includes('<title>Road to HANAZONO v1.5</title>')); /* v0.28: バージョン表記を v1.5 に追随 */ /* v0.29: バージョン表記を v1.5 に追随 */ /* v0.30: バージョン表記を v1.5 に追随 */
+  check('version: hero text is v1.5', JS.includes("'高校ラグビー育成シミュレーション v1.5'")); /* v0.28: バージョン表記を v1.5 に追随 */ /* v0.29: バージョン表記を v1.5 に追随 */ /* v0.30: バージョン表記を v1.5 に追随 */
   check('css: selected choice subtext uses the brand ink (not --sub)', /\.btn\.primary\.choice \.d \{ color: var\(--brand-ink\)/.test(CSS));
   check('wording: OB year reads "n年目卒" everywhere (9 strings, no bare n年卒)', !/'年卒/.test(JS) && (JS.match(/'年目卒/g) || []).length === 9);
   const icon = fs.readFileSync(__dirname + '/../v02/icons/icon-180.png');

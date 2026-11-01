@@ -68,9 +68,9 @@ function groupOfNo(no) { return no <= 3 ? 1 : (no <= 8 ? 2 : (no <= 10 ? 3 : 4))
 
 (async () => {
   console.log('[1] バージョン表記');
-  check('<title> v1.4', INDEX.includes('<title>Road to HANAZONO v1.4</title>'));
-  check('タイトルの見出し v1.4', JS.includes("'高校ラグビー育成シミュレーション v1.4'"));
-  check('遊び方のバージョン v1.4（Web版）', JS.includes("['バージョン', 'v1.4（Web版）']"));
+  check('<title> v1.5', INDEX.includes('<title>Road to HANAZONO v1.5</title>')); /* v0.30: バージョン表記を v1.5 に追随 */
+  check('タイトルの見出し v1.5', JS.includes("'高校ラグビー育成シミュレーション v1.5'")); /* v0.30: バージョン表記を v1.5 に追随 */
+  check('遊び方のバージョン v1.5（Web版）', JS.includes("['バージョン', 'v1.5（Web版）']")); /* v0.30: バージョン表記を v1.5 に追随 */
   check('play.html は 4.5MB 以下', HTML.length <= 4.5 * 1024 * 1024, HTML.length);
 
   console.log('[2] 和文フォントの埋め込み');
