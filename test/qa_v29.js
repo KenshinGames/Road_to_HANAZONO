@@ -68,10 +68,10 @@ function groupOfNo(no) { return no <= 3 ? 1 : (no <= 8 ? 2 : (no <= 10 ? 3 : 4))
 
 (async () => {
   console.log('[1] バージョン表記');
-  check('<title> v1.5', INDEX.includes('<title>Road to HANAZONO v1.5</title>')); /* v0.30: バージョン表記を v1.5 に追随 */
-  check('タイトルの見出し v1.5', JS.includes("'高校ラグビー育成シミュレーション v1.5'")); /* v0.30: バージョン表記を v1.5 に追随 */
-  check('遊び方のバージョン v1.5（Web版）', JS.includes("['バージョン', 'v1.5（Web版）']")); /* v0.30: バージョン表記を v1.5 に追随 */
-  check('play.html は 4.5MB 以下', HTML.length <= 4.5 * 1024 * 1024, HTML.length);
+  check('<title> v1.6', INDEX.includes('<title>Road to HANAZONO v1.6</title>')); /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
+  check('タイトルの見出し v1.6', JS.includes("'高校ラグビー育成シミュレーション v1.6'")); /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
+  check('遊び方のバージョン v1.6（Web版）', JS.includes("['バージョン', 'v1.6（Web版）']")); /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
+  check('play.html は 6MB 以下', HTML.length <= 6 * 1024 * 1024, HTML.length); /* v0.31: 場面の背景5枚（data URI 約1.2MB）の追加に伴い上限を 4.5→6MB に見直し */
 
   console.log('[2] 和文フォントの埋め込み');
   const fontBlock = (CSS.match(/\/\* @fonts:begin[\s\S]*?\/\* @fonts:end \*\//) || [''])[0];

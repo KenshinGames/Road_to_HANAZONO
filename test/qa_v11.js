@@ -71,12 +71,12 @@ const FORM_NAMES = { '-2': '絶不調', '-1': '不調', '0': '普通', '1': '好
   });
   const uriCount = (html.match(/data:image\/jpeg;base64,\/9j\//g) || []).length;
   check('static: jpeg data URIs >= 5 (title + 4 scenes)', uriCount >= 5, 'count=' + uriCount);
-  check('static: play.html size <= 4.5MB', Buffer.byteLength(html, 'utf8') <= 4.5 * 1024 * 1024, /* v0.29: 和文フォント3書体（subset・約0.7MB）の埋め込みに伴い上限を 3.5→4.5MB に見直し */ /* v0.26: 場面イラスト3枚（data URI 約1MB）の追加に伴い上限を 3.5MB に見直し */ 'bytes=' + Buffer.byteLength(html, 'utf8')); /* v0.15: デザイン統一の CSS/JS 追加に伴い、最終チェック基準の 2.5MB に上限を見直し */
+  check('static: play.html size <= 6MB', Buffer.byteLength(html, 'utf8') <= 6 * 1024 * 1024, /* v0.29: 和文フォント3書体（subset・約0.7MB）の埋め込みに伴い上限を 3.5→4.5MB に見直し */ /* v0.26: 場面イラスト3枚（data URI 約1MB）の追加に伴い上限を 3.5MB に見直し */ 'bytes=' + Buffer.byteLength(html, 'utf8')); /* v0.15: デザイン統一の CSS/JS 追加に伴い、最終チェック基準の 2.5MB に上限を見直し */ /* v0.31: 場面の背景5枚（data URI 約1.2MB）の追加に伴い上限を 4.5→6MB に見直し */
 
   /* ---- 1. タイトル：バージョン ---- */
   {
     const H = await makeDom(null, 111);
-    check('title: shows v1.5 (v0.25 でバージョン表記を追随)', H.text().includes('v1.5')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.5 に追随 */ /* v0.29: バージョン表記を v1.5 に追随 */ /* v0.30: バージョン表記を v1.5 に追随 */
+    check('title: shows v1.6 (v0.25 でバージョン表記を追随)', H.text().includes('v1.6')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
     check('title: title photo still applied', !!H.document.querySelector('.titlephoto'));
     H.window.close();
   }
@@ -169,7 +169,7 @@ const FORM_NAMES = { '-2': '絶不調', '-1': '不調', '0': '普通', '1': '好
     const ok = await driveToPreMatch(H);
     check('rain: reached preMatch for practice match', ok, H.text().slice(0, 120));
     check('rain: NO rain photo at practice match', !H.document.querySelector('.photo-rain'));
-    check('rain: svg match banner at practice match', !!H.document.querySelector('.banner svg'));
+    check('rain: rainy-season ground art at practice match', !!H.document.querySelector('.photobanner.photo-tsuyu') && !H.document.querySelector('.banner svg')); /* v0.31 追随: 練習試合（6月）の対戦確認は SVG の試合背景から梅雨の校庭の絵になった（雨の熱戦の写真を使わない検証は不変） */
     H.window.close();
   }
 
