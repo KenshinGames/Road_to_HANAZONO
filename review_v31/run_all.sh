@@ -4,7 +4,8 @@
 cd "$(dirname "$0")/../test"
 : > ../review_v31/regression.log
 for f in qa_proto qa_v02 qa_v03 qa_v04 qa_v05 qa_v06 qa_v07 qa_v08 qa_v09 qa_v10 qa_v11 qa_v12 qa_v13 qa_v14 qa_v15 qa_v16 qa_v17 qa_v18 qa_v19 qa_v20 qa_v21 qa_v22 qa_v23 qa_v24 qa_v25 qa_v26 qa_v27 qa_v28 qa_v29 qa_v30 qa_v31; do
-  s=$(date +%s); timeout 1500 node $f.js > ${QA_OUT:-/tmp}/rv31_$f.txt 2>&1; rc=$?; e=$(date +%s)
+  # v0.31: play.html が 5.3MB になり、jsdom を多数開く qa_v09・v23・v24 が既定のヒープ（約2GB）で落ちたため 8GB にする
+  s=$(date +%s); timeout 1500 node --max-old-space-size=8192 $f.js > ${QA_OUT:-/tmp}/rv31_$f.txt 2>&1; rc=$?; e=$(date +%s)
   echo "$f rc=$rc NG=$(grep -cE '^\s*NG\b|FAIL' ${QA_OUT:-/tmp}/rv31_$f.txt) $(tail -1 ${QA_OUT:-/tmp}/rv31_$f.txt | cut -c1-60) $((e-s))s" >> ../review_v31/regression.log
 done
 echo "REGRESSION DONE" >> ../review_v31/regression.log

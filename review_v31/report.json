@@ -1,0 +1,2246 @@
+{
+  "errors": [],
+  "screens": {
+    "01_title_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {},
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": true,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "21_settings_title_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          50,
+          920,
+          371
+        ],
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ]
+      },
+      "metrics": {
+        "actionBtn": "◀ 戻る"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "23_transfer_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          50,
+          920,
+          371
+        ],
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ]
+      },
+      "metrics": {
+        "actionBtn": "📋 コードをコピー"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "23b_transfer_valid_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          50,
+          920,
+          371
+        ],
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ]
+      },
+      "metrics": {
+        "actionBtn": "📋 コードをコピー"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "23c_transfer_confirm_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          50,
+          920,
+          371
+        ],
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ]
+      },
+      "metrics": {
+        "actionBtn": "📋 コードをコピー"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "20_guide_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          50,
+          920,
+          422
+        ]
+      },
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [
+          "147字: 弱小公立・桜丘高校ラグビー部の監督として、選手を育て、世代交代を重ねながら花園（",
+          "108字: 左＝情報（実況・週の記録・選手一覧）、右と下段＝操作（選択肢・活動カード・ボタン"
+        ],
+        "creditsTitle": false,
+        "creditsGuide": true
+      },
+      "clip": []
+    },
+    "02_goal_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          107,
+          920,
+          371
+        ],
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "目標を決めてシーズンを始める"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "03_inst_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          107,
+          920,
+          371
+        ],
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "指示を確定して月を始める"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "04_inst_grow_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "grlist": {
+          "clientH": 275,
+          "scrollH": 275,
+          "rows": 10
+        },
+        "actionBtn": "確認した（5月の指示へ）"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "04c_inst_grow10_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "grlist": {
+          "clientH": 275,
+          "scrollH": 445,
+          "rows": 10
+        },
+        "actionBtn": "確認した（5月の指示へ）"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "04b_inst_may_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          371
+        ],
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "指示を確定して月を始める"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "09_squad_stat_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          422
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "10_squad_prof_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          422
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "18_records_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          371
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "22_settings_game_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          97,
+          920,
+          371
+        ],
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "◀ 戻る"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "24_transfer_game_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          97,
+          920,
+          371
+        ],
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "📋 コードをコピー"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "05_weekly_w1_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          55,
+          596,
+          332
+        ],
+        ".wcards": [
+          12,
+          340,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          55,
+          920,
+          332
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "05t_weekly_tut_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          99,
+          596,
+          320
+        ],
+        ".wcards": [
+          12,
+          328,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          99,
+          920,
+          320
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "06_weekly_dlg_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          55,
+          596,
+          332
+        ],
+        ".wcards": [
+          12,
+          340,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          55,
+          920,
+          332
+        ],
+        ".log": [
+          606,
+          92,
+          920,
+          292
+        ],
+        ".dlg": [
+          22,
+          274,
+          586,
+          322
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "wlog": {
+          "clientH": 197,
+          "scrollH": 197
+        }
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "07_weekly_june_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          55,
+          596,
+          332
+        ],
+        ".wcards": [
+          12,
+          340,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          55,
+          920,
+          332
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "11_prematch_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          107,
+          920,
+          371
+        ],
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "キックオフ"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "12_lineup_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          422
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "13_match_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          164,
+          920,
+          422
+        ],
+        ".log": [
+          12,
+          164,
+          483,
+          422
+        ]
+      },
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "19_match_done_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          164,
+          920,
+          422
+        ],
+        ".log": [
+          12,
+          164,
+          483,
+          422
+        ]
+      },
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "08_weekly_august_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          55,
+          596,
+          332
+        ],
+        ".wcards": [
+          12,
+          340,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          55,
+          920,
+          332
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "08b_weekly_may_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          55,
+          596,
+          332
+        ],
+        ".wcards": [
+          12,
+          340,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          55,
+          920,
+          332
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "08c_inst_december_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          371
+        ],
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "指示を確定して月を始める"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "08d_weekly_october_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          55,
+          596,
+          332
+        ],
+        ".wcards": [
+          12,
+          340,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          55,
+          920,
+          332
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "08e_weekly_january_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          55,
+          596,
+          332
+        ],
+        ".wcards": [
+          12,
+          340,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          55,
+          920,
+          332
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "08f_inst_october_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          371
+        ],
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "指示を確定して月を始める"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "14_summary_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          371
+        ],
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "新年度へ（新入生を迎える）"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "15_recruit_cards_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          371
+        ],
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "新年度を始める"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [
+          "63字: 野球で鍛えた身体能力は本物。「ラグビーに挑戦したい」と入部を希望してきた。基礎体",
+          "86字: 体重102kgの迫力ある体格。コンタクトで押せる。大事な試合ほど力を出すタイプら"
+        ],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "16_recruit_cmp_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ],
+        ".cmpcard": [
+          12,
+          150,
+          920,
+          371
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "新年度を始める"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [
+          "63字: 野球で鍛えた身体能力は本物。「ラグビーに挑戦したい」と入部を希望してきた。基礎体"
+        ],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "17_intro_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          371
+        ],
+        ".actionbar": [
+          12,
+          379,
+          920,
+          422
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "次へ進む"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [
+          "65字: 体重108kgの迫力ある体格。コンタクトで押せる。中学時代に大きなケガなし。丈夫",
+          "60字: 小柄だが俊敏。スペースを突く動きが光る。中学時代に大きなケガなし。丈夫そうだ。中"
+        ],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "23_title_slots_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {},
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": true,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "24_title_slot2_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {},
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": true,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "s_weekly_dlg_1060_h430": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          58,
+          679,
+          451
+        ],
+        ".wcards": [
+          12,
+          459,
+          1048,
+          592
+        ],
+        ".lay2": [
+          12,
+          58,
+          1048,
+          451
+        ],
+        ".log": [
+          689,
+          101,
+          1048,
+          405
+        ],
+        ".dlg": [
+          24,
+          377,
+          667,
+          439
+        ]
+      },
+      "hudH": 42,
+      "metrics": {
+        "wlog": {
+          "clientH": 300,
+          "scrollH": 300
+        }
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "s_recruit_cmp_1060_h430": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "rects": {
+        ".actionbar": [
+          12,
+          549,
+          1048,
+          592
+        ],
+        ".cmpcard": [
+          12,
+          152,
+          1048,
+          541
+        ]
+      },
+      "hudH": 42,
+      "metrics": {
+        "actionBtn": "新年度を始める"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [
+          "74字: OBの前田 健斗さん（1年目卒・HO）の息子が入部を希望してきた。ポジションも父"
+        ],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "s_intro_1060_h430": {
+      "docSW": 1060,
+      "docSH": 600,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          58,
+          1048,
+          541
+        ],
+        ".actionbar": [
+          12,
+          549,
+          1048,
+          592
+        ]
+      },
+      "hudH": 42,
+      "metrics": {
+        "actionBtn": "次へ進む"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [
+          "65字: 体重108kgの迫力ある体格。コンタクトで押せる。中学時代に大きなケガなし。丈夫",
+          "60字: 小柄だが俊敏。スペースを突く動きが光る。中学時代に大きなケガなし。丈夫そうだ。中"
+        ],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "01_title_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {},
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": true,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "21_settings_title_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          50,
+          920,
+          321
+        ],
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ]
+      },
+      "metrics": {
+        "actionBtn": "◀ 戻る"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "23_transfer_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          50,
+          920,
+          321
+        ],
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ]
+      },
+      "metrics": {
+        "actionBtn": "📋 コードをコピー"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "23b_transfer_valid_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          50,
+          920,
+          321
+        ],
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ]
+      },
+      "metrics": {
+        "actionBtn": "📋 コードをコピー"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "23c_transfer_confirm_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          50,
+          920,
+          321
+        ],
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ]
+      },
+      "metrics": {
+        "actionBtn": "📋 コードをコピー"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "20_guide_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          50,
+          920,
+          372
+        ]
+      },
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [
+          "147字: 弱小公立・桜丘高校ラグビー部の監督として、選手を育て、世代交代を重ねながら花園（",
+          "108字: 左＝情報（実況・週の記録・選手一覧）、右と下段＝操作（選択肢・活動カード・ボタン"
+        ],
+        "creditsTitle": false,
+        "creditsGuide": true
+      },
+      "clip": []
+    },
+    "02_goal_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          103,
+          920,
+          321
+        ],
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "目標を決めてシーズンを始める"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "03_inst_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          103,
+          920,
+          321
+        ],
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "指示を確定して月を始める"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "04_inst_grow_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "grlist": {
+          "clientH": 225,
+          "scrollH": 245,
+          "rows": 10
+        },
+        "actionBtn": "確認した（5月の指示へ）"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "04c_inst_grow10_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "grlist": {
+          "clientH": 225,
+          "scrollH": 445,
+          "rows": 10
+        },
+        "actionBtn": "確認した（5月の指示へ）"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "04b_inst_may_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          321
+        ],
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "指示を確定して月を始める"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "09_squad_stat_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          372
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "10_squad_prof_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          372
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "18_records_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          321
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "22_settings_game_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          97,
+          920,
+          321
+        ],
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "◀ 戻る"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "24_transfer_game_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          97,
+          920,
+          321
+        ],
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "📋 コードをコピー"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "05_weekly_w1_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          55,
+          596,
+          282
+        ],
+        ".wcards": [
+          12,
+          290,
+          920,
+          372
+        ],
+        ".lay2": [
+          12,
+          55,
+          920,
+          282
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "05t_weekly_tut_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          99,
+          596,
+          270
+        ],
+        ".wcards": [
+          12,
+          278,
+          920,
+          372
+        ],
+        ".lay2": [
+          12,
+          99,
+          920,
+          270
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "06_weekly_dlg_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          55,
+          596,
+          282
+        ],
+        ".wcards": [
+          12,
+          290,
+          920,
+          372
+        ],
+        ".lay2": [
+          12,
+          55,
+          920,
+          282
+        ],
+        ".log": [
+          606,
+          92,
+          920,
+          242
+        ],
+        ".dlg": [
+          22,
+          226,
+          586,
+          274
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "wlog": {
+          "clientH": 147,
+          "scrollH": 147
+        }
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "07_weekly_june_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          55,
+          596,
+          282
+        ],
+        ".wcards": [
+          12,
+          290,
+          920,
+          372
+        ],
+        ".lay2": [
+          12,
+          55,
+          920,
+          282
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "11_prematch_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          103,
+          920,
+          321
+        ],
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "キックオフ"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "12_lineup_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          372
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "13_match_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          160,
+          920,
+          372
+        ],
+        ".log": [
+          12,
+          160,
+          483,
+          372
+        ]
+      },
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "19_match_done_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          160,
+          920,
+          372
+        ],
+        ".log": [
+          12,
+          160,
+          483,
+          372
+        ]
+      },
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "08_weekly_august_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          55,
+          596,
+          282
+        ],
+        ".wcards": [
+          12,
+          290,
+          920,
+          372
+        ],
+        ".lay2": [
+          12,
+          55,
+          920,
+          282
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "08b_weekly_may_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          55,
+          596,
+          282
+        ],
+        ".wcards": [
+          12,
+          290,
+          920,
+          372
+        ],
+        ".lay2": [
+          12,
+          55,
+          920,
+          282
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "08c_inst_december_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          321
+        ],
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "指示を確定して月を始める"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "08d_weekly_october_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          55,
+          596,
+          282
+        ],
+        ".wcards": [
+          12,
+          290,
+          920,
+          372
+        ],
+        ".lay2": [
+          12,
+          55,
+          920,
+          282
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "08e_weekly_january_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          55,
+          596,
+          282
+        ],
+        ".wcards": [
+          12,
+          290,
+          920,
+          372
+        ],
+        ".lay2": [
+          12,
+          55,
+          920,
+          282
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "08f_inst_october_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          321
+        ],
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "指示を確定して月を始める"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "14_summary_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          321
+        ],
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "新年度へ（新入生を迎える）"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "15_recruit_cards_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          321
+        ],
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "新年度を始める"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [
+          "66字: 身長191cmの大柄で、空中戦が武器になりそう。誰よりも練習量が多いタイプ。OB",
+          "85字: バランスの取れた体格で、大きな欠点が見当たらない。キックの飛距離と精度が評判。コ"
+        ],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "16_recruit_cmp_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ],
+        ".cmpcard": [
+          12,
+          150,
+          920,
+          321
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "新年度を始める"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "17_intro_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".lay2": [
+          12,
+          55,
+          920,
+          321
+        ],
+        ".actionbar": [
+          12,
+          329,
+          920,
+          372
+        ]
+      },
+      "hudH": 39,
+      "metrics": {
+        "actionBtn": "次へ進む"
+      },
+      "design": {
+        "nestedCards": [],
+        "longTexts": [
+          "65字: 体重108kgの迫力ある体格。コンタクトで押せる。中学時代に大きなケガなし。丈夫",
+          "60字: 小柄だが俊敏。スペースを突く動きが光る。中学時代に大きなケガなし。丈夫そうだ。中"
+        ],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "23_title_slots_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {},
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": true,
+        "creditsGuide": false
+      },
+      "clip": []
+    },
+    "24_title_slot2_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {},
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": true,
+        "creditsGuide": false
+      },
+      "clip": []
+    }
+  },
+  "facts": {
+    "drive": {
+      "recruitCands": 3,
+      "introList": 7
+    },
+    "fontsLoaded": true,
+    "titleHeroTop_h430": 64,
+    "xferValid_h430": "読み込めるコード（2026/10/30 9:00 書き出し）スロット13年目 ・ 1月 ／ 部の格 強豪スロット210年目 ・ 1月 ／ 部の格 名門スロット3あき",
+    "xferConfirm_h430": true,
+    "tutGoal_h430": true,
+    "tutInst_h430": true,
+    "mayGrow": true,
+    "fxGrowMid": 10,
+    "herologMay": {
+      "clientH": 174,
+      "scrollH": 356
+    },
+    "tutWeekly_h430": true,
+    "fxKmMid": "kmcol fx-kml",
+    "reachedPreMatch": true,
+    "tutPreMatch_h430": true,
+    "backToPreMatch": true,
+    "tutMatch_h430": true,
+    "fxMatch": {
+      "banner": true,
+      "cutin": true,
+      "win": true
+    },
+    "matchStarted": true,
+    "photoMayWeekly_h430": true,
+    "photoDecInst_h430": true,
+    "photoOctWeekly_h430": true,
+    "photoJanWeekly_h430": true,
+    "photoOctInst_h430": true,
+    "titleHeroTop_h380": 33,
+    "xferValid_h380": "読み込めるコード（2026/10/30 9:00 書き出し）スロット13年目 ・ 1月 ／ 部の格 強豪スロット210年目 ・ 1月 ／ 部の格 名門スロット3あき",
+    "xferConfirm_h380": true,
+    "tutGoal_h380": true,
+    "tutInst_h380": true,
+    "tutWeekly_h380": true,
+    "tutPreMatch_h380": true,
+    "tutMatch_h380": true,
+    "photoMayWeekly_h380": true,
+    "photoDecInst_h380": true,
+    "photoOctWeekly_h380": true,
+    "photoJanWeekly_h380": true,
+    "photoOctInst_h380": true,
+    "clipKinds": {}
+  }
+}

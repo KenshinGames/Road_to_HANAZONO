@@ -263,7 +263,7 @@ async function playOmakase(html, seed, maxYear, onWeek) {
     x.click('監督に就任する（ふつう）'); await sleep(10);
     check('photos: goal screen uses the clubroom art', !!x.document.querySelector('.photo-clubroom'));
     x.click('目標を決めて'); await sleep(10);
-    check('photos: April instruction keeps the seasonal SVG', !x.document.querySelector('.photobanner'));
+    check('photos: April instruction uses the cherry-blossom ground art', !!x.document.querySelector('.photobanner.photo-spring') && !x.document.querySelector('.banner svg')); /* v0.31 追随: 4月の季節の SVG を、桜の校庭を描き込んだ絵（photo-spring）に置き換えた */
     x.click('指示を確定'); await sleep(5);
     x.click('おまかせ（月末まで自動）'); await sleep(5);
     if (x.btn('確認した')) { x.click('確認した'); await sleep(5); }

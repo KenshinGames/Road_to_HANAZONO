@@ -50,17 +50,31 @@ v0.11〜v0.26 で写真調のイラスト（作者が ChatGPT で生成）が入
 - 旧 QA の追随：バージョン期待値 v1.6（qa_v10〜v30）、play.html の上限 4.5→6MB（qa_v11・v17・v18・v26〜v30）、
   qa_v05「4月の月次バナー」を桜の花びらの点（SVG）→ photo-spring に、qa_v11「練習試合の対戦確認」を SVG → photo-tsuyu に
   （雨の熱戦の写真を使わない検証は不変）。各行に理由のコメント。
-- 回帰：RESULT_REGRESSION
+- 回帰：`regression.log`（qa_proto〜qa_v31 の31本）。最初の通しで5本が通らなかった：
+  - qa_v17（写真の data URI の数が 8 のまま）と qa_v26（4月の月頭は季節の SVG のまま）は今回の変更に追随していない期待値 → 追随して合格。
+  - qa_v09・qa_v23・qa_v24 は node の異常終了（rc=134、JavaScript heap out of memory）。play.html が 4.1→5.3MB になり、jsdom で画面を
+    多数開くテストが既定のヒープ（約2GB）を超えた。`node --max-old-space-size=8192` で検査の中身は変えずに全部合格。
+    `run_all.sh` は次回から全 QA をこの指定で流す。
+  - 再実行の結果も regression.log の末尾に記録。最終的に31本すべて合格（NG=0）。
 
 ## ソーク同値性
 
-RESULT_SOAK
+- game.js を変えたので省かずに流した。`soak_v19_ab.js 2 20` の出力 `soak_v31_2x20.log` は、v1.5 の `review_v30/soak_v30_2x20.log` と
+  バイト単位で同一（v1.1 の公式ログの先頭2キャリアとも一致）。背景の絵を選ぶ処理は数値・判定・乱数の消費に影響しない。
 
 ## 実ブラウザ監査（`shoot.js`）
 
 v0.30 のハーネスに 08d（週次10月＝競技場）・08e（週次1月＝花園）・08f（月頭10月＝秋）を足した。
 
-RESULT_AUDIT
+埋め込みフォントの読み込み後（fontsLoaded=true）に、3点（はみ出し・重なり・枠内見切れ）とリストの横はみ出し（hscroll）で判定した。
+
+- **ライト：75画面（932×430・932×380）で問題0、コンソールエラー0**（`report.json`）。
+- **ダーク（ナイター）：同じ75画面で問題0、エラー0**（`report_dark.json`）。
+- **iPhone 実寸（IOS=1）：5機種×36画面＝180画面で問題0、エラー0**（`report_ios.json`）。タイトル見出しの上端は v1.5 と同じ
+  （15 Pro 26px／mini 19px／17 Pro 28px／Pro Max 55px／17 Pro Max 66px）。
+- 枠の入れ子（.card の中の .card）は全画面で0件。
+- facts：08d で `.wscene .photo-stadium`、08e で `.wscene .photo-hanazono`、08f で `.photo-autumn` が全寸法・全機種で出た（photo*）。
+  4月（03・05・15・17）は photo-spring、6月（07・11）は photo-tsuyu になっている（スクリーンショットで確認）。
 
 - 比較画像：`before_after.jpg`（932×430、左＝v1.5・右＝v1.6。6月・10月・1月の週、4月・10月の月頭、県予選の対戦確認）、
   `scenes.jpg`（描いた 5 枚）。
