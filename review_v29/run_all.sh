@@ -8,8 +8,13 @@ for f in qa_proto qa_v02 qa_v03 qa_v04 qa_v05 qa_v06 qa_v07 qa_v08 qa_v09 qa_v10
   echo "$f rc=$rc NG=$(grep -cE '^\s*NG\b|FAIL' ${QA_OUT:-/tmp}/rv29_$f.txt) $(tail -1 ${QA_OUT:-/tmp}/rv29_$f.txt | cut -c1-60) $((e-s))s" >> ../review_v29/regression.log
 done
 echo "REGRESSION DONE" >> ../review_v29/regression.log
-timeout 5400 node soak_v19_ab.js 2 20 > ../review_v29/soak_v29_2x20.log 2>&1
-echo "SOAK DONE rc=$?" >> ../review_v29/regression.log
+# SKIP_SOAK=1：game.js を変えていない（CSS だけの）手直しでは、乱数と数値が変わらないのでソークを省く（ログは前回のまま）
+if [ -z "$SKIP_SOAK" ]; then
+  timeout 5400 node soak_v19_ab.js 2 20 > ../review_v29/soak_v29_2x20.log 2>&1
+  echo "SOAK DONE rc=$?" >> ../review_v29/regression.log
+else
+  echo "SOAK SKIPPED (SKIP_SOAK=1: game.js unchanged since $(git log -1 --format=%h -- ../v02/game.js))" >> ../review_v29/regression.log
+fi
 cd ../review_v29
 mkdir -p screenshots screenshots_dark screenshots_ios
 timeout 900 node shoot.js > shoot_run.log 2>&1; echo "AUDIT LIGHT rc=$? $(head -1 shoot_run.log)" >> regression.log

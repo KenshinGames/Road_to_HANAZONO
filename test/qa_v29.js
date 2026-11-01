@@ -3,8 +3,8 @@
  * - 和文フォントの埋め込み：3書体（HZ Rounded 500/800・HZ Display）が data URI の woff2 で入っている／
  *   game.js（コメントを除く）と index.html に出てくる文字がすべて subset に含まれる（tools/embed_fonts.py の流し忘れ検出）／
  *   OFL のライセンス文が同梱され、遊び方のクレジットにフォントの表記がある
- * - デザインの決まり：ライト（デーゲーム）とダーク（ナイター）のトークン、能力ランクの札の色が game.js の RANKS と一致
- *   （HANDOVER §4-7 の色）、ポジションの組の色札 pg1〜pg4、練習カードの系統色が9種すべてに当たる、ボタンの行の高さ
+ * - デザインの決まり：ライト（デーゲーム）とダーク（ナイター）のトークン、能力ランクは札にしない色の文字（作者の判断）で、
+ *   ナイターの塗りの色が game.js の RANKS の cb と一致（HANDOVER §4-7 の色）・金の選択の上は濃い色、ポジションの組の色札 pg1〜pg4、練習カードの系統色が9種すべてに当たる、ボタンの行の高さ
  * - 表示の目印：HUD の日付の札（年目＋月。textContent は従来どおり「1年目 ・ 4月」）、選手一覧とメンバー編成の名前の色札
  *   （ポジションの組と一致）、練習カードの data-k、成長レポートの役割チップ（重点・スタメン・控え）と能力名の札
  * - 乱数：画面を描くだけでは Math.random を呼ばない／枠の入れ子（.card .card）なし
@@ -95,11 +95,14 @@ function groupOfNo(no) { return no <= 3 ? 1 : (no <= 8 ? 2 : (no <= 10 ? 3 : 4))
   check('見た目の層（@skin）がある', skin.length > 10000, skin.length);
   check('ライトのトークン（空・紺・芝・金）', /--sky-a: #45b3ec;/.test(skin) && /--edge: #1a3474;/.test(skin) && /--brand: #20a346;/.test(skin) && /--gold: #ffc72c;/.test(skin));
   check('ダーク＝ナイターのトークン（夜空と照明）', /@media \(prefers-color-scheme: dark\) \{\s*:root \{\s*--sky-a: #091330;[^}]*--glow: rgba\(255, 246, 214, \.16\)/.test(skin));
-  const ranks = [...JS.matchAll(/\{ r: '([SABCDEFG])', min: -?\d+, c: '(#[0-9a-f]{6})'/g)].map(m => [m[1], m[2]]);
-  check('RANKS は8段階', ranks.length === 8, ranks.length);
-  const rankCssOk = ranks.every(([r, c]) => skin.includes('.rk[data-rank="' + r + '"] { background: ' + c + '; }'));
-  check('能力ランクの札の色が RANKS の色と一致（HANDOVER §4-7）', rankCssOk);
-  check('ランクの文字は札の上の白（インラインの色指定は残したまま）', /\.rk \{[^}]*-webkit-text-fill-color: #fff;/.test(skin));
+  /* 能力ランクは札にしない（作者の判断 2026-11-01「能力ランクは札付きじゃない方が見やすかった」）。文字色は RANKS のインライン指定 */
+  const ranks = [...JS.matchAll(/\{ r: '([SABCDEFG])', min: -?\d+, c: '(#[0-9a-f]{6})', cb: '(#[0-9a-f]{6})'/g)].map(m => [m[1], m[2], m[3]]);
+  check('RANKS は8段階（c と cb）', ranks.length === 8, ranks.length);
+  check('能力ランクに札の地（背景・角丸・余白）を付けない', !/\.rk\b[^{]*\{[^}]*(background|border-radius|padding|min-width)/.test(skin));
+  check('能力ランクの文字を白で塗らない（色の文字のまま）', !/\.rk\b[^{]*\{[^}]*-webkit-text-fill-color: #fff/.test(skin));
+  const rankDarkOk = ranks.every(([r, c, cb]) => skin.includes('.rk[data-rank="' + r + '"] { -webkit-text-fill-color: ' + cb + '; }'));
+  check('ナイターでは RANKS の明るい方の色（cb）で塗る（HANDOVER §4-7）', rankDarkOk && /@media \(prefers-color-scheme: dark\) \{\s*\.rk\[data-rank="S"\]/.test(skin));
+  check('金の選択（ボタン列）の上のランクはボタンの文字と同じ濃い色', skin.includes('.segbtn.on .rk { -webkit-text-fill-color: var(--gold-ink); }'));
   check('ポジションの組の色札 pg1〜pg4', [1, 2, 3, 4].every(i => skin.includes('.pg' + i + ' { --pg: #')));
   const actsSrc = (JS.match(/var WEEK_ACTS = \[([\s\S]*?)\];/) || ['', ''])[1];
   const acts = [...actsSrc.matchAll(/\{ k: '([a-z]+)', n: '/g)].map(m => m[1]);
@@ -141,7 +144,7 @@ function groupOfNo(no) { return no <= 3 ? 1 : (no <= 8 ? 2 : (no <= 10 ? 3 : 4))
   });
   check('名前の色札がポジションの組と一致', plateOk);
   check('名前の色札の文字は選手名そのもの', plateTextOk);
-  check('ランクの札に data-rank がある', A.document.querySelectorAll('table.squad .rk[data-rank]').length === st.players.length * 6);
+  check('ランクの文字に data-rank がある', A.document.querySelectorAll('table.squad .rk[data-rank]').length === st.players.length * 6);
   check('枠の入れ子なし（選手一覧）', A.document.querySelectorAll('.card .card').length === 0);
   check('HUD・選手一覧を描くだけでは乱数を使わない', A.window.__rnd === r0, A.window.__rnd - r0);
   A.click('プロフィール');
