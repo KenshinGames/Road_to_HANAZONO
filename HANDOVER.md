@@ -44,6 +44,7 @@
 | `native/` | iOS 版（Capacitor 8）。`ios/App/App.xcodeproj` が Xcode プロジェクト。`v02/` を変えたら `cd native && npm run sync`（Xcode 内の public へ写す）。`web/native-boot.js`・`native.css` は iOS だけに足す起動処理とスタイル |
 | `test/fixtures/save_2slots.json` | QA と iOS のシミュレータ確認で使うセーブ（3年目＋10年目の2スロット） |
 | `.github/workflows/ios-build.yml` | macOS でのビルド確認（署名なし・シミュレータで起動・スクリーンショットは成果物 ios-simulator） |
+| `.claude/skills/frontend-design/` | Anthropic 公式のデザイン指針スキル（無改変・Apache 2.0）。HANAZONO の Claude Code セッションで自動的に読み込まれる。§4 の決定事項がこのスキルより優先。出どころと消す条件は同じフォルダの `SOURCE.md` |
 
 ## 4. 絶対に守る設計原則（作者の決定事項）
 
