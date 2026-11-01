@@ -1,4 +1,9 @@
-/* Road to HANAZONO v1.5（Web版） — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+/* Road to HANAZONO v1.6（Web版） — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+ * v1.6（v0.31）: 場面の背景を描き込んだ絵に（作者「背景画像をもっとちゃんと作りこんで！」）。簡単な図形の SVG で描いていた
+ *        4月（桜の校庭）・6月（梅雨の校庭）・10〜11月（秋の夕方の校庭）と、試合月の週の画面・対戦確認（県予選＝ナイターの競技場、
+ *        1月＝花園）を、tools/paint_scenes.py で描いた 1600×800 の絵（v02/img/scene-*.jpg）に置き換えた。割り当ては
+ *        MONTH_PHOTOS（月）と MATCH_PHOTOS（何試合目か）。SVG は絵が無いときの代わりとして残す。
+ *        表示のみで、ゲームの数値・判定・乱数消費・セーブ形式・localStorage キーは不変）
  * v1.5（v0.30）: 週次画面のシンプル化（作者「文字が多すぎる。ゲームっぽく、不要な部分を削ってシンプルで分かりやすく」）。
  *        文の案内をやめて記号と札に：場面＝「◯月 第◯週」＋今月の予定表（選んだ活動のアイコン）＋合宿と次の試合（VS）の札、
  *        右の列＝疲労のゲージ（色で注意）とケガ人・週の記録（結果だけ）・おまかせ、活動カード＝アイコン・名前・効果の札
@@ -3487,14 +3492,18 @@ function finishRecruit() {
    * ここに登録された月だけ、月頭指示などの月次バナー（train/home）が写真に切り替わる。
    * 冬の朝練イラストが追加生成されたら { 9: 'winter', 10: 'winter' } のように足すだけでよい
    * v0.26: 練習場（夏空）は試合の無い5・7・9月、冬の早朝練習は12月と1月（花園の2か月）に割り当てる。
-   * 4月（桜）・6月（梅雨）・10〜11月（秋）は季節の SVG を残す。試合月の週次画面は従来どおり試合 SVG */
-  var MONTH_PHOTOS = { 1: 'practice', 3: 'practice', 4: 'camp', 5: 'practice', 8: 'winter', 9: 'winter', 10: 'winter' };
+   * 4月（桜）・6月（梅雨）・10〜11月（秋）は季節の SVG を残す。試合月の週次画面は従来どおり試合 SVG
+   * v0.31: 残っていた季節の SVG も描き込んだ絵にした＝4月は桜の校庭（spring）、6月は梅雨の校庭（tsuyu）、10・11月は秋の夕方の校庭（autumn） */
+  var MONTH_PHOTOS = { 0: 'spring', 1: 'practice', 2: 'tsuyu', 3: 'practice', 4: 'camp', 5: 'practice', 6: 'autumn', 7: 'autumn', 8: 'winter', 9: 'winter', 10: 'winter' };
+  /* v0.31: 試合月の週次画面と対戦確認の背景（何試合目か→写真キー）。練習試合（6月）は梅雨の校庭、県予選（10〜12月）は
+   * ナイターの競技場、花園（1月の2試合）は冬の花園。対戦確認の花園2試合は従来どおり雨の熱戦（rain）を優先する */
+  var MATCH_PHOTOS = { 0: 'tsuyu', 1: 'stadium', 2: 'stadium', 3: 'stadium', 4: 'hanazono', 5: 'hanazono' };
   /* v0.22: 写真が実在するシーンキーの登録表（受け口）。CSS 側に .photo-<key> の data URI が
    * 存在するキーだけをここに登録する。未登録のキーが MONTH_PHOTOS 等から参照されても、
    * photoBanner が SVG バナーへフォールバックするため、存在しない画像への参照にはならない。
    * 冬・練習場・部室のイラストが生成されたら: ①CSS に写真クラス（data URI）を足す
    * ②ここに該当キーを足す ③MONTH_PHOTOS に月とキーの対応を足す、の3点で組み込める */
-  var PHOTO_SCENES = { camp: 1, champion: 1, graduation: 1, rain: 1, winter: 1, practice: 1, clubroom: 1 };
+  var PHOTO_SCENES = { camp: 1, champion: 1, graduation: 1, rain: 1, winter: 1, practice: 1, clubroom: 1, spring: 1, tsuyu: 1, autumn: 1, stadium: 1, hanazono: 1 };
   /* v0.11: 写真バナー（画像は CSS 側に data URI で埋め込み済み。cover で切り取り表示） */
   function photoBanner(key, cls) {
     if (!PHOTO_SCENES[key]) return banner('train', cls, null); /* v0.22: 未生成の写真キーは SVG バナーで代替する */
@@ -3502,6 +3511,7 @@ function finishRecruit() {
   }
   function banner(kind, cls, mi) {
     if (mi != null && MONTH_PHOTOS[mi] && (kind === 'train' || kind === 'home')) return photoBanner(MONTH_PHOTOS[mi], cls);
+    if (mi != null && kind === 'match' && MONTHS[mi] && MONTHS[mi].match != null && MATCH_PHOTOS[MONTHS[mi].match]) return photoBanner(MATCH_PHOTOS[MONTHS[mi].match], cls); /* v0.31 */
     var d = h('div', { class: 'banner' + (cls ? ' ' + cls : '') });
     d.innerHTML = sceneSVG(kind, mi).replace('<svg ', '<svg preserveAspectRatio="xMidYMid slice" ');
     return d;
@@ -3636,7 +3646,7 @@ function finishRecruit() {
     /* v1.0: クレジット（制作表記）。詳細はガイドのクレジット節にも置く */
     kids.push(h('p', { class: 'sub', style: 'text-align:center;margin-top:2px' }, ['制作：Kenshin Takada ／ Muse との共同開発']));
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v1.5'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v1.6'])]),
       h('div', { class: 'card center title-card' }, kids)
     ]);
     mount(h('div', { class: 'stack shell' }, [inner]));
@@ -3697,7 +3707,7 @@ function finishRecruit() {
      ['開発', 'Muse（AI）との共同開発'],
      ['シリーズ', '100アプリチャレンジ #47'],
      ['フォント', 'M PLUS Rounded 1c ／ Dela Gothic One（SIL Open Font License 1.1）'], /* v0.29: 埋め込みフォントの表記 */
-     ['バージョン', 'v1.5（Web版）']].forEach(function (r) {
+     ['バージョン', 'v1.6（Web版）']].forEach(function (r) {
       R.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
     });
     R.appendChild(h('button', { class: 'btn', style: 'margin-top:12px', onclick: function () { tutReplay(guideFrom); back(); } }, ['🎓 チュートリアルをもう一度見る'])); /* v0.24: 実地ガイドの再表示（戻り先の画面のステップから） */
@@ -4269,7 +4279,7 @@ function finishRecruit() {
     ]);
     /* 通常の試合は SVG バナー、花園の大一番（初戦・決勝）は雨のナイター写真（v0.11）を見出し帯の背景にする */
     var pmHero = h('div', { class: 'heropanel pmhero' }, [
-      mo.match >= 4 ? photoBanner('rain', 'herobg pmb') : banner('match', 'herobg pmb'),
+      mo.match >= 4 ? photoBanner('rain', 'herobg pmb') : banner('match', 'herobg pmb', G.monthIdx), /* v0.31: 練習試合＝梅雨の校庭、県予選＝競技場 */
       h('div', { class: 'herobody' }, [pmGlass])
     ]);
     var vs = h('div', { class: 'card grow scroll pmcard' });

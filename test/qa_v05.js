@@ -85,8 +85,8 @@ function helpers(window, document) {
     /* v0.26 追随: 年初の目標画面は部室の写真になったため、goalSet を立てて月頭指示画面の月次バナーを検証する（検証の趣旨は不変） */
     const mk = (mi) => { const s = JSON.parse(baseSave); s.monthIdx = mi; s.goalSet = true; s.board = null; s.summary = null; s.recruit = null; return JSON.stringify(s); };
     const dA = await makeDom(mk(0), 1);
-    const svgA = dA.document.querySelector('.banner').innerHTML;
-    check('season: April banner has cherry petals', svgA.includes('#ffb7cd'));
+    /* v0.31: 4月の月次バナーは SVG（桜の花びらの点）から、桜の校庭を描き込んだ絵（photo-spring）に差し替わったため、新仕様を検証する */
+    check('season: April banner is the cherry-blossom ground art (v0.31)', dA.document.querySelector('.banner').classList.contains('photo-spring'));
     dA.window.close();
     const dB = await makeDom(mk(4), 1);
     /* v0.11: 8月の月次バナーは SVG（夏の太陽/雲）から合宿イラスト写真に差し替わったため、新仕様を検証する */

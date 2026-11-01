@@ -60,11 +60,11 @@ async function baseSave(seed) {
 
 (async () => {
   /* ===== 1. バージョン ===== */
-  check('version: <title> is v1.5', html.includes('<title>Road to HANAZONO v1.5</title>')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.5 に追随 */ /* v0.29: バージョン表記を v1.5 に追随 */ /* v0.30: バージョン表記を v1.5 に追随 */
+  check('version: <title> is v1.6', html.includes('<title>Road to HANAZONO v1.6</title>')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
   {
     const H = load(null, 1);
     await sleep(15);
-    check('version: title screen shows v1.5', H.text().includes('v1.5')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.5 に追随 */ /* v0.29: バージョン表記を v1.5 に追随 */ /* v0.30: バージョン表記を v1.5 に追随 */
+    check('version: title screen shows v1.6', H.text().includes('v1.6')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
     H.window.close();
   }
 

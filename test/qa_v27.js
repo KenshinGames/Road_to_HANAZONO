@@ -129,13 +129,13 @@ function fingerprint(st) {
 
 (async () => {
   /* ---- 1. 静的：バージョン・CSS・文言・アイコン ---- */
-  check('version: <title> is v1.5', HTML.includes('<title>Road to HANAZONO v1.5</title>')); /* v0.28: バージョン表記を v1.5 に追随 */ /* v0.29: バージョン表記を v1.5 に追随 */ /* v0.30: バージョン表記を v1.5 に追随 */
-  check('version: hero text is v1.5', JS.includes("'高校ラグビー育成シミュレーション v1.5'")); /* v0.28: バージョン表記を v1.5 に追随 */ /* v0.29: バージョン表記を v1.5 に追随 */ /* v0.30: バージョン表記を v1.5 に追随 */
+  check('version: <title> is v1.6', HTML.includes('<title>Road to HANAZONO v1.6</title>')); /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
+  check('version: hero text is v1.6', JS.includes("'高校ラグビー育成シミュレーション v1.6'")); /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
   check('css: selected choice subtext uses the brand ink (not --sub)', /\.btn\.primary\.choice \.d \{ color: var\(--brand-ink\)/.test(CSS));
   check('wording: OB year reads "n年目卒" everywhere (9 strings, no bare n年卒)', !/'年卒/.test(JS) && (JS.match(/'年目卒/g) || []).length === 9);
   const icon = fs.readFileSync(__dirname + '/../v02/icons/icon-180.png');
   check('icon: icon-180.png exists and is 180x180 PNG', icon.slice(1, 4).toString() === 'PNG' && icon.readUInt32BE(16) === 180 && icon.readUInt32BE(20) === 180);
-  check('static: play.html size <= 4.5MB', Buffer.byteLength(HTML, 'utf8') <= 4.5 * 1024 * 1024, /* v0.29: 和文フォント3書体（subset・約0.7MB）の埋め込みに伴い上限を 3.5→4.5MB に見直し */ Buffer.byteLength(HTML, 'utf8'));
+  check('static: play.html size <= 6MB', Buffer.byteLength(HTML, 'utf8') <= 6 * 1024 * 1024, /* v0.29: 和文フォント3書体（subset・約0.7MB）の埋め込みに伴い上限を 3.5→4.5MB に見直し */ Buffer.byteLength(HTML, 'utf8')); /* v0.31: 場面の背景5枚（data URI 約1.2MB）の追加に伴い上限を 4.5→6MB に見直し */
 
   /* ---- 2. 月頭指示：ボタン列 ---- */
   {

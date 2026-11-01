@@ -103,13 +103,13 @@ function keymanOppOverall(H) {
 
 (async () => {
   /* ---- 0. 静的チェック ---- */
-  check('static: title is v1.5', html.includes('<title>Road to HANAZONO v1.5</title>')) /* v0.25: バージョン表記を追随 */; /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.5 に追随 */ /* v0.29: バージョン表記を v1.5 に追随 */ /* v0.30: バージョン表記を v1.5 に追随 */
+  check('static: title is v1.6', html.includes('<title>Road to HANAZONO v1.6</title>')) /* v0.25: バージョン表記を追随 */; /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
   check('static: STORE_KEY unchanged', html.includes("STORE_KEY = 'hanazono.v02'"));
   ['oppAceAt', 'genOppAce', 'aceTenure', 'aceStatsOf', 'aceOverallOf', 'acePortraitEl',
    'キーマン対比', 'rivalEvent', 'STREAK_COMM', 'streakOf', 'streakText', 'career.streaks'].forEach(s => {
     check('static: play.html contains ' + s, html.includes(s));
   });
-  check('static: play.html under 4.5MB', Buffer.byteLength(html, 'utf8') < 4.5 * 1024 * 1024, /* v0.29: 和文フォント3書体（subset・約0.7MB）の埋め込みに伴い上限を 3.5→4.5MB に見直し */ Buffer.byteLength(html, 'utf8') + ' bytes'); /* v0.26: 場面イラスト3枚の追加に伴い上限を 3.5MB に見直し */
+  check('static: play.html under 6MB', Buffer.byteLength(html, 'utf8') < 6 * 1024 * 1024, /* v0.29: 和文フォント3書体（subset・約0.7MB）の埋め込みに伴い上限を 3.5→4.5MB に見直し */ Buffer.byteLength(html, 'utf8') + ' bytes'); /* v0.26: 場面イラスト3枚の追加に伴い上限を 3.5MB に見直し */ /* v0.31: 場面の背景5枚（data URI 約1.2MB）の追加に伴い上限を 4.5→6MB に見直し */
 
   const base = await freshSave(777);
   check('save: fresh save has career.streaks = {}', JSON.stringify(JSON.parse(base).career.streaks) === '{}');

@@ -22,9 +22,10 @@
 - **v1.3（開発版番 v0.28）＋ iOS 版の土台を Claude Code が作成**（2026-10-30）。Web 版に「セーブの引き継ぎコード」（設定 → 📦 引き継ぎ）を追加し、`native/` に Capacitor 8 の Xcode プロジェクトを置いた（横画面のみ・iPhone 専用・音はマナーモードに従う・セーブを Application Support に二重化）。GitHub Actions の「iOS build」が macOS でビルドとシミュレータ起動を確認する。作者向けの手順は **`docs/IOS.md`**。詳細は DESIGN.md の v0.28 と review_v28/。
 - **v1.4（開発版番 v0.29）を Claude Code が作成**（2026-11-01）。見た目の作り直し（作者が示したパワプロ系の参照画像の様式へ）。空の地・紺の輪郭の盤面・金の選択・色の札（ポジションの組・練習の系統・役割。能力ランクは作者の判断で色の文字）・和文フォント埋め込み（M PLUS Rounded 1c／Dela Gothic One、OFL）・ダークはナイター。表示のみ（乱数・数値・セーブ形式は不変）。決まりは DESIGN.md「見た目の決まり（v0.29）」、記録は review_v29/。PR #6 で main にマージ済み。
 - **v1.5（開発版番 v0.30）を Claude Code が作成**（2026-11-01）。週次画面のシンプル化（作者「文字が多すぎる。ゲームっぽく、不要な部分を削ってシンプルで分かりやすく」）。文の案内をやめて記号と札に：場面＝「◯月 第◯週」＋今月の予定表（選んだ活動のアイコン）＋合宿・次の試合（VS）の札、右の列＝疲労のゲージ（緑・黄・赤）とケガ人・週の記録（結果だけ）・おまかせ、活動カード＝アイコン・名前・効果の札（説明文はガイド「週の活動」へ）。最下部のステータスバーはなくした。表示のみ（乱数・数値・セーブ形式は不変）。決まりは DESIGN.md「週次画面の決まり（v0.30）」、記録は review_v30/。
+- **v1.6（開発版番 v0.31）を Claude Code が作成**（2026-11-01）。場面の背景を描き込んだ絵に（作者「背景画像をもっとちゃんと作りこんで！」）。簡単な図形の SVG のままだった4月・6月・10〜11月の月頭と週、試合月の週、練習試合と県予選の対戦確認、新入生の画面を、`tools/paint_scenes.py`（numpy と Pillow で描く。生成 AI なし）の絵5枚（桜の校庭・梅雨の校庭・秋の夕方・ナイターの競技場・冬の花園）に。割り当ては `MONTH_PHOTOS`／`MATCH_PHOTOS`。表示のみ（乱数・数値・セーブ形式は不変）。play.html は約5.33MB。詳細は DESIGN.md の v0.31 と review_v31/。
 - **難易度は決定済み**：v1.1 のおまかせ強化（自動プレイの勝率 0.825→0.856）は再校正しない（作者が Claude Code の判断に委ね、現状維持に決定）。実機で易しすぎると感じたら WK_SCALE の再校正＋ソーク A/B（review_v26/soak_report.md）。
 - 公開先（GitHub Pages）：https://kenshingames.github.io/Road_to_HANAZONO/v02/
-- 最終監査：全61画面 × 932×430／932×380 で「はみ出し・重なり・枠内見切れ」3点ゼロ、コンソールエラー0（v0.27 はダークモードでも同じ61画面を監査）。v0.28 は引き継ぎ画面を足した69画面（ライト・ダーク）に加え、iPhone 実寸の模擬5機種×33画面＝165画面でも3点ゼロ。v0.29 は同じ 69＋69＋165 画面を、埋め込みフォントの読み込み後に監査し、リストの横はみ出し（hscroll）も合格条件に加えて3点ゼロ。v0.30（週次画面のシンプル化）も同じ 69＋69＋165 画面で3点ゼロ・エラー0。
+- 最終監査：全61画面 × 932×430／932×380 で「はみ出し・重なり・枠内見切れ」3点ゼロ、コンソールエラー0（v0.27 はダークモードでも同じ61画面を監査）。v0.28 は引き継ぎ画面を足した69画面（ライト・ダーク）に加え、iPhone 実寸の模擬5機種×33画面＝165画面でも3点ゼロ。v0.29 は同じ 69＋69＋165 画面を、埋め込みフォントの読み込み後に監査し、リストの横はみ出し（hscroll）も合格条件に加えて3点ゼロ。v0.30（週次画面のシンプル化）も同じ 69＋69＋165 画面で3点ゼロ・エラー0。 v0.31 は場面の背景の画面（週次10月・1月、月頭10月）を足した 75＋75＋180 画面で3点ゼロ（review_v31）。
 - 長期ソーク（12キャリア×20年＝240シーズン）：勝率 0.825、初花園は全キャリア到達（中央値2年）、初優勝 12/12（中央値9年）。**バランス数値は検証済み。変える場合は必ずソークで A/B すること。**
 - 完成度見積もり：Web版1.0として約90%／当初の完成形全体で約55〜60%／iOSリリース定義で約40%（殻・セーブ移行・ビルド確認まで。実機確認・正式アイコン・ストア素材・IAP が残り）。最大の弱点は立ち絵の質（パーツ式 SVG、作者評価 2/10）。
 
@@ -35,9 +36,9 @@
 | `DESIGN.md` | 全設計判断・改訂履歴・ランク表・iOS 移植メモ（完成版）。**判断の正はこれ** |
 | `v02/index.html` / `style.css` / `game.js` | ゲーム本体のソース |
 | `v02/play.html` | 単一ファイル版。**`build_play.py` で生成する。手で編集しない** |
-| `test/qa_v02.js` 〜 `qa_v30.js` | 各バージョンの QA（全パスが現行仕様）。jsdom は `cd test && npm install --no-save jsdom` |
+| `test/qa_v02.js` 〜 `qa_v31.js` | 各バージョンの QA（全パスが現行仕様）。jsdom は `cd test && npm install --no-save jsdom` |
 | `review_vXX/` | 各バージョンの監査記録とスクリーンショット |
-| `v02/img/` | 場面イラストの原画 JPEG 8枚（タイトル・優勝・卒業・合宿・雨・冬・練習場・部室）。ゲームは CSS 内の data URI を使い、ここは原画の保管と QA の実在確認用 |
+| `v02/img/` | 場面イラストの原画 JPEG 13枚（タイトル・優勝・卒業・合宿・雨・冬・練習場・部室＝ChatGPT 生成／桜の校庭・梅雨の校庭・秋の夕方・ナイターの競技場・冬の花園＝v0.31 で `tools/paint_scenes.py` が描いた絵）。ゲームは CSS 内の data URI を使い、ここは原画の保管と QA の実在確認用 |
 | `v02/icons/icon-256.png` | play.html に埋め込むアイコン（icon-512.png が無い時に build_play.py が使う） |
 | `v02/icons/icon-180.png` | index.html（Pages の /v02/）のファビコン兼ホーム画面アイコン。v0.27 で icon-256.png から縮小した暫定版 |
 | `review-tools/` | 監査用 puppeteer-core の置き場（node_modules のみ・git 管理外）。`PUPPETEER_SKIP_DOWNLOAD=1 npm install --prefix review-tools puppeteer-core` |
@@ -47,6 +48,7 @@
 | `test/fixtures/save_2slots.json` | QA と iOS のシミュレータ確認で使うセーブ（3年目＋10年目の2スロット） |
 | `.github/workflows/ios-build.yml` | macOS でのビルド確認（署名なし・シミュレータで起動・スクリーンショットは成果物 ios-simulator） |
 | `tools/embed_fonts.py` | 和文フォントを game.js・index.html で使う文字に subset し、style.css の `@fonts` 節へ data URI で入れる（v0.29）。**game.js に新しい漢字を足したら流し直す**（流し忘れは qa_v29 が検出）。入手手順はスクリプト冒頭 |
+| `tools/paint_scenes.py` | 場面の背景5枚（spring・tsuyu・autumn・stadium・hanazono）を描くスクリプト（v0.31。numpy と Pillow だけ・固定のシード）。`python3 tools/paint_scenes.py --font <DelaGothicOne_400Regular.ttf> --embed` で v02/img に描き、style.css の data URI も書き換える（横断幕の字の書体の入手は embed_fonts.py と同じ）。絵を直すときはここを直して描き直し、build_play.py と `npm run sync` |
 | `v02/fonts/` | 埋め込みフォントの SIL OFL 1.1 のライセンス文（M PLUS Rounded 1c・Dela Gothic One） |
 | `.claude/skills/frontend-design/` | Anthropic 公式のデザイン指針スキル（無改変・Apache 2.0）。HANAZONO の Claude Code セッションで自動的に読み込まれる。§4 の決定事項がこのスキルより優先。出どころと消す条件は同じフォルダの `SOURCE.md` |
 | `.claude/settings.json` | このリポジトリの Claude Code セッションの設定（2026-11-01、作者「コンテキストが35%を超えたら、作業完了後に自動で会話を圧縮」）。`CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS=350000`＝待機中の自動圧縮（idle compaction）の境を、Claude Opus 5.5 の文脈 100万トークンの 35% に下げる（既定 20万・下限 10万）。作業の途中では圧縮しない（35% で作業中も圧縮する `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` は入れていない）。新しいセッションから効く |
@@ -94,6 +96,12 @@
 
 - `v02/icons/icon-180.png` は v0.27 で暫定版を設置済み（icon-256.png からの縮小。git で push したため置けた）。作者手元の原本（refs/icon-180.png）の方が良ければ GitHub Web から上書きする。`icon-512.png` は引き続き未設置（build_play.py は icon-256.png で代用）。
 - なお現行キービジュアルには Gilbert ボールのロゴが含まれる。**App Store 提出前に差し替え必須**。
+
+### 6-4. 写真調の8枚を v0.31 の描いた絵の画風に寄せるか → **後回し（作者の決定、2026-11-01）**
+
+- v0.31 の絵（`tools/paint_scenes.py`）を見た作者の反応は「ポケモンの対戦の時の画面みたいで可愛い！ 世界観はむしろこっちの方が合ってるかもね」。
+- 写真調の8枚（タイトル・優勝・卒業・合宿・雨・冬・練習場・部室。ChatGPT 生成・人物あり）を同じ画風で描き直すかは、作者が「一旦画像の書き直しは後回しにしよう」と決めた。**作者から再開の指示があるまで手を付けない。**
+- 再開するときの注意：paint_scenes.py では人物を描けないので、人のいない場面になる。割り当て（`MONTH_PHOTOS`／`MATCH_PHOTOS`）はそのまま使え、`.photo-<key>` の data URI を差し替えるだけで済む（詳細は review_v31/notes.md の「未対応・気になる点」）。
 
 ## 7. 次フェーズ候補
 
