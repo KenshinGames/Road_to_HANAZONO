@@ -71,12 +71,12 @@ const FORM_NAMES = { '-2': '絶不調', '-1': '不調', '0': '普通', '1': '好
   });
   const uriCount = (html.match(/data:image\/jpeg;base64,\/9j\//g) || []).length;
   check('static: jpeg data URIs >= 5 (title + 4 scenes)', uriCount >= 5, 'count=' + uriCount);
-  check('static: play.html size <= 3.5MB', Buffer.byteLength(html, 'utf8') <= 3500000, /* v0.26: 場面イラスト3枚（data URI 約1MB）の追加に伴い上限を 3.5MB に見直し */ 'bytes=' + Buffer.byteLength(html, 'utf8')); /* v0.15: デザイン統一の CSS/JS 追加に伴い、最終チェック基準の 2.5MB に上限を見直し */
+  check('static: play.html size <= 4.5MB', Buffer.byteLength(html, 'utf8') <= 4.5 * 1024 * 1024, /* v0.29: 和文フォント3書体（subset・約0.7MB）の埋め込みに伴い上限を 3.5→4.5MB に見直し */ /* v0.26: 場面イラスト3枚（data URI 約1MB）の追加に伴い上限を 3.5MB に見直し */ 'bytes=' + Buffer.byteLength(html, 'utf8')); /* v0.15: デザイン統一の CSS/JS 追加に伴い、最終チェック基準の 2.5MB に上限を見直し */
 
   /* ---- 1. タイトル：バージョン ---- */
   {
     const H = await makeDom(null, 111);
-    check('title: shows v1.3 (v0.25 でバージョン表記を追随)', H.text().includes('v1.3')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.3 に追随 */
+    check('title: shows v1.4 (v0.25 でバージョン表記を追随)', H.text().includes('v1.4')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.4 に追随 */ /* v0.29: バージョン表記を v1.4 に追随 */
     check('title: title photo still applied', !!H.document.querySelector('.titlephoto'));
     H.window.close();
   }

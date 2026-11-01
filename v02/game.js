@@ -1,4 +1,8 @@
-/* Road to HANAZONO v1.3（Web版） — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+/* Road to HANAZONO v1.4（Web版） — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+ * v1.4（v0.29）: 見た目の作り直し（作者が提示したパワプロ系の参照画像〈練習メニュー・選手データ・成長レポート〉の様式へ）。
+ *        空の背景と縞、紺の輪郭と固い影の盤面、紺の見出し札、白いボタンと緑の決定ボタン、選択中は金、能力ランクは色の札、
+ *        名前はポジションの組ごとの色札、練習カードは系統色、和文フォント（M PLUS Rounded 1c・Dela Gothic One）を埋め込み。
+ *        ダークモードはナイター（夜空と照明）。表示のみで、ゲームの数値・判定・乱数消費・セーブ形式・localStorage キーは不変）
  * v1.3（v0.28）: セーブの引き継ぎコード（設定 → 引き継ぎ。3スロット分を1つの文字列に書き出し、別の端末や iOS 版で読み込む。
  *        検査値つきで、途中で切れたコードは読み込まない）。iOS 版（native/、Capacitor）も同じゲーム本体を使う。
  *        ゲームの数値・判定・乱数消費・セーブ形式・localStorage キーは不変）
@@ -1207,6 +1211,13 @@
   }
   /* v0.15: 成長レポートの名前プレート色（名前から決定的に選ぶ。参照画像の色つき名前プレートに寄せたパレット） */
   var PLATE_COLORS = ['#f7d54d', '#f6b8cd', '#f49a8c', '#a8d97c', '#f2a541', '#9fd3e8'];
+  /* v0.29: ポジションの組（前列 PR・HO／2・3列 LO・FL・No8／ハーフ SH・SO／TB・FB）の色札クラス。
+   * 参照画像（選手データの左リスト・成長レポートの名前札）の「守備位置ごとの札の色」をラグビーの組に置き換えたもの。
+   * 色は CSS（.pg1〜.pg4）が持つ。表示のみで、乱数・セーブには触れない */
+  function posGroupCls(posIdx) {
+    var n = (POSITIONS[posIdx] || POSITIONS[0]).no;
+    return 'pg' + (n <= 3 ? 1 : (n <= 8 ? 2 : (n <= 10 ? 3 : 4)));
+  }
   function plateColor(name) {
     var s = 0;
     for (var i = 0; i < name.length; i++) s += name.charCodeAt(i) * (i + 1);
@@ -3547,7 +3558,9 @@ function finishRecruit() {
     var mo = MONTHS[G.monthIdx] || { m: '—' };
     return h('div', { class: 'hud' }, [
       h('span', { class: 'ttl' }, ['🏉 桜丘高校']), /* v0.28: iPhone の横画面では隠す（CSS） */
-      h('span', { class: 'chip' }, [G.year + '年目 ・ ' + mo.m]),
+      /* v0.29: 年目を赤い札、月を白い札に分ける（参照画像のステータス帯の「2年生｜10月」）。間の「 ・ 」は
+       * CSS で見せないが textContent には残す（従来の「1年目 ・ 4月」と同じ文字列） */
+      h('span', { class: 'chip date' }, [h('span', { class: 'yr' }, [G.year + '年目']), ' ・ ', h('b', null, [mo.m])]),
       hudChip('部の格', gradeOf().n),
       hudChip('総合力', String(teamPower())),
       hudChip('評判', String(G.rep)),
@@ -3616,7 +3629,7 @@ function finishRecruit() {
     /* v1.0: クレジット（制作表記）。詳細はガイドのクレジット節にも置く */
     kids.push(h('p', { class: 'sub', style: 'text-align:center;margin-top:2px' }, ['制作：Kenshin Takada ／ Muse との共同開発']));
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v1.3'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v1.4'])]),
       h('div', { class: 'card center title-card' }, kids)
     ]);
     mount(h('div', { class: 'stack shell' }, [inner]));
@@ -3671,7 +3684,8 @@ function finishRecruit() {
     [['制作', 'Kenshin Takada'],
      ['開発', 'Muse（AI）との共同開発'],
      ['シリーズ', '100アプリチャレンジ #47'],
-     ['バージョン', 'v1.3（Web版）']].forEach(function (r) {
+     ['フォント', 'M PLUS Rounded 1c ／ Dela Gothic One（SIL Open Font License 1.1）'], /* v0.29: 埋め込みフォントの表記 */
+     ['バージョン', 'v1.4（Web版）']].forEach(function (r) {
       R.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
     });
     R.appendChild(h('button', { class: 'btn', style: 'margin-top:12px', onclick: function () { tutReplay(guideFrom); back(); } }, ['🎓 チュートリアルをもう一度見る'])); /* v0.24: 実地ガイドの再表示（戻り先の画面のステップから） */
@@ -3843,14 +3857,19 @@ function finishRecruit() {
       var rowEl = h('div', { class: 'grrow' });
       if (grFresh) { rowEl.classList.add('fx-grow'); rowEl.style.setProperty('--fxd', (ri * 70) + 'ms'); }
       var who = h('div', { class: 'grwho' });
-      who.appendChild(h('span', { class: 'grrole' }, [r.focus ? '重点' : (pl && lineupNow.indexOf(pl.id) >= 0 ? 'スタメン' : '控え')]));
-      who.appendChild(h('span', { class: 'grplate', style: 'background:' + plateColor(r.name) }, [r.name]));
+      /* v0.29: 役割チップは役割ごとの色（重点=赤／スタメン=緑／控え=灰）、名前札はポジションの組の色にする（表示のみ）。
+       * 卒業などで選手が見つからない行だけ、従来の名前由来の色を使う */
+      var role = r.focus ? 'focus' : (pl && lineupNow.indexOf(pl.id) >= 0 ? 'start' : 'bench');
+      who.appendChild(h('span', { class: 'grrole r-' + role }, [role === 'focus' ? '重点' : (role === 'start' ? 'スタメン' : '控え')]));
+      who.appendChild(pl ? h('span', { class: 'grplate ' + posGroupCls(pl.posIdx) }, [r.name])
+        : h('span', { class: 'grplate', style: 'background:' + plateColor(r.name) }, [r.name]));
       if (pl) who.appendChild(h('span', { class: 'gryear' }, [pl.year + '年']));
       rowEl.appendChild(who);
       var chg = h('div', { class: 'grchg' });
       STATS.filter(function (s) { return r.stats[s.k]; }).forEach(function (s) {
         var item = h('span', { class: 'gritem' });
-        item.appendChild(document.createTextNode(s.n + ' '));
+        item.appendChild(h('span', { class: 'grlab' }, [s.n])); /* v0.29: 能力名は白い札（textContent は従来どおり「能力名 」） */
+        item.appendChild(document.createTextNode(' '));
         if (pl) {
           var after = pl.stats[s.k];
           item.appendChild(rankValEl(after - r.stats[s.k], null, true));
@@ -3934,7 +3953,7 @@ function finishRecruit() {
       var kids = [h('span', { class: 'wic' }, [a.ic]), h('span', { class: 'wnm' }, [a.n]), h('span', { class: 'wdsc' }, [a.d])];
       var badge = a.k === recKey ? '⭐おすすめ' : (a.stat && a.stat === G.inst.team ? '方針一致' : null);
       kids.push(h('span', { class: 'wbadge' }, [badge || '']));
-      cards.appendChild(h('button', { class: 'wcard pcard' + (a.k === recKey ? ' rec' : ''), onclick: (function (k) { return function () { pickWeek(k); }; })(a.k) }, kids));
+      cards.appendChild(h('button', { class: 'wcard pcard' + (a.k === recKey ? ' rec' : ''), 'data-k': a.k /* v0.29: 系統色（CSS）用 */, onclick: (function (k) { return function () { pickWeek(k); }; })(a.k) }, kids));
     });
     var sbar = h('div', { class: 'wstatus' });
     sbar.appendChild(h('span', { class: 'wstext' }, [G.year + '年目 ' + mo.m + ' 第' + (b.week + 1) + '週（あと' + (WEEKS_PER_MONTH - b.week) + '週で月末）']));
@@ -4010,7 +4029,8 @@ function finishRecruit() {
           var pm = h('span', { class: 'pmini' });
           pm.innerHTML = portraitSVG(p);
           td.appendChild(pm);
-          td.appendChild(document.createTextNode(p.name + ' '));
+          td.appendChild(h('span', { class: 'nplate ' + posGroupCls(p.posIdx) }, [p.name])); /* v0.29: ポジションの組ごとの色札（表示のみ） */
+          td.appendChild(document.createTextNode(' '));
           td.appendChild(formFace(p));
           td.appendChild(document.createTextNode((p.id === G.captainId ? ' ©主将' : '') + (p.injured ? ' 🚑' + (p.injured > 1 ? '（あと' + p.injured + 'か月）' : '') : '')));
           return td;
@@ -4129,6 +4149,8 @@ function finishRecruit() {
         p ? String(p.year) : '', '',
         p ? String(p.fatigue) : ''];
       var tds = cells.map(function (x) { return h('td', null, [x]); });
+      /* v0.29: 名前は選手のポジションの組の色札に載せる（文字列は従来どおり「名前」＋補完の「 ※」） */
+      if (p) tds[2] = h('td', null, [h('span', { class: 'nplate ' + posGroupCls(p.posIdx) }, [p.name]), filled ? ' ※' : '']);
       if (p) tds[4].appendChild(rankValEl(Math.round(overall(p)), 'sm')); /* v0.15: 総合もランク併記 */
       tds.push(h('td', null, p ? [formFace(p)] : []));
       var tr = h('tr', { class: 'prow' + (lineupSlot === n ? ' sel' : ''), onclick: (function (nn) {

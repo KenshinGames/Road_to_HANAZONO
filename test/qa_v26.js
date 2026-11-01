@@ -104,9 +104,9 @@ async function playOmakase(html, seed, maxYear, onWeek) {
 (async () => {
   /* ---- 1. バージョン表記 ---- */
   {
-    check('version: document title is v1.3', HTML.includes('<title>Road to HANAZONO v1.3</title>')); /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.3 に追随 */
+    check('version: document title is v1.4', HTML.includes('<title>Road to HANAZONO v1.4</title>')); /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.4 に追随 */ /* v0.29: バージョン表記を v1.4 に追随 */
     const h = await makeDom(HTML, null, 1);
-    check('version: hero shows v1.3', H(h).text().includes('高校ラグビー育成シミュレーション v1.3')); /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.3 に追随 */
+    check('version: hero shows v1.4', H(h).text().includes('高校ラグビー育成シミュレーション v1.4')); /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.4 に追随 */ /* v0.29: バージョン表記を v1.4 に追随 */
     h.window.close();
   }
 
@@ -279,7 +279,7 @@ async function playOmakase(html, seed, maxYear, onWeek) {
     if (x2.btn('確認した')) { x2.click('確認した'); await sleep(5); }
     check('photos: December instruction uses the winter art', !!x2.document.querySelector('.photo-winter'), x2.text().slice(0, 80));
     h2.window.close();
-    check('size: play.html stays under 3.5MB', Buffer.byteLength(HTML, 'utf8') < 3.5 * 1024 * 1024, Buffer.byteLength(HTML, 'utf8'));
+    check('size: play.html stays under 4.5MB', Buffer.byteLength(HTML, 'utf8') < 4.5 * 1024 * 1024, /* v0.29: 和文フォント3書体（subset・約0.7MB）の埋め込みに伴い上限を 3.5→4.5MB に見直し */ Buffer.byteLength(HTML, 'utf8'));
     const oldUris = HTML_V25.match(/data:image\/jpeg;base64,[A-Za-z0-9+\/=]+/g) || [];
     check('photos: the 5 existing data URIs are byte-identical to v1.0', oldUris.length === 5 && oldUris.every(u => HTML.includes(u)), oldUris.length);
   }
