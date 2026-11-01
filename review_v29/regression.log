@@ -31,3 +31,5 @@ REGRESSION DONE
 SOAK DONE rc=0
 AUDIT LIGHT rc=0 errors: 0 | screens: 69 | clip kinds: {} | screens with issues: none
 AUDIT DARK rc=0 errors: 0 | screens: 69 | clip kinds: {} | screens with issues: none
+AUDIT IOS rc=0 errors: 0 | screens: 165 | clip kinds: {} | screens with issues: none
+ALL DONE
