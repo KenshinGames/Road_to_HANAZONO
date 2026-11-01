@@ -84,9 +84,9 @@ const SAVE_KEYS = ['hanazono.v02', 'hanazono.slot.1', 'hanazono.slot.2', 'hanazo
 
 (async () => {
   console.log('[1] バージョン表記・CSS');
-  check('title v1.4', /<title>Road to HANAZONO v1\.4<\/title>/.test(HTML)); /* v0.29: バージョン表記を v1.4 に追随 */
-  check('hero v1.4', JS.includes("高校ラグビー育成シミュレーション v1.4'")); /* v0.29: バージョン表記を v1.4 に追随 */
-  check('guide v1.4', JS.includes("['バージョン', 'v1.4（Web版）']")); /* v0.29: バージョン表記を v1.4 に追随 */
+  check('title v1.5', /<title>Road to HANAZONO v1\.5<\/title>/.test(HTML)); /* v0.29: バージョン表記を v1.5 に追随 */ /* v0.30: バージョン表記を v1.5 に追随 */
+  check('hero v1.5', JS.includes("高校ラグビー育成シミュレーション v1.5'")); /* v0.29: バージョン表記を v1.5 に追随 */ /* v0.30: バージョン表記を v1.5 に追随 */
+  check('guide v1.5', JS.includes("['バージョン', 'v1.5（Web版）']")); /* v0.29: バージョン表記を v1.5 に追随 */ /* v0.30: バージョン表記を v1.5 に追随 */
   check('コード欄は 16px（iOS の入力欄の自動拡大を起こさない）', /\.xfercode\s*\{[^}]*font:\s*16px/.test(CSS));
   check('play.html は 4.5MB 以下', HTML.length <= 4.5 * 1024 * 1024, HTML.length); /* v0.29: 和文フォント3書体（subset・約0.7MB）を埋め込んだため予算を 3.5→4.5MB に */
 
