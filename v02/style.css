@@ -1270,6 +1270,14 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, .slotcol:foc
 
 /* 下のバーの決定ボタンは 44px 以上 */
 .actionbar .btn { min-height: 44px; }
+/* タイトルのボタンも 44px（制作表記の行は遊び方のクレジットに任せて、縦の余裕を作った） */
+.titlewrap .title-card .btn { min-height: 44px; }
+
+/* おまかせの確認：同じ場所で「やめる」（左・控えめ）と「おまかせで月末まで進める」（右・主役）に変わる */
+.wtop .wautoask { display: flex; gap: 8px; margin-top: auto !important; } /* 1回目と同じ場所（右の列の下端）に出す */
+.wtop .wautoask .wauto { margin-top: 0 !important; }
+.wtop .wautoask .wano { flex: 0 0 auto; width: auto; padding-left: 14px; padding-right: 14px; }
+.wtop .wautoask .wago { flex: 1 1 0; min-width: 0; width: auto; }
 
 /* ---------- 案内のバー：2つのボタンを離し、「終了する」は控えめに ---------- */
 .tutbar { gap: 12px; }

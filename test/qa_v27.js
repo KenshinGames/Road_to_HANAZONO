@@ -106,6 +106,7 @@ async function play(html, isNew, seed, maxYear, inst) {
     if (x.btn('確認した')) { x.click('確認した'); await sleep(3); continue; }
     if (x.btn('指示を確定')) { if (inst) setInst(x, isNew, inst); x.click('指示を確定'); await sleep(3); continue; }
     if (x.btn('おまかせ（月末まで自動）')) { x.click('おまかせ（月末まで自動）'); await sleep(1); continue; }
+    if (x.btn('おまかせで月末まで進める')) { x.click('おまかせで月末まで進める'); await sleep(1); continue; } /* v0.32: おまかせは確認を1つ挟む（1回目で「おまかせで月末まで進める」に変わり、2回目で進む）。進め方と乱数は同じ */
     if (x.btn('結果のみ表示（スキップ）')) { x.click('結果のみ表示（スキップ）'); await sleep(2); continue; }
     if (x.btn('キックオフ')) { x.click('キックオフ'); await sleep(2); continue; }
     if (x.btn('変更しない')) { x.click('変更しない'); await sleep(0); continue; }
@@ -200,6 +201,7 @@ function fingerprint(st) {
       if (x.btn('確認した')) { x.click('確認した'); await sleep(3); continue; }
       if (x.btn('指示を確定')) { x.click('指示を確定'); await sleep(3); continue; }
       if (x.btn('おまかせ（月末まで自動）')) { x.click('おまかせ（月末まで自動）'); await sleep(1); continue; }
+      if (x.btn('おまかせで月末まで進める')) { x.click('おまかせで月末まで進める'); await sleep(1); continue; } /* v0.32: おまかせは確認を1つ挟む（1回目で「おまかせで月末まで進める」に変わり、2回目で進む）。進め方と乱数は同じ */
       if (x.btn('次へ')) { x.click('次へ'); await sleep(2); continue; }
       break;
     }

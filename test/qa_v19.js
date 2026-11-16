@@ -140,6 +140,8 @@ function load(html, seed, presetSave) {
     H.clickText('指示を確定'); await sleep(15);
     check('auto button exists', H.clickText('おまかせ'));
     await sleep(30);
+    check('auto asks once before running (v0.32)', H.clickText('おまかせで月末まで進める')); /* v0.32: おまかせは確認を1つ挟む（1回目で「おまかせで月末まで進める」に変わり、2回目で進む）。進め方と乱数は同じ */
+    await sleep(30);
     const st = H.state();
     check('auto completes the month', !st.board && st.monthIdx === 1, 'monthIdx=' + (st && st.monthIdx));
   }

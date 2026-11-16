@@ -372,6 +372,47 @@ async function driveMatch(x, until, max) {
     x.window.close();
   }
 
+  console.log('[11] おまかせは確認を1つ挟む（作者の決定）');
+  {
+    check('確認のボタンは出た直後 0.4 秒、実際のタップを受けない', JS.includes('tapTooSoon(ev, autoAsk && autoAsk.at, 400)'));
+    check('画面を離れたら確認は取り消し', JS.includes('{ screenAt = Date.now(); autoAsk = null; }'));
+    check('確認の行は1回目と同じ場所（右の列の下端）', CSS.includes('.wtop .wautoask { display: flex; gap: 8px; margin-top: auto !important; }'));
+    const toWeek = async (x) => { x.click('監督に就任する（ふつう）'); await sleep(15); x.click('目標を決めて'); await sleep(40); x.click('指示を確定'); await sleep(20); };
+    const x = H(await makeDom(TUT_DONE, 4211)); await toWeek(x);
+    const w0 = x.state().board.week, r0 = x.rnd(), sv0 = x.save();
+    x.click('おまかせ（月末まで自動）'); await sleep(8);
+    const ask = x.qa('.wtop .wautoask .btn');
+    check('1回目：同じ場所が「やめる／おまかせで月末まで進める」に変わる（決定は右）', ask.length === 2 && ask[0].textContent === 'やめる' && ask[1].textContent === '⏩ おまかせで月末まで進める' && ask[1].classList.contains('primary') && !x.btn('おまかせ（月末まで自動）'));
+    check('1回目では進まない（週・乱数・セーブそのまま）', x.state().board.week === w0 && x.rnd() === r0 && x.save() === sv0);
+    x.click('やめる'); await sleep(8);
+    check('「やめる」で元のボタンに戻る', !x.q('.wautoask') && !!x.btn('おまかせ（月末まで自動）') && x.rnd() === r0);
+    x.click('おまかせ（月末まで自動）'); await sleep(8);
+    x.q('.wcard').click(); await sleep(10);
+    check('確認中に週のカードを選ぶと、その週を進めて確認は取り消し', !x.q('.wautoask') && !!x.btn('おまかせ（月末まで自動）') && x.state().board.week === w0 + 1);
+    x.click('おまかせ（月末まで自動）'); await sleep(8);
+    x.click('選手一覧'); await sleep(8); x.click('戻る'); await sleep(8);
+    check('確認中に画面を離れて戻ると、確認は取り消し', !x.q('.wautoask') && !!x.btn('おまかせ（月末まで自動）'));
+    x.click('おまかせ（月末まで自動）'); await sleep(8);
+    x.click('おまかせで月末まで進める'); await sleep(20);
+    check('2回目で月末まで進む', !x.state().board || !x.state().board.weekly || x.state().monthIdx === 1, JSON.stringify(x.state().board));
+    /* 確認を挟んでも結果は同じ：同じ種で、1週目を同じカードにして、確認なしの経路（2回すぐ押す）と比べる */
+    const y = H(await makeDom(TUT_DONE, 4211)); await toWeek(y);
+    y.q('.wcard').click(); await sleep(10);
+    y.click('おまかせ（月末まで自動）'); await sleep(8); y.click('おまかせで月末まで進める'); await sleep(20);
+    check('寄り道（やめる・画面の行き来）をしても、乱数の消費と結果は同じ', x.rnd() === y.rnd() && JSON.stringify(x.state().players) === JSON.stringify(y.state().players), x.rnd() + ' vs ' + y.rnd());
+    x.window.close(); y.window.close();
+  }
+
+  console.log('[12] タイトル：制作表記は遊び方のクレジットに任せ、ボタンは 44px');
+  {
+    const x = H(await makeDom(null, 4212));
+    check('タイトルに制作表記の行がない', !x.text().includes('制作：Kenshin Takada') && !x.text().includes('Muse との共同開発'));
+    check('タイトルのボタンは 44px 以上（CSS）', CSS.includes('.titlewrap .title-card .btn { min-height: 44px; }'));
+    x.click('遊び方'); await sleep(10);
+    check('遊び方のクレジット節に制作・開発の表記がある', x.text().includes('クレジット') && x.text().includes('Kenshin Takada') && x.text().includes('Muse（AI）との共同開発'));
+    x.window.close();
+  }
+
   console.log('\n' + (fail ? '*** ' + fail + ' FAILURES ***' : 'ALL PASS') + ' (' + pass + ' ok, ' + fail + ' NG)');
   process.exit(fail ? 1 : 0);
 })().catch(e => { console.error('ERROR', e); process.exit(2); });
