@@ -1062,11 +1062,11 @@
         "under44": [
           {
             "c": "SELECT",
-            "h": 41
+            "h": 37
           },
           {
             "c": "SELECT",
-            "h": 41
+            "h": 37
           }
         ],
         "scroll": []
@@ -1823,7 +1823,7 @@
       "design": {
         "nestedCards": [],
         "longTexts": [
-          "88字: バランスの取れた体格で、大きな欠点が見当たらない。コンタクトの強さに定評がある。"
+          "85字: バランスの取れた体格で、大きな欠点が見当たらない。中学時代に大きなケガなし。丈夫"
         ],
         "creditsTitle": false,
         "creditsGuide": false
@@ -2484,23 +2484,23 @@
         "under44": [
           {
             "c": ".btn.choice.goalrow.primary",
-            "h": 41
+            "h": 37
           },
           {
             "c": ".btn.choice.goalrow",
-            "h": 41
+            "h": 37
           },
           {
             "c": ".btn.choice.goalrow",
-            "h": 41
+            "h": 37
           },
           {
             "c": ".btn.choice.goalrow",
-            "h": 41
+            "h": 37
           },
           {
             "c": ".btn.choice.goalrow",
-            "h": 41
+            "h": 37
           }
         ],
         "scroll": []
@@ -2541,47 +2541,47 @@
         "under44": [
           {
             "c": ".segbtn",
-            "h": 42
+            "h": 40
           },
           {
             "c": ".segbtn",
-            "h": 42
+            "h": 40
           },
           {
             "c": ".segbtn",
-            "h": 42
+            "h": 40
           },
           {
             "c": ".segbtn",
-            "h": 42
+            "h": 40
           },
           {
             "c": ".segbtn",
-            "h": 42
-          },
-          {
-            "c": ".segbtn.on",
-            "h": 42
-          },
-          {
-            "c": ".segbtn.on",
-            "h": 39
-          },
-          {
-            "c": ".segbtn",
-            "h": 39
-          },
-          {
-            "c": ".segbtn",
-            "h": 39
+            "h": 40
           },
           {
             "c": ".segbtn.on",
             "h": 40
           },
           {
+            "c": ".segbtn.on",
+            "h": 37
+          },
+          {
             "c": ".segbtn",
-            "h": 40
+            "h": 37
+          },
+          {
+            "c": ".segbtn",
+            "h": 37
+          },
+          {
+            "c": ".segbtn.on",
+            "h": 38
+          },
+          {
+            "c": ".segbtn",
+            "h": 38
           },
           {
             "c": ".segbtn",
@@ -2601,11 +2601,11 @@
           },
           {
             "c": "SELECT",
-            "h": 33
+            "h": 34
           },
           {
             "c": "SELECT",
-            "h": 33
+            "h": 34
           }
         ],
         "scroll": []
@@ -2716,47 +2716,47 @@
         "under44": [
           {
             "c": ".segbtn",
-            "h": 42
+            "h": 40
           },
           {
             "c": ".segbtn",
-            "h": 42
+            "h": 40
           },
           {
             "c": ".segbtn",
-            "h": 42
+            "h": 40
           },
           {
             "c": ".segbtn",
-            "h": 42
+            "h": 40
           },
           {
             "c": ".segbtn",
-            "h": 42
-          },
-          {
-            "c": ".segbtn.on",
-            "h": 42
-          },
-          {
-            "c": ".segbtn.on",
-            "h": 39
-          },
-          {
-            "c": ".segbtn",
-            "h": 39
-          },
-          {
-            "c": ".segbtn",
-            "h": 39
+            "h": 40
           },
           {
             "c": ".segbtn.on",
             "h": 40
           },
           {
+            "c": ".segbtn.on",
+            "h": 37
+          },
+          {
             "c": ".segbtn",
-            "h": 40
+            "h": 37
+          },
+          {
+            "c": ".segbtn",
+            "h": 37
+          },
+          {
+            "c": ".segbtn.on",
+            "h": 38
+          },
+          {
+            "c": ".segbtn",
+            "h": 38
           },
           {
             "c": ".segbtn",
@@ -2776,11 +2776,11 @@
           },
           {
             "c": "SELECT",
-            "h": 33
+            "h": 34
           },
           {
             "c": "SELECT",
-            "h": 33
+            "h": 34
           }
         ],
         "scroll": []
@@ -3700,47 +3700,47 @@
         "under44": [
           {
             "c": ".segbtn",
-            "h": 42
+            "h": 40
           },
           {
             "c": ".segbtn",
-            "h": 42
+            "h": 40
           },
           {
             "c": ".segbtn",
-            "h": 42
+            "h": 40
           },
           {
             "c": ".segbtn",
-            "h": 42
+            "h": 40
           },
           {
             "c": ".segbtn",
-            "h": 42
-          },
-          {
-            "c": ".segbtn.on",
-            "h": 42
-          },
-          {
-            "c": ".segbtn.on",
-            "h": 39
-          },
-          {
-            "c": ".segbtn",
-            "h": 39
-          },
-          {
-            "c": ".segbtn",
-            "h": 39
+            "h": 40
           },
           {
             "c": ".segbtn.on",
             "h": 40
           },
           {
+            "c": ".segbtn.on",
+            "h": 37
+          },
+          {
             "c": ".segbtn",
-            "h": 40
+            "h": 37
+          },
+          {
+            "c": ".segbtn",
+            "h": 37
+          },
+          {
+            "c": ".segbtn.on",
+            "h": 38
+          },
+          {
+            "c": ".segbtn",
+            "h": 38
           },
           {
             "c": ".segbtn",
@@ -3760,11 +3760,11 @@
           },
           {
             "c": "SELECT",
-            "h": 33
+            "h": 34
           },
           {
             "c": "SELECT",
-            "h": 33
+            "h": 34
           }
         ],
         "scroll": []
@@ -3885,47 +3885,47 @@
         "under44": [
           {
             "c": ".segbtn",
-            "h": 42
+            "h": 40
           },
           {
             "c": ".segbtn",
-            "h": 42
+            "h": 40
           },
           {
             "c": ".segbtn",
-            "h": 42
+            "h": 40
           },
           {
             "c": ".segbtn",
-            "h": 42
+            "h": 40
           },
           {
             "c": ".segbtn",
-            "h": 42
-          },
-          {
-            "c": ".segbtn.on",
-            "h": 42
-          },
-          {
-            "c": ".segbtn.on",
-            "h": 39
-          },
-          {
-            "c": ".segbtn",
-            "h": 39
-          },
-          {
-            "c": ".segbtn",
-            "h": 39
+            "h": 40
           },
           {
             "c": ".segbtn.on",
             "h": 40
           },
           {
+            "c": ".segbtn.on",
+            "h": 37
+          },
+          {
             "c": ".segbtn",
-            "h": 40
+            "h": 37
+          },
+          {
+            "c": ".segbtn",
+            "h": 37
+          },
+          {
+            "c": ".segbtn.on",
+            "h": 38
+          },
+          {
+            "c": ".segbtn",
+            "h": 38
           },
           {
             "c": ".segbtn",
@@ -3945,11 +3945,11 @@
           },
           {
             "c": "SELECT",
-            "h": 33
+            "h": 34
           },
           {
             "c": "SELECT",
-            "h": 33
+            "h": 34
           }
         ],
         "scroll": []
@@ -4015,9 +4015,7 @@
       },
       "design": {
         "nestedCards": [],
-        "longTexts": [
-          "61字: 身長187cmの大柄で、空中戦が武器になりそう。中学時代に大きなケガなし。丈夫そ"
-        ],
+        "longTexts": [],
         "creditsTitle": false,
         "creditsGuide": false
       },
@@ -4324,8 +4322,8 @@
     "tapScroll": [],
     "tapUnder44": [
       ".btn 最小36px（6画面）",
-      ".btn.choice.goalrow 最小41px（2画面）",
-      ".btn.choice.goalrow.primary 最小41px（2画面）",
+      ".btn.choice.goalrow 最小37px（2画面）",
+      ".btn.choice.goalrow.primary 最小37px（2画面）",
       ".btn.primary 最小36px（6画面）",
       ".btn.small 最小34px（9画面）",
       ".btn.small.candpick 最小41px（2画面）",
