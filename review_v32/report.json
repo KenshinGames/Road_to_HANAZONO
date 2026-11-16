@@ -10,51 +10,14 @@
       "design": {
         "nestedCards": [],
         "longTexts": [],
-        "creditsTitle": true,
+        "creditsTitle": false,
         "creditsGuide": false
       },
       "clip": [],
       "tap": {
         "hidden": [],
         "small": [],
-        "under44": [
-          {
-            "c": ".btn.primary",
-            "h": 38
-          },
-          {
-            "c": ".btn",
-            "h": 38
-          },
-          {
-            "c": ".btn",
-            "h": 38
-          },
-          {
-            "c": ".btn",
-            "h": 38
-          },
-          {
-            "c": ".btn",
-            "h": 38
-          },
-          {
-            "c": ".btn",
-            "h": 38
-          },
-          {
-            "c": ".btn.small",
-            "h": 36
-          },
-          {
-            "c": ".btn.small.primary",
-            "h": 36
-          },
-          {
-            "c": ".btn.small",
-            "h": 36
-          }
-        ],
+        "under44": [],
         "scroll": []
       }
     },
@@ -851,6 +814,46 @@
       }
     },
     "05_weekly_w1_h430": {
+      "docSW": 932,
+      "docSH": 430,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          55,
+          596,
+          332
+        ],
+        ".wcards": [
+          12,
+          340,
+          920,
+          422
+        ],
+        ".lay2": [
+          12,
+          55,
+          920,
+          332
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": [],
+      "tap": {
+        "hidden": [],
+        "small": [],
+        "under44": [],
+        "scroll": []
+      }
+    },
+    "05b_weekly_autoask_h430": {
       "docSW": 932,
       "docSH": 430,
       "issues": [],
@@ -1823,8 +1826,7 @@
       "design": {
         "nestedCards": [],
         "longTexts": [
-          "60字: バランスの取れた体格で、大きな欠点が見当たらない。キックの飛距離と精度が評判。中",
-          "67字: バランスの取れた体格で、大きな欠点が見当たらない。中学の大会でラインアウトの制空"
+          "85字: バランスの取れた体格で、大きな欠点が見当たらない。大事な試合ほど力を出すタイプら"
         ],
         "creditsTitle": false,
         "creditsGuide": false
@@ -1955,51 +1957,14 @@
       "design": {
         "nestedCards": [],
         "longTexts": [],
-        "creditsTitle": true,
+        "creditsTitle": false,
         "creditsGuide": false
       },
       "clip": [],
       "tap": {
         "hidden": [],
         "small": [],
-        "under44": [
-          {
-            "c": ".btn.primary",
-            "h": 38
-          },
-          {
-            "c": ".btn",
-            "h": 38
-          },
-          {
-            "c": ".btn",
-            "h": 38
-          },
-          {
-            "c": ".btn",
-            "h": 38
-          },
-          {
-            "c": ".btn",
-            "h": 38
-          },
-          {
-            "c": ".btn",
-            "h": 38
-          },
-          {
-            "c": ".btn.small",
-            "h": 36
-          },
-          {
-            "c": ".btn.small.primary",
-            "h": 36
-          },
-          {
-            "c": ".btn.small",
-            "h": 36
-          }
-        ],
+        "under44": [],
         "scroll": []
       }
     },
@@ -2012,51 +1977,14 @@
       "design": {
         "nestedCards": [],
         "longTexts": [],
-        "creditsTitle": true,
+        "creditsTitle": false,
         "creditsGuide": false
       },
       "clip": [],
       "tap": {
         "hidden": [],
         "small": [],
-        "under44": [
-          {
-            "c": ".btn.primary",
-            "h": 38
-          },
-          {
-            "c": ".btn",
-            "h": 38
-          },
-          {
-            "c": ".btn",
-            "h": 38
-          },
-          {
-            "c": ".btn",
-            "h": 38
-          },
-          {
-            "c": ".btn",
-            "h": 38
-          },
-          {
-            "c": ".btn",
-            "h": 38
-          },
-          {
-            "c": ".btn.small",
-            "h": 36
-          },
-          {
-            "c": ".btn.small.primary",
-            "h": 36
-          },
-          {
-            "c": ".btn.small",
-            "h": 36
-          }
-        ],
+        "under44": [],
         "scroll": []
       }
     },
@@ -2224,51 +2152,14 @@
       "design": {
         "nestedCards": [],
         "longTexts": [],
-        "creditsTitle": true,
+        "creditsTitle": false,
         "creditsGuide": false
       },
       "clip": [],
       "tap": {
         "hidden": [],
         "small": [],
-        "under44": [
-          {
-            "c": ".btn.primary",
-            "h": 36
-          },
-          {
-            "c": ".btn",
-            "h": 36
-          },
-          {
-            "c": ".btn",
-            "h": 36
-          },
-          {
-            "c": ".btn",
-            "h": 36
-          },
-          {
-            "c": ".btn",
-            "h": 36
-          },
-          {
-            "c": ".btn",
-            "h": 36
-          },
-          {
-            "c": ".btn.small",
-            "h": 34
-          },
-          {
-            "c": ".btn.small.primary",
-            "h": 34
-          },
-          {
-            "c": ".btn.small",
-            "h": 34
-          }
-        ],
+        "under44": [],
         "scroll": []
       }
     },
@@ -3049,6 +2940,46 @@
       }
     },
     "05_weekly_w1_h380": {
+      "docSW": 932,
+      "docSH": 380,
+      "issues": [],
+      "rects": {
+        ".wscene": [
+          12,
+          55,
+          596,
+          282
+        ],
+        ".wcards": [
+          12,
+          290,
+          920,
+          372
+        ],
+        ".lay2": [
+          12,
+          55,
+          920,
+          282
+        ]
+      },
+      "hudH": 39,
+      "metrics": {},
+      "design": {
+        "nestedCards": [],
+        "longTexts": [],
+        "creditsTitle": false,
+        "creditsGuide": false
+      },
+      "clip": [],
+      "tap": {
+        "hidden": [],
+        "small": [],
+        "under44": [],
+        "scroll": []
+      }
+    },
+    "05b_weekly_autoask_h380": {
       "docSW": 932,
       "docSH": 380,
       "issues": [],
@@ -4017,7 +3948,8 @@
       "design": {
         "nestedCards": [],
         "longTexts": [
-          "85字: バランスの取れた体格で、大きな欠点が見当たらない。コンタクトの強さに定評がある。"
+          "89字: 体重108kgの迫力ある体格。コンタクトで押せる。中学時代に大きなケガなし。丈夫",
+          "83字: バランスの取れた体格で、大きな欠点が見当たらない。タックルの鋭さが目を引く。型に"
         ],
         "creditsTitle": false,
         "creditsGuide": false
@@ -4148,51 +4080,14 @@
       "design": {
         "nestedCards": [],
         "longTexts": [],
-        "creditsTitle": true,
+        "creditsTitle": false,
         "creditsGuide": false
       },
       "clip": [],
       "tap": {
         "hidden": [],
         "small": [],
-        "under44": [
-          {
-            "c": ".btn.primary",
-            "h": 36
-          },
-          {
-            "c": ".btn",
-            "h": 36
-          },
-          {
-            "c": ".btn",
-            "h": 36
-          },
-          {
-            "c": ".btn",
-            "h": 36
-          },
-          {
-            "c": ".btn",
-            "h": 36
-          },
-          {
-            "c": ".btn",
-            "h": 36
-          },
-          {
-            "c": ".btn.small",
-            "h": 34
-          },
-          {
-            "c": ".btn.small.primary",
-            "h": 34
-          },
-          {
-            "c": ".btn.small",
-            "h": 34
-          }
-        ],
+        "under44": [],
         "scroll": []
       }
     },
@@ -4205,51 +4100,14 @@
       "design": {
         "nestedCards": [],
         "longTexts": [],
-        "creditsTitle": true,
+        "creditsTitle": false,
         "creditsGuide": false
       },
       "clip": [],
       "tap": {
         "hidden": [],
         "small": [],
-        "under44": [
-          {
-            "c": ".btn.primary",
-            "h": 36
-          },
-          {
-            "c": ".btn",
-            "h": 36
-          },
-          {
-            "c": ".btn",
-            "h": 36
-          },
-          {
-            "c": ".btn",
-            "h": 36
-          },
-          {
-            "c": ".btn",
-            "h": 36
-          },
-          {
-            "c": ".btn",
-            "h": 36
-          },
-          {
-            "c": ".btn.small",
-            "h": 34
-          },
-          {
-            "c": ".btn.small.primary",
-            "h": 34
-          },
-          {
-            "c": ".btn.small",
-            "h": 34
-          }
-        ],
+        "under44": [],
         "scroll": []
       }
     }
@@ -4260,7 +4118,7 @@
       "introList": 7
     },
     "fontsLoaded": true,
-    "titleHeroTop_h430": 64,
+    "titleHeroTop_h430": 72,
     "xferValid_h430": "読み込めるコード（2026/10/30 9:00 書き出し）スロット13年目 ・ 1月 ／ 部の格 強豪スロット210年目 ・ 1月 ／ 部の格 名門スロット3あき",
     "xferConfirm_h430": true,
     "tutGoal_h430": true,
@@ -4272,6 +4130,7 @@
       "scrollH": 356
     },
     "guideBack_h430": true,
+    "autoAsk_h430": "やめる|⏩ おまかせで月末まで進める",
     "tutWeekly_h430": true,
     "fxKmMid": "kmcol fx-kml",
     "reachedPreMatch": true,
@@ -4297,12 +4156,13 @@
     "photoOctWeekly_h430": true,
     "photoJanWeekly_h430": true,
     "photoOctInst_h430": true,
-    "titleHeroTop_h380": 33,
+    "titleHeroTop_h380": 36,
     "xferValid_h380": "読み込めるコード（2026/10/30 9:00 書き出し）スロット13年目 ・ 1月 ／ 部の格 強豪スロット210年目 ・ 1月 ／ 部の格 名門スロット3あき",
     "xferConfirm_h380": true,
     "tutGoal_h380": true,
     "tutInst_h380": true,
     "guideBack_h380": true,
+    "autoAsk_h380": "やめる|⏩ おまかせで月末まで進める",
     "tutWeekly_h380": true,
     "tutPreMatch_h380": true,
     "tutMatch_h380": true,
@@ -4324,13 +4184,10 @@
     "tapSmall": [],
     "tapScroll": [],
     "tapUnder44": [
-      ".btn 最小36px（6画面）",
       ".btn.choice.goalrow 最小37px（2画面）",
       ".btn.choice.goalrow.primary 最小37px（2画面）",
-      ".btn.primary 最小36px（6画面）",
-      ".btn.small 最小34px（9画面）",
+      ".btn.small 最小39px（3画面）",
       ".btn.small.candpick 最小41px（2画面）",
-      ".btn.small.primary 最小34px（6画面）",
       ".btn.small.subbtn 最小39px（2画面）",
       ".btn.small.subcancel 最小37px（2画面）",
       ".prow 最小36px（6画面）",
