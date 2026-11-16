@@ -1282,6 +1282,9 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, .slotcol:foc
 .tabbtn { min-height: 40px; }
 .glasscard .tabbtn { min-height: 38px; }
 
+/* 下のバーの決定ボタンは 44px 以上 */
+.actionbar .btn { min-height: 44px; }
+
 /* ---------- 案内のバー：2つのボタンを離し、「終了する」は控えめに ---------- */
 .tutbar { gap: 12px; }
 .tutbar .tutbtn { padding: 7px 14px; }
@@ -2452,17 +2455,25 @@ table.squad.lineup tr.prow td { height: 40px; }
   }
 
   /* ===== v0.10: トースト通知（実績達成時） ===== */
-  function showToast(msg) {
+  /* v0.32: 通知は一度に2件まで。残りは前の通知が消えてから順に出す（シーズンの締めなどで実績が4〜5件まとめて出ると、
+   * 画面の真ん中を数秒ふさいでいた）。出す場所は画面の上（CSS）。下の決定ボタンには重ねない */
+  var toastQ = [], toastLive = 0;
+  function showToast(msg) { toastQ.push(msg); toastPump(); }
+  function toastPump() {
     try {
-      var layer = document.getElementById('toasts');
-      if (!layer) { layer = document.createElement('div'); layer.id = 'toasts'; layer.className = 'toasts'; document.body.appendChild(layer); }
-      var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
-      layer.appendChild(t);
-      setTimeout(function () { try { t.classList.add('show'); } catch (e) {} }, 10);
-      setTimeout(function () {
-        try { t.classList.remove('show'); } catch (e) {}
-        setTimeout(function () { try { if (t.parentNode) t.parentNode.removeChild(t); } catch (e) {} }, 450);
-      }, 3400);
+      while (toastLive < 2 && toastQ.length) {
+        var layer = document.getElementById('toasts');
+        if (!layer) { layer = document.createElement('div'); layer.id = 'toasts'; layer.className = 'toasts'; document.body.appendChild(layer); }
+        (function (t) {
+          t.className = 'toast'; t.textContent = toastQ.shift();
+          layer.appendChild(t); toastLive++;
+          setTimeout(function () { try { t.classList.add('show'); } catch (e) {} }, 10);
+          setTimeout(function () {
+            try { t.classList.remove('show'); } catch (e) {}
+            setTimeout(function () { try { if (t.parentNode) t.parentNode.removeChild(t); } catch (e) {} toastLive = Math.max(0, toastLive - 1); toastPump(); }, 450);
+          }, 3400);
+        })(document.createElement('div'));
+      }
     } catch (e) {}
   }
 
@@ -5639,7 +5650,7 @@ function finishRecruit() {
     ids.forEach(function (id) { if (id != null) inSet[id] = 1; });
     var left = h('div', { class: 'card grow scroll' });
     left.appendChild(h('div', { class: 'sec' }, ['スタメン（背番号順）― 行タップで選択']));
-    var table = h('table', { class: 'squad' });
+    var table = h('table', { class: 'squad lineup' }); /* v0.32: lineup＝行を押しやすい高さにする目印（CSS） */
     table.appendChild(h('tr', null, ['No', 'Pos', '名前', '年', '総合', '疲労', '調子'].map(function (x) { return h('th', null, [x]); })));
     ids.forEach(function (id, n) {
       var p = G.players.filter(function (x) { return x.id === id; })[0];

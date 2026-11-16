@@ -1266,6 +1266,9 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, .slotcol:foc
 .tabbtn { min-height: 40px; }
 .glasscard .tabbtn { min-height: 38px; }
 
+/* 下のバーの決定ボタンは 44px 以上 */
+.actionbar .btn { min-height: 44px; }
+
 /* ---------- 案内のバー：2つのボタンを離し、「終了する」は控えめに ---------- */
 .tutbar { gap: 12px; }
 .tutbar .tutbtn { padding: 7px 14px; }
