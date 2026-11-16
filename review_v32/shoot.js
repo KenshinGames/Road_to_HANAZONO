@@ -703,7 +703,8 @@ const clickCard = async (page, sub) => {
   }
   }
   if (IOS) {
-    for (const dev of IOS_DEVICES) { useInsets(dev); await runSet(dev.W, dev.H, dev.tag, false); }
+    /* IOSDEV=_ipmini,_ip17p のように機種を絞れる（手直しの確認用。合否の記録は全機種で取る） */
+    for (const dev of IOS_DEVICES.filter(d => !process.env.IOSDEV || process.env.IOSDEV.split(',').includes(d.tag))) { useInsets(dev); await runSet(dev.W, dev.H, dev.tag, false); }
   } else {
     await runSet(932, 430, '_h430', true);
     await runSet(932, 380, '_h380', false);

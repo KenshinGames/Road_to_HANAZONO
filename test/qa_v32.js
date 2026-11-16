@@ -116,6 +116,9 @@ async function driveMatch(x, until, max) {
   check('HUD のボタンの当たり判定を上下に広げる（::after）', /\.hudbtn::after \{[^}]*top: -10px; bottom: -10px;/.test(ux));
   check('当たり判定の ::after は --tapx で出し入れできる（監査が見た目と分けて測る）', ux.includes(":root { --tapx: ''; }") && (ux.match(/content: var\(--tapx\)/g) || []).length === 3 && !/::after \{ content: '';/.test(ux) && SHOOT.includes("setProperty('--tapx', 'none')") && SHOOT.includes("'tap-scroll: '"));
   check('HUD は横のはみ出しだけを切る（上下の当たり判定を切らない）', ux.includes('@supports (overflow: clip) { .hud { overflow-x: clip; overflow-y: visible; } }'));
+  check('小さい機種の詰め：案内つきの対戦確認は高さ 440 まで・mini（380 以下）の段がある', ux.includes('(max-height: 440px)') && ux.includes('(max-height: 380px)') && ux.includes('.tutcol ~ .heropanel .grec { display: none; }') && ux.includes('.tutcol ~ .heropanel .ggrade { display: none; }'));
+  check('列の縮みの許可は対戦確認と試合だけ（選手一覧の右の欄を細らせない）', ux.includes('.laypm > .col, .laymatch > .col { min-width: 0; }') && !ux.includes('.lay2 > .col { min-width: 0; }'));
+  check('選手のプロフィール：見出しの札を縦に折らない', ux.includes('.pdetail .rowline > .sub:first-child { white-space: nowrap; flex: none; }'));
   check('下のバーの決定ボタンは 44px 以上', ux.includes('.actionbar .btn { min-height: 44px; }'));
   check('通知は画面の上（下の決定ボタンに重ねない）', /\.toasts \{ bottom: auto; top: calc\(54px/.test(ux));
   check('試合の欄の切り替え（表示だけ）', ux.includes('.matchctrl.subopen .scpane { display: none; }') && ux.includes('.matchctrl .subbox { display: none;'));
@@ -137,6 +140,7 @@ async function driveMatch(x, until, max) {
     check('選んでいる目標の説明は左のガラスに', (x.q('.glasscard .goalnow') || {}).textContent === '予選でまず1勝花園予選の初戦を突破する', (x.q('.goalnow') || {}).textContent);
     const r0 = x.rnd();
     rows[2].click(); await sleep(10);
+    check('左のガラスの行に、畳める目印（部の格・おすすめ）', !!x.q('.glasscard .rowline.ggrade') && !!x.q('.glasscard .rowline.grec') && x.q('.glasscard .rowline.grec').textContent.startsWith('おすすめの目標'));
     check('別の目標を選ぶと左の説明も変わる', x.q('.goalnow').textContent.includes('県予選を制して全国大会へ') && x.state().goal === 'hana');
     check('目標を選び直しても乱数を使わない', x.rnd() === r0, x.rnd() - r0);
     check('決定は下のバー', !!x.q('.actionbar .btn.primary') && x.q('.actionbar .btn.primary').textContent === '目標を決めてシーズンを始める');
@@ -204,6 +208,7 @@ async function driveMatch(x, until, max) {
     check('PGキッカーとエースのマークの指名が並ぶ', sels.length === 2 && sels[0].options[0].textContent === 'おまかせ' && sels[1].options[0].textContent === 'マークしない');
     check('指名の見出し', x.text().includes('🦵 キッカー＆マーク（任意）') && x.qa('.pmfield .lab').length === 2);
     const bar = x.qa('.actionbar.pmbar .btn').map(b => b.textContent);
+    check('対戦確認のレイアウトに目印（.laypm）', !!x.q('.lay2.laypm'));
     check('下のバー：メンバー編成／結果のみ表示／キックオフ（決定は右）', bar.join('|') === '👥 メンバー編成|⏩ 結果のみ表示（スキップ）|キックオフ', bar.join('|'));
     check('右の列は盤面1枚だけ（ボタンを積まない）', x.qa('.lay2 > .col')[1].children.length === 1);
     const r0 = x.rnd();
@@ -345,6 +350,7 @@ async function driveMatch(x, until, max) {
     check('選んだ候補は外せる', x.qa('.candpick').filter(b => b.textContent === '✔ 獲得リストから外す').length === quota && x.qa('.candpick').filter(b => b.textContent.startsWith('✔')).every(b => !b.disabled));
     check('候補を選ぶだけでは乱数を使わない', x.rnd() === r0);
     x.click('比較で見る'); await sleep(10);
+    check('比較：帯の文字列は同じで、部の格の分は畳める目印つき', /^部の格 .+ ／ 獲得枠 \d+名（選択中 \d+名）$/.test(x.q('.cmpstrip .sub').textContent) && /^部の格 .+ ／ $/.test(x.q('.cmpstrip .sub .sgrade').textContent), x.q('.cmpstrip .sub').textContent);
     check('比較：帯は1段（説明文なし）', !!x.q('.strip.cmpstrip') && !x.text().includes('成功率の内訳は「カードで見る」で確認できる'));
     const last = x.q('table.cmp').lastChild;
     check('比較：獲得の行は表のいちばん下で、貼り付けの目印つき', last.classList.contains('cmppick') && last.querySelectorAll('button').length === R.cands.length);

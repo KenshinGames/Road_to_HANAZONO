@@ -3778,7 +3778,7 @@ function finishRecruit() {
       h('div', { class: 'gtitle' }, ['🎯 ' + G.year + '年目の目標を決めよう']),
       /* v0.24: 表示テキスト最小化。目標の仕組み（達成ボーナスの大小・未達時の扱い）は
        * ガイド「① 年初の目標」へ移し、ここは判断に直結する数値だけを残す */
-      h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['現在の部の格']), h('span', null, [gradeOf().n])]),
+      h('div', { class: 'rowline ggrade' }, [h('span', { class: 'sub' }, ['現在の部の格']), h('span', null, [gradeOf().n])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['昨季の結果']), h('span', null, [G.history.length ? G.history[G.history.length - 1].result : '―（初年度）'])]),
       h('div', { class: 'rowline grec' }, [h('span', { class: 'sub' }, ['おすすめの目標']), h('span', null, [rec.n])]),
       /* v0.32: 目標の中身（何を達成すればよいか）は、選んでいる目標の分だけここに出す。右の一覧は名前とボーナスの1行に詰めた */
@@ -4465,7 +4465,7 @@ function finishRecruit() {
     if (canSkip(mo.match) && prefFast) box.appendChild(h('div', { class: 'sub' }, ['⏩ 時短設定 ON：キックオフで自動的に結果のみ表示になる']));
     var pkids = [hud()]; /* v0.24: チュートリアルバー（通常フロー） */
     if (tbP) { tbP.classList.add('tutsm'); pkids.push(tbP); } /* v0.32: 週次と同じ細いバー（右の欄の高さを返す） */
-    pkids.push(h('div', { class: 'lay2' }, [
+    pkids.push(h('div', { class: 'lay2 laypm' }, [
       col([pmHero, vs]),
       col([box])
     ]));
@@ -4834,7 +4834,7 @@ function finishRecruit() {
     if (recruitView === 'cmp') {
       var strip = h('div', { class: 'strip flatstrip cmpstrip' }); /* v0.22: 帯は枠ではなくヘアラインで区切る。v0.32: 1段に詰めて表を広く */
       strip.appendChild(h('span', { class: 'sec' }, ['🌸 ' + G.year + '年目 ― スカウト候補の比較']));
-      strip.appendChild(h('span', { class: 'sub' }, ['部の格 ' + gradeOf().n + ' ／ 獲得枠 ' + quota + '名（選択中 ' + pickedN + '名）']));
+      strip.appendChild(h('span', { class: 'sub' }, [h('span', { class: 'sgrade' }, ['部の格 ' + gradeOf().n + ' ／ ']), '獲得枠 ' + quota + '名（選択中 ' + pickedN + '名）'])); /* v0.32: 部の格は HUD にあるので、比較の帯では畳む（文字列は同じ） */
       strip.appendChild(tabs);
       wrap([hud(), strip, recruitCmpEl(R, quotaFull), action]);
       return;
