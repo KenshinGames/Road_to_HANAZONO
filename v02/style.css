@@ -125,8 +125,6 @@ table.squad td.name { text-align: left; font-weight: 700; white-space: nowrap; }
 .frow .meter { height: 12px; }
 .frow.ftop .flab { color: var(--ink); font-weight: 700; }
 /* v0.12: ハーフタイム形勢サマリー／スカウティングの弱点ヒント */
-.htbox { background: var(--warn-soft); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 13px; margin-bottom: 10px; }
-.htbox > * + * { margin-top: 3px; }
 .hint { font-size: 13px; margin-top: 3px; }
 .tags { text-align: right; }
 .tag { display: inline-block; padding: 1px 8px; margin: 1px 0 1px 4px; border-radius: 99px; background: var(--brand-soft); color: var(--brand); font-size: 12px; font-weight: 700; }
@@ -583,7 +581,6 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
   .herobody { padding: 9px; gap: 7px; }
   .glasscard { padding: 8px 11px; border-radius: 10px; }
   .cmpcard { padding: 6px 8px; }
-  .htbox { padding: 7px 9px; }
   .pname { padding: 6px 11px; margin-bottom: 8px; }
   .cutin { padding: 7px 10px; }
   /* 活動カードのアイコンは line box に収め、グリフのはみ出しを作らない */
@@ -1079,7 +1076,6 @@ table.squad td.name { font-weight: 800; }
 .cutin { background: linear-gradient(100deg, var(--navy-2), var(--navy-1)); color: #fff; border: 2px solid var(--edge); box-shadow: var(--shadow); }
 .cutin .sub { color: rgba(255, 255, 255, .8); }
 .cutin-line { color: #ffe08a; }
-.htbox { background: var(--warn-soft); border-color: var(--gold-edge); }
 .fxbanner .fxb-big { font-family: var(--font-disp); font-weight: 400; }
 .fxbanner.mine { border: 2px solid #ffd84d; }
 
@@ -1256,13 +1252,19 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, .slotcol:foc
 /* @ux32:begin — v0.32 操作しやすさ。決まり：①判断に使う操作はスクロールの先に置かない ②進む・決定は下のバー
  * ③押せる範囲は 44px 級（見た目を変えずに ::after で広げる）④通知は決定ボタンに重ねない。表示だけの層 */
 
-/* ---------- 押せる範囲：見た目はそのまま、当たり判定だけ上下左右に広げる ---------- */
+/* ---------- 押せる範囲：見た目はそのまま、当たり判定だけ上下左右に広げる ----------
+ * 広げる分は透明な ::after。中身は --tapx に置き、監査（review_v32 以降の shoot）が :root の --tapx を none にして
+ * 「見た目の見切れ」と「当たり判定の広がり」を分けて測れるようにしてある */
+:root { --tapx: ''; }
 .hudbtn, .tabbtn, .segbtn, .wauto { position: relative; }
-.hudbtn::after { content: ''; position: absolute; left: -3px; right: -3px; top: -9px; bottom: -9px; }
+.hudbtn::after { content: var(--tapx); position: absolute; left: -3px; right: -3px; top: -10px; bottom: -10px; }
 .hud .hudbtn.icon { min-width: 40px; text-align: center; }
 .tutbar .hudbtn::after { top: -8px; bottom: -8px; left: -4px; right: -4px; }
-.segbtn::after { content: ''; position: absolute; left: -2px; right: -2px; top: -3px; bottom: -3px; }
-.wtop .wauto::after { content: ''; position: absolute; left: 0; right: 0; top: -10px; bottom: -3px; }
+.tutbar.tutsm .hudbtn::after { top: -11px; bottom: -11px; }
+.segbtn::after { content: var(--tapx); position: absolute; left: -2px; right: -2px; top: -3px; bottom: -3px; }
+.wtop .wauto::after { content: var(--tapx); position: absolute; left: 0; right: 0; top: -11px; bottom: -3px; }
+/* HUD は横のはみ出しだけを切る（横画面では overflow: hidden で、上下に広げた当たり判定まで切られていた） */
+@supports (overflow: clip) { .hud { overflow-x: clip; overflow-y: visible; } }
 .tabbtn { min-height: 40px; }
 .glasscard .tabbtn { min-height: 38px; }
 
@@ -1291,6 +1293,9 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, .slotcol:foc
 /* ---------- 試合 ---------- */
 .matchctrl .subbox { display: none; margin-top: 0; border-top: none; padding-top: 0; }
 .matchctrl.subopen .subbox { display: block; }
+.subhead { display: flex; align-items: center; gap: 8px; }
+.subhead .sub { flex: 1; min-width: 0; }
+.subhead .subcancel { flex: none; width: auto; min-height: 36px; padding: 4px 14px; margin: 0; }
 .matchctrl.subopen .scpane { display: none; }
 .sctitle { display: flex; align-items: baseline; gap: 6px; }
 .sctitle .scpre { flex: none; font-size: 11.5px; opacity: .82; }
@@ -1395,5 +1400,7 @@ table.squad.lineup tr.prow td { height: 40px; }
   .pmctrl.hastut .pmfield select { min-height: 36px; }
   .pmctrl.hastut .pmcap { display: none; }
   .pmctrl.hastut .pmprep { margin-top: 6px !important; }
+  /* 目標：案内のバーが左の列にある間は、右の一覧の ⭐おすすめ と同じ内容の行を畳む（ガラスの中身が切れないように） */
+  .tutcol ~ .heropanel .grec { display: none; }
 }
 /* @ux32:end */

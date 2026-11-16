@@ -125,8 +125,6 @@ table.squad td.name { text-align: left; font-weight: 700; white-space: nowrap; }
 .frow .meter { height: 12px; }
 .frow.ftop .flab { color: var(--ink); font-weight: 700; }
 /* v0.12: ハーフタイム形勢サマリー／スカウティングの弱点ヒント */
-.htbox { background: var(--warn-soft); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 13px; margin-bottom: 10px; }
-.htbox > * + * { margin-top: 3px; }
 .hint { font-size: 13px; margin-top: 3px; }
 .tags { text-align: right; }
 .tag { display: inline-block; padding: 1px 8px; margin: 1px 0 1px 4px; border-radius: 99px; background: var(--brand-soft); color: var(--brand); font-size: 12px; font-weight: 700; }
@@ -583,7 +581,6 @@ label.lab { margin: 6px 0 2px; font-size: 12.5px; }
   .herobody { padding: 9px; gap: 7px; }
   .glasscard { padding: 8px 11px; border-radius: 10px; }
   .cmpcard { padding: 6px 8px; }
-  .htbox { padding: 7px 9px; }
   .pname { padding: 6px 11px; margin-bottom: 8px; }
   .cutin { padding: 7px 10px; }
   /* 活動カードのアイコンは line box に収め、グリフのはみ出しを作らない */
@@ -1079,7 +1076,6 @@ table.squad td.name { font-weight: 800; }
 .cutin { background: linear-gradient(100deg, var(--navy-2), var(--navy-1)); color: #fff; border: 2px solid var(--edge); box-shadow: var(--shadow); }
 .cutin .sub { color: rgba(255, 255, 255, .8); }
 .cutin-line { color: #ffe08a; }
-.htbox { background: var(--warn-soft); border-color: var(--gold-edge); }
 .fxbanner .fxb-big { font-family: var(--font-disp); font-weight: 400; }
 .fxbanner.mine { border: 2px solid #ffd84d; }
 
@@ -1252,3 +1248,159 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, .slotcol:foc
 }
 /* @wk30:end */
 /* @skin:end */
+
+/* @ux32:begin — v0.32 操作しやすさ。決まり：①判断に使う操作はスクロールの先に置かない ②進む・決定は下のバー
+ * ③押せる範囲は 44px 級（見た目を変えずに ::after で広げる）④通知は決定ボタンに重ねない。表示だけの層 */
+
+/* ---------- 押せる範囲：見た目はそのまま、当たり判定だけ上下左右に広げる ----------
+ * 広げる分は透明な ::after。中身は --tapx に置き、監査（review_v32 以降の shoot）が :root の --tapx を none にして
+ * 「見た目の見切れ」と「当たり判定の広がり」を分けて測れるようにしてある */
+:root { --tapx: ''; }
+.hudbtn, .tabbtn, .segbtn, .wauto { position: relative; }
+.hudbtn::after { content: var(--tapx); position: absolute; left: -3px; right: -3px; top: -10px; bottom: -10px; }
+.hud .hudbtn.icon { min-width: 40px; text-align: center; }
+.tutbar .hudbtn::after { top: -8px; bottom: -8px; left: -4px; right: -4px; }
+.tutbar.tutsm .hudbtn::after { top: -11px; bottom: -11px; }
+.segbtn::after { content: var(--tapx); position: absolute; left: -2px; right: -2px; top: -3px; bottom: -3px; }
+.wtop .wauto::after { content: var(--tapx); position: absolute; left: 0; right: 0; top: -11px; bottom: -3px; }
+/* HUD は横のはみ出しだけを切る（横画面では overflow: hidden で、上下に広げた当たり判定まで切られていた） */
+@supports (overflow: clip) { .hud { overflow-x: clip; overflow-y: visible; } }
+.tabbtn { min-height: 40px; }
+.glasscard .tabbtn { min-height: 38px; }
+
+/* 下のバーの決定ボタンは 44px 以上 */
+.actionbar .btn { min-height: 44px; }
+
+/* ---------- 案内のバー：2つのボタンを離し、「終了する」は控えめに ---------- */
+.tutbar { gap: 12px; }
+.tutbar .tutbtn { padding: 7px 14px; }
+.tutbar .tutbtn + .tutbtn { background: transparent; box-shadow: none; border-color: rgba(120, 84, 0, .45); color: var(--sub); margin-left: 6px; }
+.tutbar.tutsm .tutbtn { padding: 4px 12px; }
+/* 左の列に置くとき（目標・月頭指示）：文は上、ボタンは下の行に */
+.tutbar.tutcol { flex-wrap: wrap; gap: 6px 10px; padding: 7px 10px; }
+.tutbar.tutcol .tuttxt { flex: 1 1 100%; }
+.tutbar.tutcol .tutbtn { flex: 1; }
+.tutbar.tutcol .tutbtn + .tutbtn { flex: 0 0 auto; }
+
+/* ---------- 通知（実績）：下の決定ボタンに重ねない。上から出す ---------- */
+.toasts { bottom: auto; top: calc(54px + env(safe-area-inset-top, 0px)); }
+.toast { transform: translateY(-10px); }
+.toast.show { transform: none; }
+
+/* ---------- 選択肢の共通の小物 ---------- */
+.choice .dsep, .choice .smpre { }
+
+/* ---------- 試合 ---------- */
+.matchctrl .subbox { display: none; margin-top: 0; border-top: none; padding-top: 0; }
+.matchctrl.subopen .subbox { display: block; }
+.subhead { display: flex; align-items: center; gap: 8px; }
+.subhead .sub { flex: 1; min-width: 0; }
+.subhead .subcancel { flex: none; width: auto; min-height: 36px; padding: 4px 14px; margin: 0; }
+.matchctrl.subopen .scpane { display: none; }
+.sctitle { display: flex; align-items: baseline; gap: 6px; }
+.sctitle .scpre { flex: none; font-size: 11.5px; opacity: .82; }
+.sctitle .scname { flex: 1; min-width: 0; }
+.sctitle:not(.plain)::after { content: '成功率'; flex: none; font-size: 11px; opacity: .82; min-width: 44px; text-align: center; }
+.scchoices > * + * { margin-top: 0; }
+.scchoices { display: flex; flex-direction: column; gap: 6px; }
+.scchoices .btn.choice { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 5px 8px 5px 12px; }
+.scchoices .choice .cmain { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.scchoices .choice .t { font-size: 15px; line-height: 1.3; }
+.scchoices .choice .cmain .d { font-size: 12px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scchoices .choice .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scchoices .choice .dsep, .scchoices .choice .smpre, .scchoices .choice .smlab { display: none; }
+.scchoices .choice .smwrap { flex: none; min-width: 44px; text-align: center; font-size: 0; }
+.scchoices .choice .smark { font-size: 24px; line-height: 1; }
+.scchoices.plain .choice .smwrap { display: none; }
+.memorow { padding: 6px 2px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.memorow > span:last-child { font-weight: 800; text-align: right; }
+.matchbar .subtoggle { flex: 0 0 34%; }
+.matchbar .subtoggle.warn { border-color: #b3261e; box-shadow: inset 0 0 0 2px #e2412f, inset 0 3px 0 var(--hi), 0 3px 0 var(--edge-soft); }
+.matchbar .subtoggle.on { background: linear-gradient(180deg, #ffe789, #ffc52f); color: var(--gold-ink); border-color: var(--gold-edge); box-shadow: inset 0 0 0 1px var(--gold-edge), inset 0 3px 0 rgba(255, 255, 255, .55), 0 3px 0 rgba(120, 84, 0, .45); }
+.matchbar .btn { white-space: nowrap; }
+.matchbar .btn.primary:disabled { background: linear-gradient(180deg, #d5dce8, #b9c3d4); color: #56627a; border-color: #8894ab; box-shadow: inset 0 0 0 1px #8894ab; text-shadow: none; opacity: 1; }
+@media (prefers-color-scheme: dark) {
+  .matchbar .btn.primary:disabled { background: linear-gradient(180deg, #2a3a63, #1f2c4f); color: #9fb0d6; border-color: #3b4f85; box-shadow: inset 0 0 0 1px #3b4f85; }
+}
+
+/* ---------- 対戦確認 ---------- */
+.tacgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+.tacgrid .btn.choice { display: flex; flex-direction: column; justify-content: center; min-width: 0; min-height: 46px; padding: 5px 10px; margin: 0; }
+.tacgrid .choice .t { font-size: 15px; line-height: 1.3; }
+.tacgrid .choice .d { max-width: 100%; font-size: 12px; font-weight: 800; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tacgrid .choice .dsep, .tacgrid .choice .dtail { display: none; }
+.tacgrid .choice .d::after { content: '▲'; font-size: .82em; margin-left: 1px; color: #1a9a40; }
+.tacgrid .choice.primary .d::after { color: #0f6a2a; }
+@media (prefers-color-scheme: dark) { .tacgrid .choice:not(.primary) .d::after { color: #6ee08a; } }
+.pmctrl > * + * { margin-top: 6px; }
+.pmcap { font-size: 12.5px; font-weight: 800; color: var(--sub); margin-top: 8px !important; }
+.pmprep { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 8px; margin-top: 2px !important; }
+.pmfield { min-width: 0; }
+.pmfield .lab { display: block; font-size: 11.5px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0 0 2px; }
+.pmfield select { width: 100%; min-height: 40px; }
+.pmbar .pmside { flex: 0 0 auto; width: auto; white-space: nowrap; padding-left: 16px; padding-right: 16px; }
+.pmbar .pmgo { flex: 1 1 0; }
+
+/* ---------- 目標 ---------- */
+.goalbox .btn.choice.goalrow { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 12px; }
+.goalbox.choices > * + * { margin-top: 6px; }
+.goalrow .t { flex: 1; min-width: 0; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.goalrow .d { flex: none; font-size: 12.5px; font-weight: 800; white-space: nowrap; }
+.goalrow .dsep { display: none; }
+.goalnow { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, .25); font-size: 13px; line-height: 1.45; }
+.goalnow b { display: block; color: #ffe08a; }
+
+/* ---------- ガイドの下のバー ---------- */
+.actionbar .gside { flex: 0 0 auto; width: auto; white-space: nowrap; padding-left: 16px; padding-right: 16px; }
+
+/* ---------- スカウト：獲得の操作を上へ、名前を折り返さない、比較は帯を1段に ---------- */
+.cand-head .rowline { flex-direction: column; align-items: flex-start; gap: 0; }
+.cand-head .big { white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.candact { display: flex; align-items: center; gap: 10px; margin: 4px 0; }
+.candact .candsp { flex: 1; min-width: 0; }
+.candact .candpick { flex: 0 0 auto; width: auto; min-height: 40px; padding: 8px 14px; white-space: nowrap; }
+.candact2 { margin: 4px 0; }
+.candact2 .btn { min-height: 40px; }
+.strip.cmpstrip { flex-wrap: nowrap; gap: 10px; }
+.strip.cmpstrip .sec { flex: none; white-space: nowrap; }
+.strip.cmpstrip .sub { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.strip.cmpstrip .tabs { flex: 0 0 230px; }
+table.cmp tr.cmppick > th, table.cmp tr.cmppick > td { position: sticky; bottom: -1px; z-index: 2; background: var(--card); box-shadow: 0 -2px 0 var(--edge-soft); padding-top: 4px; padding-bottom: 4px; }
+table.cmp tr.cmppick > th.cmplab { background: var(--navy-2); }
+table.cmp tr.cmppick .btn { min-height: 38px; white-space: nowrap; }
+
+/* ---------- 選手の行（一覧・編成）：押しやすい高さに ---------- */
+.squadlist table.squad tr.prow td { height: 36px; }
+table.squad.lineup tr.prow td { height: 40px; }
+
+@media (min-width: 760px) and (orientation: landscape) {
+  /* 試合：スコアボードは1段（校名・得点・時間・得点・校名）。右の欄は選択肢を高さいっぱいに配る */
+  .card.score { padding: 3px 14px; gap: 14px; }
+  .score .team { display: flex; align-items: center; justify-content: flex-end; gap: 14px; min-width: 0; }
+  .score .team:last-child { flex-direction: row-reverse; }
+  .score .team > div:first-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px; }
+  .score .pts { font-size: 30px; line-height: 1.35; min-width: 1.5em; }
+  .score .vs { flex: none; min-width: 70px; }
+  .matchctrl { display: flex; flex-direction: column; }
+  .matchctrl .scpane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .matchctrl .scchoices { flex: 1; min-height: 0; }
+  .matchctrl .scchoices .btn.choice { flex: 1 1 0; max-height: 62px; }
+  .pmctrl .tacgrid .btn.choice { min-height: 46px; }
+  .lay2 > .col { min-width: 0; }
+}
+/* 高さ 400px 以下（932×380・iPhone の横画面）：選択肢を一段詰める */
+@media (min-width: 760px) and (orientation: landscape) and (max-height: 400px) {
+  .scchoices { gap: 5px; }
+  .scchoices .btn.choice { min-height: 42px; padding-top: 3px; padding-bottom: 3px; }
+  .scchoices .choice .t { font-size: 14.5px; }
+  .goalbox .btn.choice.goalrow { min-height: 40px; padding-top: 4px; padding-bottom: 4px; }
+  .goalbox.choices > * + * { margin-top: 5px; }
+  /* 対戦確認は、案内のバーが出ている試合（最初の1試合）だけ一段詰める */
+  .pmctrl.hastut .tacgrid .btn.choice { min-height: 42px; padding-top: 3px; padding-bottom: 3px; }
+  .pmctrl.hastut .pmfield select { min-height: 36px; }
+  .pmctrl.hastut .pmcap { display: none; }
+  .pmctrl.hastut .pmprep { margin-top: 6px !important; }
+  /* 目標：案内のバーが左の列にある間は、右の一覧の ⭐おすすめ と同じ内容の行を畳む（ガラスの中身が切れないように） */
+  .tutcol ~ .heropanel .grec { display: none; }
+}
+/* @ux32:end */

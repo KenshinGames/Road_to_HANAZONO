@@ -113,7 +113,9 @@ async function driveMatch(x, until, max) {
   check('STORE_KEY は不変', JS.includes("STORE_KEY = 'hanazono.v02'"));
   const ux = (CSS.match(/\/\* @ux32:begin[\s\S]*?\/\* @ux32:end \*\//) || [''])[0];
   check('操作しやすさの節（@ux32）がある', ux.length > 3000, ux.length);
-  check('HUD のボタンの当たり判定を上下に広げる（::after）', /\.hudbtn::after \{[^}]*top: -9px; bottom: -9px;/.test(ux));
+  check('HUD のボタンの当たり判定を上下に広げる（::after）', /\.hudbtn::after \{[^}]*top: -10px; bottom: -10px;/.test(ux));
+  check('当たり判定の ::after は --tapx で出し入れできる（監査が見た目と分けて測る）', ux.includes(":root { --tapx: ''; }") && (ux.match(/content: var\(--tapx\)/g) || []).length === 3 && !/::after \{ content: '';/.test(ux) && SHOOT.includes("setProperty('--tapx', 'none')") && SHOOT.includes("'tap-scroll: '"));
+  check('HUD は横のはみ出しだけを切る（上下の当たり判定を切らない）', ux.includes('@supports (overflow: clip) { .hud { overflow-x: clip; overflow-y: visible; } }'));
   check('下のバーの決定ボタンは 44px 以上', ux.includes('.actionbar .btn { min-height: 44px; }'));
   check('通知は画面の上（下の決定ボタンに重ねない）', /\.toasts \{ bottom: auto; top: calc\(54px/.test(ux));
   check('試合の欄の切り替え（表示だけ）', ux.includes('.matchctrl.subopen .scpane { display: none; }') && ux.includes('.matchctrl .subbox { display: none;'));
@@ -178,6 +180,16 @@ async function driveMatch(x, until, max) {
     sceneBtns(y)[0].click(); await sleep(10);
     check('最初の采配を選んだら案内は終わり（done）', !y.q('.tutbar') && y.tut().done === 1, JSON.stringify(y.tut()));
     y.window.close();
+    /* 最初の試合を「結果のみ表示」で飛ばした場合：早送り中の描画は「見せた」に数えず、結果の画面で一度だけ出す */
+    const z = H(await makeDom({ 'hanazono.v02': juneLastWeek(base), 'hanazono.tut': '{"step":3,"done":0}' }, 4206));
+    await toPreMatch(z);
+    check('（前提）この試合は結果のみ表示にできる', !!z.btn('結果のみ表示（スキップ）'));
+    z.click('結果のみ表示（スキップ）'); await sleep(30);
+    check('結果のみ表示で飛ばしても、試合の案内は結果の画面で一度出る', !!z.q('.tutbar.tutsm') && z.q('.tutbar').textContent.includes('（5／5）') && z.tut().done === 0, JSON.stringify(z.tut()));
+    z.q('.actionbar.matchbar .btn').click(); await sleep(20);
+    if (z.btn('確認した')) { z.click('確認した'); await sleep(20); }
+    check('試合の外へ進んだら案内は終わり（次の試合でまた出ない）', !z.q('.tutbar') && z.tut().done === 1, JSON.stringify(z.tut()));
+    z.window.close();
   }
 
   console.log('[5] 対戦確認：戦術4つ・指名2つ・下のバー');
@@ -224,7 +236,7 @@ async function driveMatch(x, until, max) {
     check('見出しは「勝負どころ：」＋場面の名前', x.q('.sctitle .scpre').textContent === '勝負どころ：' && x.q('.sctitle').textContent.startsWith('勝負どころ：') && x.q('.sctitle .scname').textContent.length > 3);
     check('右の欄に形勢の箱・キーマンの行を重ねない（実況とカットインにある）', !x.q('.htbox') && !x.qa('.matchctrl .sub').some(e => e.textContent.startsWith('キーマン：')) && !!x.q('.cutin') && x.text().includes('（キーマン：'));
     const bar1 = x.qa('.actionbar.matchbar .btn');
-    check('場面の間：決定は「采配を選ぼう」（押せない）、選手交代は押せる', bar1[1].textContent === '采配を選ぼう' && bar1[1].disabled && bar1[0].textContent === '🔁 選手交代（残り5回）' && !bar1[0].disabled);
+    check('場面の間：決定は「采配を選ぼう」（押せない）、選手交代は押せる', bar1[1].textContent === '采配を選ぼう' && bar1[1].disabled && /^(🔁|🚑) 選手交代（残り5回）$/.test(bar1[0].textContent) /* 負傷者がいると 🚑 */ && !bar1[0].disabled, bar1.map(b => b.textContent + (b.disabled ? '[x]' : '')).join('|'));
     check('場面の間は「試合を進める」を出さない（駆動の取り違え防止）', !x.btn('試合を進める'));
     /* 選手交代の欄 */
     const r0 = x.rnd(), sv0 = x.save();
@@ -237,6 +249,10 @@ async function driveMatch(x, until, max) {
     x.click('選手交代（残り'); await sleep(8);
     x.q('.sublist .subbtn').click(); await sleep(8);
     check('下げる選手を選ぶと、入れる選手の一覧', x.qa('.sublist .subbtn').length > 0 && x.qa('.sublist .subbtn')[0].textContent.startsWith('IN ') && !!x.q('.matchctrl.subopen'));
+    check('「交代をやめる」は見出しの行（一覧の上。スクロールの先に置かない）', !!x.q('.subhead .subcancel') && x.q('.subhead .subcancel').textContent === '交代をやめる' && x.q('.subhead').nextElementSibling === x.q('.sublist') && x.q('.subhead .sub').textContent.endsWith('を下げる。入れる選手を選ぶ'));
+    x.click('交代をやめる'); await sleep(8);
+    check('交代をやめると、下げる選手の一覧に戻る（欄は開いたまま）', !!x.q('.matchctrl.subopen') && x.qa('.sublist .subbtn')[0].textContent.startsWith('OUT ') && !x.q('.subhead'));
+    x.q('.sublist .subbtn').click(); await sleep(8);
     x.q('.sublist .subbtn').click(); await sleep(8);
     check('交代が済んだら采配の欄に戻る（残り4回）', !x.q('.matchctrl.subopen') && !!x.btn('選手交代（残り4回）') && x.text().includes('🔁 交代：'));
     check('交代のあとも選択肢は3つ', sceneBtns(x).length === 3);

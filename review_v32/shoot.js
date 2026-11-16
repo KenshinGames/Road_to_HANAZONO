@@ -236,13 +236,16 @@ const audit = (page, W, H) => page.evaluate((dims) => {
   if (out.docSW > dims.W + 1 || out.docSH > dims.H + 1) out.issues.push('doc-overflow: doc is ' + out.docSW + 'x' + out.docSH + ' vs viewport ' + dims.W + 'x' + dims.H);
   const hud = document.querySelector('.hud');
   if (hud) out.hudH = Math.round(hud.getBoundingClientRect().height);
+  /* v0.32: 見た目の検査（はみ出し・重なり・見切れ）は、当たり判定を広げる透明な ::after を消した状態で測る
+   * （::after は scrollWidth/Height を膨らませるので、文字の見切れと区別がつかなくなる）。tap 検査の前に戻す */
+  document.documentElement.style.setProperty('--tapx', 'none'); void document.body.offsetHeight;
   function visibleRect(el) {
     let r = el.getBoundingClientRect();
     let v = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
     let n = el.parentElement;
     while (n && n !== document.body) {
       const cs = getComputedStyle(n);
-      if (/(auto|scroll|hidden)/.test(cs.overflowY) || /(auto|scroll|hidden)/.test(cs.overflowX)) {
+      if (/(auto|scroll|hidden|clip)/.test(cs.overflowY) || /(auto|scroll|hidden|clip)/.test(cs.overflowX)) {
         const b = n.getBoundingClientRect();
         v.left = Math.max(v.left, b.left); v.top = Math.max(v.top, b.top);
         v.right = Math.min(v.right, b.right); v.bottom = Math.min(v.bottom, b.bottom);
@@ -343,7 +346,14 @@ const audit = (page, W, H) => page.evaluate((dims) => {
     if (clipX) clipPush('clip-x: ' + label(el) + '「' + el.textContent.replace(/\s+/g, ' ').slice(0, 22) + '」 scrollW ' + el.scrollWidth + ' > clientW ' + el.clientWidth);
   });
   /* ===== v0.32: 操作の監査（隠れた操作・押せる範囲） ===== */
-  out.tap = { hidden: [], small: [], under44: [] };
+  out.tap = { hidden: [], small: [], under44: [], scroll: [] };
+  /* 当たり判定の ::after を戻す。戻したことで「スクロールしなかった箱がスクロールするようになった」ら不合格（tap-scroll） */
+  const sboxes = [...document.querySelectorAll('#app *')].filter(isScrollBox).map(e => ({ e, y: e.scrollHeight > e.clientHeight + 1, x: e.scrollWidth > e.clientWidth + 1 }));
+  document.documentElement.style.removeProperty('--tapx'); void document.body.offsetHeight;
+  sboxes.forEach(o => {
+    const y = o.e.scrollHeight > o.e.clientHeight + 1, x = o.e.scrollWidth > o.e.clientWidth + 1;
+    if ((y && !o.y) || (x && !o.x)) { const m = 'tap-scroll: ' + label(o.e) + ' 当たり判定の広がりでスクロールが生じた（' + o.e.scrollWidth + 'x' + o.e.scrollHeight + ' vs ' + o.e.clientWidth + 'x' + o.e.clientHeight + '）'; out.tap.scroll.push(m); out.issues.push(m); }
+  });
   const MUST = '.actionbar .btn, .tutbar button, .hud .hudbtn, .wcard, .wauto, .segbtn, .tabbtn, .choices .btn.choice, .instcard select, .pmctrl select';
   const CORE = '.actionbar .btn, .hud .hudbtn, .tutbar .hudbtn, .wcard, .wauto, .scchoices .btn.choice, .tacgrid .btn.choice';
   const tlabel = (el) => label(el) + '「' + (el.textContent || el.title || '').replace(/\s+/g, ' ').trim().slice(0, 14) + '」';
@@ -357,7 +367,7 @@ const audit = (page, W, H) => page.evaluate((dims) => {
     const vw = Math.max(0, Math.min(v.right, dims.W) - Math.max(v.left, 0)), vh = Math.max(0, Math.min(v.bottom, dims.H) - Math.max(v.top, 0));
     const frac = (vw * vh) / (r.width * r.height);
     if (el.matches(MUST) && frac < 0.98) { const m = 'tap-hidden: ' + tlabel(el) + ' 見えている面積 ' + Math.round(frac * 100) + '%'; out.tap.hidden.push(m); out.issues.push(m); return; }
-    if (frac < 0.5) return; /* 一覧の中のスクロールの先（リスト類は可） */
+    if (frac < 0.98) return; /* 一覧の中でスクロールの端にかかっている行・ボタン（スクロールで届く。切れた状態の高さは測らない） */
     const cx = Math.round((Math.max(v.left, 0) + Math.min(v.right, dims.W)) / 2), cy = Math.round((Math.max(v.top, 0) + Math.min(v.bottom, dims.H)) / 2);
     if (!hitIs(el, cx, cy)) return; /* 中心が別の要素の下（スクロール枠の端など）は測らない */
     let up = 0, dn = 0, lf = 0, rt = 0;
@@ -705,18 +715,19 @@ const clickCard = async (page, sub) => {
   Object.values(report.screens).forEach(s => (s.clip || []).forEach(c => { const k = c.split(':')[0]; clipKinds[k] = (clipKinds[k] || 0) + 1; }));
   report.facts.clipKinds = clipKinds;
   /* v0.32: 操作の監査の集計。under44＝押せる範囲の高さが 44px に届かないもの（種類ごとの最小値と出てくる画面の数） */
-  const tapHidden = [], tapSmall = [], u44 = {};
+  const tapHidden = [], tapSmall = [], tapScroll = [], u44 = {};
   Object.entries(report.screens).forEach(([n, sc]) => {
     ((sc.tap || {}).hidden || []).forEach(m => tapHidden.push(n + ' ' + m));
     ((sc.tap || {}).small || []).forEach(m => tapSmall.push(n + ' ' + m));
+    ((sc.tap || {}).scroll || []).forEach(m => tapScroll.push(n + ' ' + m));
     ((sc.tap || {}).under44 || []).forEach(x => { const e = u44[x.c] = u44[x.c] || { min: 99, screens: {} }; e.min = Math.min(e.min, x.h); e.screens[n] = 1; });
   });
-  report.facts.tapHidden = tapHidden; report.facts.tapSmall = tapSmall;
+  report.facts.tapHidden = tapHidden; report.facts.tapSmall = tapSmall; report.facts.tapScroll = tapScroll;
   report.facts.tapUnder44 = Object.keys(u44).sort().map(c => c + ' 最小' + u44[c].min + 'px（' + Object.keys(u44[c].screens).length + '画面）');
   fs.writeFileSync(path.join(__dirname, IOS ? 'report_ios.json' : (DARK ? 'report_dark.json' : 'report.json')), JSON.stringify(report, null, 2));
   const bad = Object.entries(report.screens).filter(([, s]) => s.issues.length);
-  console.log('errors:', report.errors.length, '| screens:', Object.keys(report.screens).length, '| clip kinds:', JSON.stringify(clipKinds), '| tap hidden:', tapHidden.length, 'small:', tapSmall.length, '| screens with issues:', bad.map(([n]) => n).join(', ') || 'none');
-  tapHidden.concat(tapSmall).slice(0, 60).forEach(m => console.log('  ' + m));
+  console.log('errors:', report.errors.length, '| screens:', Object.keys(report.screens).length, '| clip kinds:', JSON.stringify(clipKinds), '| tap hidden:', tapHidden.length, 'small:', tapSmall.length, 'scroll:', tapScroll.length, '| screens with issues:', bad.map(([n]) => n).join(', ') || 'none');
+  tapHidden.concat(tapSmall, tapScroll).slice(0, 60).forEach(m => console.log('  ' + m));
   /* v0.25: 設計原則の集計（入れ子カード／長文段落／クレジット） */
   Object.entries(report.screens).forEach(([n, s]) => {
     if (!s.design) return;

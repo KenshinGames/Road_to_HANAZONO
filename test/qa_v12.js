@@ -80,7 +80,8 @@ const FORM_COLORS = { '-2': '#9d5bd6', '-1': '#56b4e7', '0': '#f2c531', '1': '#e
   const commBlock = html.split('/* COMM-BEGIN */')[1].split('/* COMM-END */')[0];
   const patCount = (commBlock.match(/function \(c\)/g) || []).length;
   check('static: commentary patterns >= 36 (was ~10 fixed lines)', patCount >= 36, 'count=' + patCount);
-  ['弱点ヒント', '前半の得点内訳', 'showHtSummary', 'scoutHints', '.formface', '.htbox', 'data-form'].forEach(s => {
+  /* v0.32: '.htbox' を外した（ハーフタイムの形勢の箱は右の欄に重ねず、左の実況に3行で残す形にした。下の ht-b も実況を見る） */
+  ['弱点ヒント', '前半の得点内訳', 'showHtSummary', 'scoutHints', '.formface', 'data-form'].forEach(s => {
     check('static: play.html contains ' + s, html.includes(s));
   });
   check('static: old form chip is gone', !html.includes('formchip'));
@@ -88,7 +89,7 @@ const FORM_COLORS = { '-2': '#9d5bd6', '-1': '#56b4e7', '0': '#f2c531', '1': '#e
   /* ---- 1. タイトル：バージョン ---- */
   {
     const H = await makeDom(null, 111);
-    check('title: shows v1.6 (v0.25 でバージョン表記を追随)', H.text().includes('v1.6')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
+    check('title: shows v1.7 (v0.25 でバージョン表記を追随)', H.text().includes('v1.7')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */ /* v0.32: バージョン表記を v1.7 に追随 */
     H.window.close();
   }
 
@@ -157,9 +158,15 @@ const FORM_COLORS = { '-2': '#9d5bd6', '-1': '#56b4e7', '0': '#f2c531', '1': '#e
     const H = await makeDom({ 'hanazono.v02': JSON.stringify(st) }, 502);
     await driveToPreMatch(H);
     H.click('キックオフ'); await sleep(15);
+    /* v0.32: 形勢サマリーは采配パネルの箱（.htbox）ではなく、ハーフタイムの場面で実況に出る3行を見る。
+     * 右の欄は選択肢を全部1画面に出すため、同じ内容を重ねて出さない（実況に同じ3行がある）。検証の中身（3行・出し分け・重複なし）は同じ */
     let ht = null, guard = 0;
     while (guard++ < 250) {
-      ht = H.document.querySelector('.htbox');
+      if ((H.document.querySelector('.sctitle') || {}).textContent && H.document.querySelector('.sctitle').textContent.startsWith('ハーフタイム：')) {
+        const ls = [...H.document.querySelectorAll('.log > div')];
+        const i0 = ls.findIndex(e => e.textContent.startsWith('⏸ ハーフタイム：'));
+        if (i0 >= 0) ht = { children: ls.slice(i0, i0 + 3), textContent: ls.slice(i0, i0 + 3).map(e => e.textContent).join('') };
+      }
       if (ht) break;
       const t = H.text();
       const choices = [...H.document.querySelectorAll('.choices .btn.choice')];
@@ -167,7 +174,7 @@ const FORM_COLORS = { '-2': '#9d5bd6', '-1': '#56b4e7', '0': '#f2c531', '1': '#e
       if (H.btn('試合を進める')) { H.click('試合を進める'); await sleep(2); continue; }
       break;
     }
-    check('ht-b: halftime panel summary shown at the halftime scene', !!ht);
+    check('ht-b: halftime summary shown (in the commentary) at the halftime scene', !!ht && !H.document.querySelector('.htbox'));
     if (ht) {
       check('ht-b: panel summary has 3 lines', ht.children.length === 3, 'lines=' + ht.children.length);
       const pts = [...H.document.querySelectorAll('.score .pts')].map(e => parseInt(e.textContent, 10));

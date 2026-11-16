@@ -1,4 +1,9 @@
-/* Road to HANAZONO v1.6（Web版） — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+/* Road to HANAZONO v1.7（Web版） — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+ * v1.7（v0.32）: 操作しやすさの見直し（作者「ゲームを全体的に見直して、直すべきところを指摘して。より操作しやすいゲームにして」）。
+ *        iPhone 15 Pro の実寸で1シーズンをなぞって調べ、①判断に使う操作をスクロールの先に置かない（試合の選択肢・対戦確認の戦術と指名・
+ *        目標・月頭指示・遊び方の戻る・スカウトの獲得ボタン）②進む／決定は下のバーに固定（試合も）③押せる範囲を 44px 級に
+ *        ④通知は画面の上から2件まで ⑤案内（チュートリアル）は進みに追いつく ⑥切り替わった直後の連打を受けない、を入れた。
+ *        表示と操作の配置だけで、ゲームの数値・判定・乱数消費・セーブ形式・localStorage キーは不変（review_v32/notes.md）
  * v1.6（v0.31）: 場面の背景を描き込んだ絵に（作者「背景画像をもっとちゃんと作りこんで！」）。簡単な図形の SVG で描いていた
  *        4月（桜の校庭）・6月（梅雨の校庭）・10〜11月（秋の夕方の校庭）と、試合月の週の画面・対戦確認（県予選＝ナイターの競技場、
  *        1月＝花園）を、tools/paint_scenes.py で描いた 1600×800 の絵（v02/img/scene-*.jpg）に置き換えた。割り当ては
@@ -712,7 +717,7 @@
     /* 最後の案内（試合）を一度見せたあと、試合の外の画面へ進んだら終わりにする（次の試合でまた出続けない） */
     if (tutStep === TUT_STEPS.length - 1 && tutShown === tutStep && st.screen !== screen) { tutDone = true; tutSave(); return null; }
     if (!st || st.screen !== screen) return null;
-    tutShown = tutStep;
+    if (!sfxSuppressed) tutShown = tutStep; /* 「結果のみ表示」の早送り中の描画は、見せたことに数えない */
     var bar = h('div', { class: 'tutbar' });
     bar.appendChild(h('span', { class: 'tuttxt' }, [st.text + '（' + (tutStep + 1) + '／' + TUT_STEPS.length + '）']));
     bar.appendChild(h('button', { class: 'hudbtn tutbtn', onclick: function () { tutStep++; if (tutStep >= TUT_STEPS.length) tutDone = true; tutSave(); render(); } }, ['わかった ▶']));
@@ -723,6 +728,8 @@
    * 週の案内は最初の1週を選んだら、試合の案内は最初の采配を選んだら終わり */
   function tutAdvanceFrom(scr) {
     if (tutDone || tutStep >= TUT_STEPS.length || TUT_STEPS[tutStep].screen !== scr) return;
+    /* 一度も見せていない案内は飛ばさない（最初の試合を「結果のみ表示」で飛ばしても、試合の案内は結果の画面で一度出る） */
+    if (tutShown !== tutStep || sfxSuppressed) return;
     tutStep++; if (tutStep >= TUT_STEPS.length) tutDone = true; tutSave();
   }
   /* ガイド／設定からの再表示：戻り先の画面に対応するステップから始める（無ければ最初から） */
@@ -3681,7 +3688,7 @@ function finishRecruit() {
     /* v1.0: クレジット（制作表記）。詳細はガイドのクレジット節にも置く */
     kids.push(h('p', { class: 'sub', style: 'text-align:center;margin-top:2px' }, ['制作：Kenshin Takada ／ Muse との共同開発']));
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v1.6'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v1.7'])]),
       h('div', { class: 'card center title-card' }, kids)
     ]);
     mount(h('div', { class: 'stack shell' }, [inner]));
@@ -3742,7 +3749,7 @@ function finishRecruit() {
      ['開発', 'Muse（AI）との共同開発'],
      ['シリーズ', '100アプリチャレンジ #47'],
      ['フォント', 'M PLUS Rounded 1c ／ Dela Gothic One（SIL Open Font License 1.1）'], /* v0.29: 埋め込みフォントの表記 */
-     ['バージョン', 'v1.6（Web版）']].forEach(function (r) {
+     ['バージョン', 'v1.7（Web版）']].forEach(function (r) {
       R.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
     });
     var kids = [];
@@ -3773,7 +3780,7 @@ function finishRecruit() {
        * ガイド「① 年初の目標」へ移し、ここは判断に直結する数値だけを残す */
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['現在の部の格']), h('span', null, [gradeOf().n])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['昨季の結果']), h('span', null, [G.history.length ? G.history[G.history.length - 1].result : '―（初年度）'])]),
-      h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['おすすめの目標']), h('span', null, [rec.n])]),
+      h('div', { class: 'rowline grec' }, [h('span', { class: 'sub' }, ['おすすめの目標']), h('span', null, [rec.n])]),
       /* v0.32: 目標の中身（何を達成すればよいか）は、選んでいる目標の分だけここに出す。右の一覧は名前とボーナスの1行に詰めた */
       h('div', { class: 'goalnow' }, [h('b', null, [cur.n]), h('span', null, [cur.d])])
     ]);
@@ -4498,7 +4505,10 @@ function finishRecruit() {
       box.appendChild(list);
     } else {
       var outP = G.players.filter(function (p) { return p.id === subOutId; })[0];
-      box.appendChild(h('div', { class: 'sub' }, [(outP ? outP.name : '―') + ' を下げる。入れる選手を選ぶ']));
+      /* v0.32: 「交代をやめる」は見出しの行の右に置く（v1.6 までは控えの一覧のいちばん下で、スクロールの先だった） */
+      box.appendChild(h('div', { class: 'subhead' }, [
+        h('div', { class: 'sub' }, [(outP ? outP.name : '―') + ' を下げる。入れる選手を選ぶ']),
+        h('button', { class: 'btn small subcancel', onclick: function () { subOutId = null; render(); } }, ['交代をやめる'])]));
       var list2 = h('div', { class: 'sublist' });
       bench.forEach(function (p) {
         var inKids = ['IN ' + POSITIONS[p.posIdx].p + ' ' + p.name + '（総合 ', rankValEl(Math.round(overall(p)), 'sm'), '・疲労' + p.fatigue + '・', formFace(p), '）'];
@@ -4508,7 +4518,6 @@ function finishRecruit() {
         })(p.id) }, inKids));
       });
       box.appendChild(list2);
-      box.appendChild(h('button', { class: 'btn small', onclick: function () { subOutId = null; render(); } }, ['交代をやめる']));
     }
     return box;
   }
