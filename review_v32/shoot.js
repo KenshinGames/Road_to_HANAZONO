@@ -527,6 +527,10 @@ const clickCard = async (page, sub) => {
   /* 05/06/07/08 weekly */
   const p2 = await newPage(browser, weeklySave(null), MW, MH);
   await snap(p2, '05_weekly_w1');
+  /* v0.32: おまかせの確認（1回目で同じ場所が「やめる／おまかせで月末まで進める」に変わる） */
+  await clickText(p2, 'おまかせ（月末まで自動）');
+  report.facts['autoAsk' + tag] = await p2.evaluate(() => [...document.querySelectorAll('.wautoask .btn')].map(b => b.textContent).join('|'));
+  await snap(p2, '05b_weekly_autoask');
   await p2.close();
   /* v0.24: チュートリアルバー表示中の週次（.hastut の最小高さ緩和を両寸法で監査する） */
   const p2t = await newPage(browser, weeklySave(null), MW, MH, { 'hanazono.tut': '{"step":2,"done":0}' });

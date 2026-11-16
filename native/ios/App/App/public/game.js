@@ -377,6 +377,7 @@
   var scShown = { p: null, at: 0 }; /* 試合の場面（M.pending）が初めて描かれた時刻 */
   var weekAt = 0;                   /* 週の活動を最後に選んだ時刻 */
   function tapTooSoon(ev, since, ms) { return !!(ev && ev.isTrusted && since && (Date.now() - since) < ms); }
+  var autoAsk = null;     /* v0.32: おまかせの確認中なら { y, m, w, at }（どの週で聞いたか・出した時刻）。表示だけの状態。セーブ・乱数に関係しない */
   var subOpen = false;    /* v0.32: 試合の停止点で、右の欄を「選手交代」に切り替えているか（表示だけの状態。セーブ・乱数に関係しない） */
   var selKickerId = null; /* v0.16: 対戦確認で指名した PG キッカー（選手ID）。null=おまかせ。startMatch で消費される */
   var selMarkId = null;   /* v0.16: 対戦確認で指名したエースのマークマン（選手ID）。null=なし。同上 */
@@ -3585,7 +3586,7 @@ function finishRecruit() {
     /* v0.21: 実効画面キーが変わった時だけ入場演出を予約する */
     var fxKey = !G ? 'title' : screen;
     FX.enterPending = !FX.off && FX.lastKey !== fxKey;
-    if (FX.lastKey !== fxKey) screenAt = Date.now(); /* v0.32: 切り替わった直後の連打よけ（h のボタン共通の処理が使う） */
+    if (FX.lastKey !== fxKey) { screenAt = Date.now(); autoAsk = null; } /* v0.32: 切り替わった直後の連打よけ（h のボタン共通の処理が使う）。画面を離れたらおまかせの確認も取り消す */
     FX.lastKey = fxKey;
     if (screen === 'guide') return guideScreen();
     if (screen === 'settings') return settingsScreen(); /* v0.24: 設定画面（ゲーム未開始でも開ける） */
@@ -3685,8 +3686,8 @@ function finishRecruit() {
     kids.push(h('div', { class: 'hand', style: 'margin-top:2px;justify-content:center' }, [guideBtn('btn'), soundBtn(), bgmBtn(),
       h('button', { class: 'btn', onclick: function () { openSettings(); } }, ['⚙ 設定'])]));
     kids.push(h('div', { class: 'hand', style: 'margin-top:2px;justify-content:center;align-items:center' }, [h('span', { class: 'sub' }, ['BGM音量'])].concat(bgmVolBtns())));
-    /* v1.0: クレジット（制作表記）。詳細はガイドのクレジット節にも置く */
-    kids.push(h('p', { class: 'sub', style: 'text-align:center;margin-top:2px' }, ['制作：Kenshin Takada ／ Muse との共同開発']));
+    /* v1.0 ではここに制作表記の1行（制作：Kenshin Takada ／ Muse との共同開発）を置いていた。
+     * v0.32: 遊び方のクレジット節に任せ、空いた高さでボタンを 44px にした（作者の決定） */
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
       h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v1.7'])]),
       h('div', { class: 'card center title-card' }, kids)
@@ -4040,8 +4041,20 @@ function finishRecruit() {
       b.log.forEach(function (ln) { log.appendChild(h('div', null, [ln])); });
       rightKids.push(log);
     }
-    /* おまかせは操作なので右の列の下に（v0.29 までは最下部のステータスバーの右端）。文言は従来どおり */
-    rightKids.push(h('button', { class: 'btn primary wauto', onclick: function () { autoMonth(); } }, ['⏩ おまかせ（月末まで自動）']));
+    /* おまかせは操作なので右の列の下に（v0.29 までは最下部のステータスバーの右端）。文言は従来どおり。
+     * v0.32: 1タップで月末まで進み取り消せないため、確認を1つ挟む（作者の決定）。1回目で同じ場所が「やめる／おまかせで月末まで進める」に
+     * 変わり、2回目で進む。確認のボタンは出た直後 0.4 秒は実際のタップを受けない（2度押しで確認まで通らないように）。
+     * 週のカードを選ぶ・画面を離れると確認は取り消し。進め方（autoMonth）と乱数は変えない */
+    var asking = !!(autoAsk && autoAsk.y === G.year && autoAsk.m === G.monthIdx && autoAsk.w === b.week);
+    if (!asking) autoAsk = null;
+    if (asking) {
+      rightKids.push(h('div', { class: 'wautoask' }, [
+        h('button', { class: 'btn wauto wano', onclick: function () { autoAsk = null; render(); } }, ['やめる']),
+        h('button', { class: 'btn primary wauto wago', onclick: function (ev) { if (tapTooSoon(ev, autoAsk && autoAsk.at, 400)) return; autoAsk = null; autoMonth(); } }, ['⏩ おまかせで月末まで進める'])
+      ]));
+    } else {
+      rightKids.push(h('button', { class: 'btn primary wauto', onclick: function () { autoAsk = { y: G.year, m: G.monthIdx, w: b.week, at: Date.now() }; render(); } }, ['⏩ おまかせ（月末まで自動）']));
+    }
     var cards = h('div', { class: 'wcards' });
     var recKey = autoWeekKey();
     WEEK_ACTS.forEach(function (a) {
