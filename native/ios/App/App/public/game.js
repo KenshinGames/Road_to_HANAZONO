@@ -1,4 +1,11 @@
-/* Road to HANAZONO v1.6（Web版） — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+/* Road to HANAZONO v1.7（Web版） — 横画面 / 月＋週次プランニング進行 / 世代交代キャリアループ
+ * v1.7（v0.32）: 操作しやすさの見直し（作者「ゲームを全体的に見直して、直すべきところを指摘して。より操作しやすいゲームにして」）。
+ *        iPhone 15 Pro の実寸で1シーズンをなぞって調べ、①判断に使う操作をスクロールの先に置かない（試合の選択肢・対戦確認の戦術と指名・
+ *        目標・月頭指示・遊び方の戻る・スカウトの獲得ボタン）②進む／決定は下のバーに固定（試合も）③押せる範囲を 44px 級に
+ *        ④通知は画面の上から2件まで ⑤案内（チュートリアル）は進みに追いつく ⑥切り替わった直後の連打を受けない、を入れた。
+ *        作者の決定で、おまかせは確認を1つ挟む（1回目で「やめる／おまかせで月末まで進める」、2回目で進む）・タイトルの制作表記は
+ *        遊び方のクレジットに任せてボタンを 44px に。試合の自動進行は入れない（作者「まだしない」）。
+ *        表示と操作の配置だけで、ゲームの数値・判定・乱数消費・セーブ形式・localStorage キーは不変（review_v32/notes.md）
  * v1.6（v0.31）: 場面の背景を描き込んだ絵に（作者「背景画像をもっとちゃんと作りこんで！」）。簡単な図形の SVG で描いていた
  *        4月（桜の校庭）・6月（梅雨の校庭）・10〜11月（秋の夕方の校庭）と、試合月の週の画面・対戦確認（県予選＝ナイターの競技場、
  *        1月＝花園）を、tools/paint_scenes.py で描いた 1600×800 の絵（v02/img/scene-*.jpg）に置き換えた。割り当ては
@@ -366,6 +373,14 @@
   var screen = 'title';
   var selPlayerId = null;
   var subOutId = null;    /* v0.8: 交代UIで選択中の「下げる選手」 */
+  /* v0.32: 連打の事故を防ぐ小さな待ち。画面が切り替わった直後・場面が出た直後・週が進んだ直後の「実際のタップ」だけを
+   * 短い間（0.25〜0.4秒）受けない。プログラムからの click()（QA・ソーク・監査）は isTrusted が偽なので対象外 */
+  var screenAt = 0;                 /* 実効画面が切り替わった時刻（render が更新） */
+  var scShown = { p: null, at: 0 }; /* 試合の場面（M.pending）が初めて描かれた時刻 */
+  var weekAt = 0;                   /* 週の活動を最後に選んだ時刻 */
+  function tapTooSoon(ev, since, ms) { return !!(ev && ev.isTrusted && since && (Date.now() - since) < ms); }
+  var autoAsk = null;     /* v0.32: おまかせの確認中なら { y, m, w, at }（どの週で聞いたか・出した時刻）。表示だけの状態。セーブ・乱数に関係しない */
+  var subOpen = false;    /* v0.32: 試合の停止点で、右の欄を「選手交代」に切り替えているか（表示だけの状態。セーブ・乱数に関係しない） */
   var selKickerId = null; /* v0.16: 対戦確認で指名した PG キッカー（選手ID）。null=おまかせ。startMatch で消費される */
   var selMarkId = null;   /* v0.16: 対戦確認で指名したエースのマークマン（選手ID）。null=なし。同上 */
   var lineupSlot = null;
@@ -683,6 +698,7 @@
     { screen: 'match', text: '🎓 左の実況で試合が進み、勝負どころでは右の選択肢で采配を選ぶ。健闘を祈る！' }
   ];
   var tutStep = 0, tutDone = true; /* 安全側の初期値（起動時の tutInit が実際の状態を決める） */
+  var tutShown = -1; /* v0.32: この起動中に案内を見せた最後の番（最後の案内の終わりの判定に使う。保存しない） */
   function tutSave() { try { localStorage.setItem(TUT_KEY, JSON.stringify({ step: tutStep, done: tutDone ? 1 : 0 })); } catch (e) {} }
   function tutInit(hadSave) {
     try {
@@ -694,13 +710,30 @@
   }
   function tutBar() {
     if (tutDone || tutStep >= TUT_STEPS.length) return null;
+    /* v0.32: 案内は遊ぶ人の進みに追いつく。v1.6 までは「わかった」を押さずに下の決定ボタンで先へ進むと、
+     * 案内が前の画面の番のまま止まり、その後の画面（月頭指示・週・試合）で二度と出なかった。
+     * いまの画面が後ろの番にあれば、そこまで進める（前の番には戻さない） */
+    for (var ti = tutStep + 1; ti < TUT_STEPS.length; ti++) {
+      if (TUT_STEPS[ti].screen === screen && TUT_STEPS[tutStep].screen !== screen) { tutStep = ti; tutSave(); break; }
+    }
     var st = TUT_STEPS[tutStep];
+    /* 最後の案内（試合）を一度見せたあと、試合の外の画面へ進んだら終わりにする（次の試合でまた出続けない） */
+    if (tutStep === TUT_STEPS.length - 1 && tutShown === tutStep && st.screen !== screen) { tutDone = true; tutSave(); return null; }
     if (!st || st.screen !== screen) return null;
+    if (!sfxSuppressed) tutShown = tutStep; /* 「結果のみ表示」の早送り中の描画は、見せたことに数えない */
     var bar = h('div', { class: 'tutbar' });
     bar.appendChild(h('span', { class: 'tuttxt' }, [st.text + '（' + (tutStep + 1) + '／' + TUT_STEPS.length + '）']));
     bar.appendChild(h('button', { class: 'hudbtn tutbtn', onclick: function () { tutStep++; if (tutStep >= TUT_STEPS.length) tutDone = true; tutSave(); render(); } }, ['わかった ▶']));
     bar.appendChild(h('button', { class: 'hudbtn tutbtn', onclick: function () { tutDone = true; tutSave(); render(); } }, ['終了する']));
     return bar;
+  }
+  /* v0.32: その画面の操作を一度やったら、案内は次の番へ進める（「わかった」を押さなくても居座らない）。
+   * 週の案内は最初の1週を選んだら、試合の案内は最初の采配を選んだら終わり */
+  function tutAdvanceFrom(scr) {
+    if (tutDone || tutStep >= TUT_STEPS.length || TUT_STEPS[tutStep].screen !== scr) return;
+    /* 一度も見せていない案内は飛ばさない（最初の試合を「結果のみ表示」で飛ばしても、試合の案内は結果の画面で一度出る） */
+    if (tutShown !== tutStep || sfxSuppressed) return;
+    tutStep++; if (tutStep >= TUT_STEPS.length) tutDone = true; tutSave();
   }
   /* ガイド／設定からの再表示：戻り先の画面に対応するステップから始める（無ければ最初から） */
   function tutReplay(fromScreen) {
@@ -1011,17 +1044,25 @@
   }
 
   /* ===== v0.10: トースト通知（実績達成時） ===== */
-  function showToast(msg) {
+  /* v0.32: 通知は一度に2件まで。残りは前の通知が消えてから順に出す（シーズンの締めなどで実績が4〜5件まとめて出ると、
+   * 画面の真ん中を数秒ふさいでいた）。出す場所は画面の上（CSS）。下の決定ボタンには重ねない */
+  var toastQ = [], toastLive = 0;
+  function showToast(msg) { toastQ.push(msg); toastPump(); }
+  function toastPump() {
     try {
-      var layer = document.getElementById('toasts');
-      if (!layer) { layer = document.createElement('div'); layer.id = 'toasts'; layer.className = 'toasts'; document.body.appendChild(layer); }
-      var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
-      layer.appendChild(t);
-      setTimeout(function () { try { t.classList.add('show'); } catch (e) {} }, 10);
-      setTimeout(function () {
-        try { t.classList.remove('show'); } catch (e) {}
-        setTimeout(function () { try { if (t.parentNode) t.parentNode.removeChild(t); } catch (e) {} }, 450);
-      }, 3400);
+      while (toastLive < 2 && toastQ.length) {
+        var layer = document.getElementById('toasts');
+        if (!layer) { layer = document.createElement('div'); layer.id = 'toasts'; layer.className = 'toasts'; document.body.appendChild(layer); }
+        (function (t) {
+          t.className = 'toast'; t.textContent = toastQ.shift();
+          layer.appendChild(t); toastLive++;
+          setTimeout(function () { try { t.classList.add('show'); } catch (e) {} }, 10);
+          setTimeout(function () {
+            try { t.classList.remove('show'); } catch (e) {}
+            setTimeout(function () { try { if (t.parentNode) t.parentNode.removeChild(t); } catch (e) {} toastLive = Math.max(0, toastLive - 1); toastPump(); }, 450);
+          }, 3400);
+        })(document.createElement('div'));
+      }
     } catch (e) {}
   }
 
@@ -2263,9 +2304,10 @@ function htPlanScene() {
   }
   return {
     kind: 'httac', key: null, title: '後半の戦術変更：残りの攻め方を選ぶ',
-    choices: [PC('fw', HT_PLANS.fw.n, 'モール主体の攻めが、この後の勝負どころで効きやすくなる'),
-      PC('bk', HT_PLANS.bk.n, 'バックス展開の攻めが、この後の勝負どころで効きやすくなる'),
-      PC('kick', HT_PLANS.kick.n, 'キックを使う場面が、この後効きやすくなる'),
+    /* v0.32: 決め手の文は選択肢の1行に収まる長さにした（表示の文だけ。判定には使わない） */
+    choices: [PC('fw', HT_PLANS.fw.n, 'この後、モールの勝負どころが効きやすい'),
+      PC('bk', HT_PLANS.bk.n, 'この後、バックス展開の勝負どころが効きやすい'),
+      PC('kick', HT_PLANS.kick.n, 'この後、キックを使う勝負どころが効きやすい'),
       PC(null, '変更しない', '前半の形のまま戦う')]
   };
 }
@@ -2319,7 +2361,7 @@ function startMatch(oppIdx) {
   var opp = effOpp(oppIdx);
   var plan = (STOP_PLANS[oppIdx] || STOP_PLANS[0]).slice();
   var st = starters();
-  subOutId = null;
+  subOutId = null; subOpen = false;
   M = {
     opp: opp, oppIdx: oppIdx, power: oppPower(oppIdx), block: 0, my: 0, op: 0,
     log: [], phase: 'play', pending: null, done: false, result: null,
@@ -2803,12 +2845,12 @@ function chooseScene(idx) {
   if (sc.kind === 'halftime' && !M.htOffered) {
     M.htOffered = true;
     M.pending = htPlanScene();
-    M.phase = 'scene'; subOutId = null;
+    M.phase = 'scene'; subOutId = null; subOpen = false;
     M.log.push('⚑ ' + M.pending.title);
     render();
     return;
   }
-  M.pending = null; M.phase = 'play'; subOutId = null; M.block++;
+  M.pending = null; M.phase = 'play'; subOutId = null; subOpen = false; M.block++;
   maybeSceneOrEnd();
   render();
 }
@@ -2969,7 +3011,7 @@ function doSub(outId, inId) {
   M.log.push('🔁 交代：' + outP.name + '（' + POSITIONS[outP.posIdx].p + '）OUT → ' + inP.name + '（' + POSITIONS[inP.posIdx].p + '）IN' +
     (free ? '（負傷交代のため回数に数えない）' : '（交代 ' + M.subs + '/' + M.subsMax + '）'));
   gainTrust(inP, 1);
-  subOutId = null;
+  subOutId = null; subOpen = false; /* v0.32: 交代が済んだら右の欄を采配に戻す（表示の状態だけ） */
   if (M.phase === 'scene' && M.pending && M.pending.key && M.pending.key.id === outId) {
     var kind = M.pending.kind, side = M.pending.side, guard = 0;
     do { M.pending = makeScene(kind); guard++; } while (kind === 'goal' && M.pending.side !== side && guard < 4);
@@ -3524,7 +3566,9 @@ function finishRecruit() {
       if (k === 'class') el.className = attrs[k];
       else if (k === 'onclick') {
         /* v0.10: ボタンはタップ音を一元的に鳴らす（AudioContext が無い環境では無音で素通り） */
-        if (tag === 'button') { var _fn = attrs[k]; el.onclick = function (ev) { sfx('tap'); _fn(ev); }; }
+        /* v0.32: 画面が切り替わった直後（0.28秒）の実際のタップは受けない。下のバーの決定ボタンは画面をまたいで同じ位置に
+         * 出るので、前の画面の連打で次の画面の「確定」まで押してしまうのを防ぐ */
+        if (tag === 'button') { var _fn = attrs[k]; el.onclick = function (ev) { if (tapTooSoon(ev, screenAt, 280)) return; sfx('tap'); _fn(ev); }; }
         else el.onclick = attrs[k];
       }
       else el.setAttribute(k, attrs[k]);
@@ -3544,6 +3588,7 @@ function finishRecruit() {
     /* v0.21: 実効画面キーが変わった時だけ入場演出を予約する */
     var fxKey = !G ? 'title' : screen;
     FX.enterPending = !FX.off && FX.lastKey !== fxKey;
+    if (FX.lastKey !== fxKey) { screenAt = Date.now(); autoAsk = null; } /* v0.32: 切り替わった直後の連打よけ（h のボタン共通の処理が使う）。画面を離れたらおまかせの確認も取り消す */
     FX.lastKey = fxKey;
     if (screen === 'guide') return guideScreen();
     if (screen === 'settings') return settingsScreen(); /* v0.24: 設定画面（ゲーム未開始でも開ける） */
@@ -3643,10 +3688,10 @@ function finishRecruit() {
     kids.push(h('div', { class: 'hand', style: 'margin-top:2px;justify-content:center' }, [guideBtn('btn'), soundBtn(), bgmBtn(),
       h('button', { class: 'btn', onclick: function () { openSettings(); } }, ['⚙ 設定'])]));
     kids.push(h('div', { class: 'hand', style: 'margin-top:2px;justify-content:center;align-items:center' }, [h('span', { class: 'sub' }, ['BGM音量'])].concat(bgmVolBtns())));
-    /* v1.0: クレジット（制作表記）。詳細はガイドのクレジット節にも置く */
-    kids.push(h('p', { class: 'sub', style: 'text-align:center;margin-top:2px' }, ['制作：Kenshin Takada ／ Muse との共同開発']));
+    /* v1.0 ではここに制作表記の1行（制作：Kenshin Takada ／ Muse との共同開発）を置いていた。
+     * v0.32: 遊び方のクレジット節に任せ、空いた高さでボタンを 44px にした（作者の決定） */
     var inner = h('div', { class: 'titlewrap titlephoto' }, [
-      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v1.6'])]),
+      h('div', { class: 'hero' }, [h('h1', null, ['🏉 Road to HANAZONO']), h('p', null, ['高校ラグビー育成シミュレーション v1.7'])]),
       h('div', { class: 'card center title-card' }, kids)
     ]);
     mount(h('div', { class: 'stack shell' }, [inner]));
@@ -3664,7 +3709,7 @@ function finishRecruit() {
     [['① 年初の目標', 'シーズン目標を決める。達成で評判ボーナス（格上の目標ほど大きい）、未達でも評判-3のみ。思い切って高い目標を掲げるのも監督の腕の見せどころ'],
      ['② 月頭指示', '全体方針・ユニット練習・練習強度・校風はボタンで、重点育成とキャプテンは一覧から選ぶ。全体方針のボタンにはスタメン平均の能力ランクが出るので、弱い能力の見極めに使える'],
      ['③ 週次プランニング', '1か月は4週間。今週の活動をカードから選ぶと、練習の実りや回復、時折イベントが起きる。活動の能力が月の全体方針と一致すると少しお得。「おまかせ」は方針一致の練習とチームの弱点の練習を交互に選び、月末まで自動で進める'],
-     ['④ 試合', '6月=練習試合、10〜12月=花園予選、1月=花園。勝負どころでは采配（選択肢）を選ぶ'],
+     ['④ 試合', '6月=練習試合、10〜12月=花園予選、1月=花園。下の「試合を進める」で実況が進み、勝負どころでは右の采配（選択肢）を選ぶ。選手交代は勝負どころの間だけ、下の「選手交代」から'],
      ['⑤ シーズン終了', '結果を振り返り、3年生は卒業してOB名鑑へ'],
      ['⑥ 勧誘', 'スカウト候補・特別枠・一般入部で新チームを作って新年度へ。候補は「比較」表示で能力や成功率を見比べられ、成功率の内訳も確認できる。入部した新入生は紹介画面でお披露目される']].forEach(function (r) {
       L.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
@@ -3676,7 +3721,7 @@ function finishRecruit() {
     });
     var R = h('div', { class: 'grow scroll flatbox' });
     R.appendChild(h('div', { class: 'sec' }, ['👀 画面の見方']));
-    R.appendChild(h('p', null, ['左＝情報（実況・週の記録・選手一覧）、右と下段＝操作（選択肢・活動カード・ボタン）が基本配置です。試合は左の実況を読み、右で采配を選んでください。画面上部のバーでは年・月・部の格・総合力・評判がいつでも確認できます。']));
+    R.appendChild(h('p', null, ['左＝情報（実況・週の記録・選手一覧）、右と下段＝操作（選択肢・活動カード・ボタン）が基本配置です。試合は左の実況を読み、右で采配を選んでください。進む・決定のボタンはいつも画面の下にあります。画面上部のバーでは年・月・部の格・総合力・評判がいつでも確認できます。']));
     R.appendChild(h('div', { class: 'sec' }, ['💡 監督のコツ']));
     [['疲労管理', '疲労70以上で練習効率も試合の成功率も大きく落ちる。「休養・ケア」の週と強度「通常」を織り交ぜよう'],
      ['信頼度', '試合の出場と活躍で上がり、采配の成功率に効く。重点育成と起用でエースを育てよう'],
@@ -3685,7 +3730,7 @@ function finishRecruit() {
      ['格上戦', '7点差以内の善戦でも評判と経験が得られる。試合後の「敗因の内訳」が次への教材になる'],
      ['時短', '戦力差の大きい試合は対戦確認画面から「結果のみ表示」で飛ばせる。設定画面で「格下戦は自動で結果のみ表示」を ON にしておくと、キックオフで自動的に飛ぶ'],
      ['メンバー編成', '対戦確認から入れる。編成はシーズンを通して保持され、次の試合にも引き継がれる（試合中の交代とは別）。※ はケガなどで編成どおりに出られないため自動補完された枠'],
-     ['采配', '対戦確認でPGキッカーと、相手エースへのマークを指名できる（どちらも任意）。後半には戦術変更の機会もあり、選んだ攻め方が少しだけ効きやすくなる']].forEach(function (r) {
+     ['采配', '対戦確認でPGキッカーと、相手エースへのマークを指名できる（どちらも任意）。キッカーが「おまかせ」なら最適な選手が蹴る。マークはエースを抑える代わりに、ほかの選手への対応が薄くなる。後半には戦術変更の機会もあり、選んだ攻め方が少しだけ効きやすくなる']].forEach(function (r) {
       R.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
     });
     /* v0.24: 用語集（操作画面から削った説明の受け皿。既存の流れ・コツと重複しない定義だけを置く） */
@@ -3707,15 +3752,19 @@ function finishRecruit() {
      ['開発', 'Muse（AI）との共同開発'],
      ['シリーズ', '100アプリチャレンジ #47'],
      ['フォント', 'M PLUS Rounded 1c ／ Dela Gothic One（SIL Open Font License 1.1）'], /* v0.29: 埋め込みフォントの表記 */
-     ['バージョン', 'v1.6（Web版）']].forEach(function (r) {
+     ['バージョン', 'v1.7（Web版）']].forEach(function (r) {
       R.appendChild(h('div', { class: 'rowline kvrow' }, [h('b', null, [r[0]]), h('span', { class: 'sub' }, [r[1]])]));
     });
-    R.appendChild(h('button', { class: 'btn', style: 'margin-top:12px', onclick: function () { tutReplay(guideFrom); back(); } }, ['🎓 チュートリアルをもう一度見る'])); /* v0.24: 実地ガイドの再表示（戻り先の画面のステップから） */
-    R.appendChild(h('button', { class: 'btn primary', style: 'margin-top:12px', onclick: back }, [G ? '◀ 戻る' : '◀ タイトルへ戻る']));
     var kids = [];
     if (G) kids.push(hud());
     kids.push(h('div', { class: 'sec' }, ['📖 遊び方 ― Road to HANAZONO']));
     kids.push(h('div', { class: 'lay2' }, [col([L]), col([R])]));
+    /* v0.32: 「戻る」は下のバーに固定する。v1.6 までは右の欄のいちばん下（本文を全部スクロールした先）にあり、
+     * 開いた直後の画面には戻る手段が見えなかった。チュートリアルの再表示（v0.24）も同じバーに置く */
+    kids.push(actionBar([
+      h('button', { class: 'btn gside', onclick: function () { tutReplay(guideFrom); back(); } }, ['🎓 チュートリアルをもう一度見る']),
+      h('button', { class: 'btn primary ggo', onclick: back }, [G ? '◀ 戻る' : '◀ タイトルへ戻る'])
+    ]));
     wrap(kids);
   }
   /* v0.9: シーズン目標の設定（年初のみ）。おすすめは部の格で決まり、格上目標も選べる */
@@ -3732,24 +3781,28 @@ function finishRecruit() {
       h('div', { class: 'gtitle' }, ['🎯 ' + G.year + '年目の目標を決めよう']),
       /* v0.24: 表示テキスト最小化。目標の仕組み（達成ボーナスの大小・未達時の扱い）は
        * ガイド「① 年初の目標」へ移し、ここは判断に直結する数値だけを残す */
-      h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['現在の部の格']), h('span', null, [gradeOf().n])]),
+      h('div', { class: 'rowline ggrade' }, [h('span', { class: 'sub' }, ['現在の部の格']), h('span', null, [gradeOf().n])]),
       h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['昨季の結果']), h('span', null, [G.history.length ? G.history[G.history.length - 1].result : '―（初年度）'])]),
-      h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['おすすめの目標']), h('span', null, [rec.n])])
+      h('div', { class: 'rowline grec' }, [h('span', { class: 'sub' }, ['おすすめの目標']), h('span', null, [rec.n])]),
+      /* v0.32: 目標の中身（何を達成すればよいか）は、選んでいる目標の分だけここに出す。右の一覧は名前とボーナスの1行に詰めた */
+      h('div', { class: 'goalnow' }, [h('b', null, [cur.n]), h('span', null, [cur.d])])
     ]);
     heroBody.appendChild(glass);
     heroPanel.appendChild(heroBody);
     var left = [heroPanel];
-    var box = h('div', { class: 'choices grow scroll flatbox' }); /* v0.22: 外枠を外し、選択ボタン自体を面にする */
+    var tbG = tutBar(); if (tbG) { tbG.classList.add('tutcol'); left.unshift(tbG); } /* v0.32: 案内は情報なので左の列に（右の操作の列の高さを削らない） */
+    var box = h('div', { class: 'choices grow scroll flatbox goalbox' }); /* v0.22: 外枠を外し、選択ボタン自体を面にする */
     box.appendChild(h('div', { class: 'sec' }, ['今年の目標']));
     GOALS.forEach(function (gl) {
-      box.appendChild(h('button', { class: 'btn choice' + (cur.k === gl.k ? ' primary' : ''), onclick: function () { G.goal = gl.k; save(); render(); } }, [
+      /* v0.32: 5つの目標をスクロールなしで全部見せる（iPhone 15 Pro では2つしか見えなかった）。行は 名前＋印 ／ 右に達成ボーナス。
+       * 説明文（gl.d）は DOM に残し、選んでいる目標の分を左のガラスに出す。文字列は従来と同じ並び */
+      box.appendChild(h('button', { class: 'btn choice goalrow' + (cur.k === gl.k ? ' primary' : ''), title: gl.n + '：' + gl.d, onclick: function () { G.goal = gl.k; save(); render(); } }, [
         h('span', { class: 't' }, [gl.n + (rec.k === gl.k ? ' ⭐おすすめ' : '') + (cur.k === gl.k ? ' ✔選択中' : '')]),
-        h('span', { class: 'd' }, [' — ' + gl.d + '（達成ボーナス 評判+' + repGain(4 + gl.rank * 2) + '〜）'])
+        h('span', { class: 'd' }, [h('span', { class: 'dsep' }, [' — ' + gl.d]), h('span', { class: 'gbonus' }, [h('span', { class: 'dsep' }, ['（達成ボーナス ']), '評判+' + repGain(4 + gl.rank * 2) + '〜', h('span', { class: 'dsep' }, ['）'])])])
       ]));
     });
     var right = [box];
-    var gkids = [hud()]; /* v0.24: チュートリアルバーは通常フローに置く（重ねない） */
-    var tbG = tutBar(); if (tbG) gkids.push(tbG);
+    var gkids = [hud()]; /* v0.24: チュートリアルバーは通常フローに置く（重ねない）。v0.32 で左の列の先頭へ */
     gkids.push(h('div', { class: 'lay2' }, [col(left), col(right)]));
     gkids.push(actionBar([h('button', { class: 'btn primary', onclick: function () { G.goalSet = true; save(); screen = 'inst'; render(); } }, ['目標を決めてシーズンを始める'])]));
     wrap(gkids);
@@ -3785,7 +3838,8 @@ function finishRecruit() {
     heroBody.appendChild(glass);
     heroPanel.appendChild(heroBody);
     var left = [heroPanel];
-    var card = h('div', { class: 'card grow scroll' });
+    var tbI = tutBar(); if (tbI) { tbI.classList.add('tutcol'); left.unshift(tbI); } /* v0.32: 案内は左の列に（目標の画面と同じ） */
+    var card = h('div', { class: 'card grow scroll instcard' });
     card.appendChild(h('div', { class: 'sec' }, [mo.m + 'の練習指示' + (mo.camp ? '（合宿月：実り1.5倍）' : '') + (mo.match != null ? ' ／ 月末に試合あり' : '')]));
     /* v0.27: 選択肢の少ない4項目（全体方針・ユニット・強度・校風）は、タップで選ぶボタン列にした。
      * v1.1 まではセレクト6個が並び、毎月必ず見る画面が「管理画面」に見えていた（週次のカード画面と様式が揃わない）。
@@ -3844,12 +3898,13 @@ function finishRecruit() {
     card.appendChild(form);
     var right = [];
     /* v0.15: 初回ヒント。新規開始の最初の月（1年目・4月）の月頭指示にだけ1行出す */
-    if (!G.hintSeen && G.year === 1 && G.monthIdx === 0) {
-      right.push(h('div', { class: 'card hintcard' }, ['💡 まずは全体方針と重点育成する選手を選んで、月を始めよう。練習で選手が育ち、月末には試合が待っている']));
+    /* v0.32: ヒントは情報なので左の列に置く（v1.6 までは右の操作の列の上で、練習強度・校風・重点育成・キャプテンが
+     * スクロールの先に隠れていた。1年目4月＝最初に見る指示画面）。チュートリアルの案内（同じ趣旨の一言）が出ている間は重ねて出さない */
+    if (!G.hintSeen && G.year === 1 && G.monthIdx === 0 && !tbI) {
+      left.unshift(h('div', { class: 'card hintcard' }, ['💡 まずは全体方針と重点育成する選手を選んで、月を始めよう。練習で選手が育ち、月末には試合が待っている']));
     }
     right.push(card);
-    var ikids = [hud()]; /* v0.24: チュートリアルバー（通常フロー） */
-    var tbI = tutBar(); if (tbI) ikids.push(tbI);
+    var ikids = [hud()]; /* v0.24: チュートリアルバー（通常フロー）。v0.32 で左の列の先頭へ */
     ikids.push(h('div', { class: 'lay2 layinst' }, [col(left), col(right)]));
     ikids.push(actionBar([h('button', { class: 'btn primary', onclick: function () { startMonth(); } }, ['指示を確定して月を始める'])]));
     wrap(ikids);
@@ -3988,8 +4043,20 @@ function finishRecruit() {
       b.log.forEach(function (ln) { log.appendChild(h('div', null, [ln])); });
       rightKids.push(log);
     }
-    /* おまかせは操作なので右の列の下に（v0.29 までは最下部のステータスバーの右端）。文言は従来どおり */
-    rightKids.push(h('button', { class: 'btn primary wauto', onclick: function () { autoMonth(); } }, ['⏩ おまかせ（月末まで自動）']));
+    /* おまかせは操作なので右の列の下に（v0.29 までは最下部のステータスバーの右端）。文言は従来どおり。
+     * v0.32: 1タップで月末まで進み取り消せないため、確認を1つ挟む（作者の決定）。1回目で同じ場所が「やめる／おまかせで月末まで進める」に
+     * 変わり、2回目で進む。確認のボタンは出た直後 0.4 秒は実際のタップを受けない（2度押しで確認まで通らないように）。
+     * 週のカードを選ぶ・画面を離れると確認は取り消し。進め方（autoMonth）と乱数は変えない */
+    var asking = !!(autoAsk && autoAsk.y === G.year && autoAsk.m === G.monthIdx && autoAsk.w === b.week);
+    if (!asking) autoAsk = null;
+    if (asking) {
+      rightKids.push(h('div', { class: 'wautoask' }, [
+        h('button', { class: 'btn wauto wano', onclick: function () { autoAsk = null; render(); } }, ['やめる']),
+        h('button', { class: 'btn primary wauto wago', onclick: function (ev) { if (tapTooSoon(ev, autoAsk && autoAsk.at, 400)) return; autoAsk = null; autoMonth(); } }, ['⏩ おまかせで月末まで進める'])
+      ]));
+    } else {
+      rightKids.push(h('button', { class: 'btn primary wauto', onclick: function () { autoAsk = { y: G.year, m: G.monthIdx, w: b.week, at: Date.now() }; render(); } }, ['⏩ おまかせ（月末まで自動）']));
+    }
     var cards = h('div', { class: 'wcards' });
     var recKey = autoWeekKey();
     WEEK_ACTS.forEach(function (a) {
@@ -4002,10 +4069,11 @@ function finishRecruit() {
       kids.push(h('span', { class: 'wbadge' + (badge === '方針一致' ? ' pol' : '') }, [badge || '']));
       cards.appendChild(h('button', { class: 'wcard pcard' + (a.k === recKey ? ' rec' : ''), 'data-k': a.k /* v0.29: 系統色（CSS）用 */,
         title: a.n + '：' + a.d /* v0.30: 説明文はカードに出さず、ここ（PC のカーソル・読み上げ）とガイドに */,
-        onclick: (function (k) { return function () { pickWeek(k); }; })(a.k) }, kids));
+        onclick: (function (k) { return function (ev) { if (tapTooSoon(ev, weekAt, 250)) return; weekAt = Date.now(); pickWeek(k); }; })(a.k) }, kids)); /* v0.32: 同じ位置に次の週のカードが出るので、連打で2週分を進めない */
     });
     var wkids = [hud()]; /* v0.24: チュートリアルバー（通常フロー）。週次は高さが詰まっているため、
      * バー表示中はバー自体を細くし、活動カードも一段詰める（CSS の .hastut） */
+    if (b.week >= 1) tutAdvanceFrom('board'); /* v0.32: 最初の1週を選んだら週の案内は終わり */
     var tbW = tutBar();
     if (tbW) { tbW.classList.add('tutsm'); cards.classList.add('hastut'); wkids.push(tbW); }
     wkids.push(h('div', { class: 'lay2 wtop' + (tbW ? ' hastut' : '') }, [col([scene]), col(rightKids)]));
@@ -4183,7 +4251,7 @@ function finishRecruit() {
     ids.forEach(function (id) { if (id != null) inSet[id] = 1; });
     var left = h('div', { class: 'card grow scroll' });
     left.appendChild(h('div', { class: 'sec' }, ['スタメン（背番号順）― 行タップで選択']));
-    var table = h('table', { class: 'squad' });
+    var table = h('table', { class: 'squad lineup' }); /* v0.32: lineup＝行を押しやすい高さにする目印（CSS） */
     table.appendChild(h('tr', null, ['No', 'Pos', '名前', '年', '総合', '疲労', '調子'].map(function (x) { return h('th', null, [x]); })));
     ids.forEach(function (id, n) {
       var p = G.players.filter(function (x) { return x.id === id; })[0];
@@ -4374,48 +4442,56 @@ function finishRecruit() {
     else if (opp.skill) vs.appendChild(h('div', { class: 'rowline' }, [h('span', { class: 'sub' }, ['相手の特能']), h('span', null, [opp.skill.n])]));
     vs.appendChild(h('div', { class: 'rowline pmlineup' }, [h('span', { class: 'sub' }, ['スタメン編成']), h('span', null, [Array.isArray(G.lineup) ? 'カスタム編成' : '自動選出（総合力順）'])]));
     /* v0.20 実機レイアウト修正: 戦術とキッカー＆マークを1枚のスクロールカードに統合する。
-       別カードに分けると固定要素の合計が実機の縦幅を超え、カラムを突き抜けて重なっていた */
-    var box = h('div', { class: 'card choices grow scroll' });
+       別カードに分けると固定要素の合計が実機の縦幅を超え、カラムを突き抜けて重なっていた
+     * v0.32: 右の欄の操作を1画面に全部出す（iPhone 15 Pro では戦術が4つのうち2つしか見えず、キッカーとマークの指名は
+     * スクロールの先だった）。戦術は 2×2 のタイル、指名は2つ並べ、メンバー編成と結果のみ表示は下のバーへ移した。
+     * 保存する値（G.tactic）と指名（selKickerId／selMarkId）の扱いは従来どおり */
+    var tbP = tutBar();
+    var box = h('div', { class: 'card choices grow scroll pmctrl' + (tbP ? ' hastut' : '') });
     box.appendChild(h('div', { class: 'sec' }, ['今日の戦術']));
+    var tgrid = h('div', { class: 'tacgrid' });
     TACTICS.forEach(function (tc) {
-      box.appendChild(h('button', { class: 'btn choice' + (G.tactic === tc.k ? ' primary' : ''), onclick: function () { G.tactic = tc.k; save(); render(); } }, [
-        h('span', { class: 't' }, [tc.n]), h('span', { class: 'd' }, [' — ' + tc.d])
+      tgrid.appendChild(h('button', { class: 'btn choice' + (G.tactic === tc.k ? ' primary' : ''), onclick: function () { G.tactic = tc.k; save(); render(); } }, [
+        h('span', { class: 't' }, [tc.n]), h('span', { class: 'd' }, [h('span', { class: 'dsep' }, [' — '])].concat(
+          /* 「◯◯の成功率アップ」は週のカードの効果の札と同じ「◯◯▲」で見せる（▲は CSS）。文字は DOM に残す */
+          tc.d.slice(-7) === 'の成功率アップ' ? [tc.d.slice(0, -7), h('span', { class: 'dtail' }, ['の成功率アップ'])] : [tc.d]))
       ]));
     });
-    /* v0.16: PGキッカーとエースのマークマンの指名（任意・この試合限り）。キッカーの目安は段階表示（◎○△）のみで、成功率は数値で見せない */
-    var prep = box;
-    prep.appendChild(h('div', { class: 'sec' }, ['🦵 キッカー＆マーク（任意）']));
-    prep.appendChild(h('label', { class: 'lab' }, ['PGキッカー（おまかせ時は自動で最適な選手が蹴る）']));
-    var ksel = h('select', null, [h('option', { value: '' }, ['おまかせ'])]
+    box.appendChild(tgrid);
+    /* v0.16: PGキッカーとエースのマークマンの指名（任意・この試合限り）。キッカーの目安は段階表示（◎○△）のみで、成功率は数値で見せない
+     * v0.32: 指名の説明（おまかせなら最適な選手が蹴る／マークは抑える代わりに他が空く）はガイド「④ 試合」に置き、ここは名前だけ */
+    box.appendChild(h('div', { class: 'pmcap' }, ['🦵 キッカー＆マーク（任意）']));
+    var prep = h('div', { class: 'pmprep' });
+    var ksel = h('select', { 'aria-label': 'PGキッカー' }, [h('option', { value: '' }, ['おまかせ'])]
       .concat(stNow.map(function (p) { return h('option', { value: String(p.id) }, [kickMark(p) + ' ' + p.name + '（' + POSITIONS[p.posIdx].p + '）']); })));
     ksel.value = selKickerId == null ? '' : String(selKickerId);
     ksel.onchange = function () { selKickerId = ksel.value === '' ? null : +ksel.value; };
-    prep.appendChild(ksel);
+    prep.appendChild(h('div', { class: 'pmfield' }, [h('label', { class: 'lab' }, ['PGキッカー']), ksel]));
     if (opp.ace) {
-      prep.appendChild(h('label', { class: 'lab' }, ['エース ' + opp.ace.name + '（' + opp.ace.pos + '）へのマーク（抑える代わりに他が空く）']));
-      var msel = h('select', null, [h('option', { value: '' }, ['マークしない'])]
+      var msel = h('select', { 'aria-label': 'エースのマーク' }, [h('option', { value: '' }, ['マークしない'])]
         .concat(stNow.map(function (p) { return h('option', { value: String(p.id) }, [p.name + '（' + POSITIONS[p.posIdx].p + '）']); })));
       msel.value = selMarkId == null ? '' : String(selMarkId);
       msel.onchange = function () { selMarkId = msel.value === '' ? null : +msel.value; };
-      prep.appendChild(msel);
+      prep.appendChild(h('div', { class: 'pmfield' }, [h('label', { class: 'lab' }, ['エース ' + opp.ace.name + ' のマーク']), msel]));
     }
-    var rightKids = [box,
-      h('button', { class: 'btn', onclick: function () { lineupSlot = null; screen = 'lineup'; render(); } }, ['👥 メンバー編成'])];
-    if (canSkip(mo.match)) {
-      rightKids.push(h('button', { class: 'btn', onclick: function () { skipMatch(mo.match); } }, ['⏩ 結果のみ表示（スキップ）']));
-      /* v0.24: 表示テキスト最小化。時短の条件・説明はガイド「時短」へ移し、ボタンだけを残す。
-       * 時短設定 ON の時だけ、その旨を短く添える */
-      if (prefFast) rightKids.push(h('div', { class: 'sub' }, ['⏩ 時短設定 ON：キックオフで自動的に結果のみ表示になる']));
-    }
+    box.appendChild(prep);
+    /* v0.24: 表示テキスト最小化。時短の条件・説明はガイド「時短」へ移し、ボタンだけを残す。
+     * 時短設定 ON の時だけ、その旨を短く添える */
+    if (canSkip(mo.match) && prefFast) box.appendChild(h('div', { class: 'sub' }, ['⏩ 時短設定 ON：キックオフで自動的に結果のみ表示になる']));
     var pkids = [hud()]; /* v0.24: チュートリアルバー（通常フロー） */
-    var tbP = tutBar(); if (tbP) pkids.push(tbP);
-    pkids.push(h('div', { class: 'lay2' }, [
+    if (tbP) { tbP.classList.add('tutsm'); pkids.push(tbP); } /* v0.32: 週次と同じ細いバー（右の欄の高さを返す） */
+    pkids.push(h('div', { class: 'lay2 laypm' }, [
       col([pmHero, vs]),
-      col(rightKids)
+      col([box])
     ]));
     /* v0.24: 時短設定 ON なら、キックオフが従来の「結果のみ表示」と同じ経路（skipMatch）を通る。
-     * 判定・乱数消費は手動スキップと同一で、設定 OFF では従来どおり startMatch のみ */
-    pkids.push(actionBar([h('button', { class: 'btn primary', onclick: function () { if (prefFast && canSkip(mo.match)) skipMatch(mo.match); else startMatch(mo.match); } }, ['キックオフ'])]));
+     * 判定・乱数消費は手動スキップと同一で、設定 OFF では従来どおり startMatch のみ
+     * v0.32: 下のバーは 左＝メンバー編成・結果のみ表示（脇の操作）、右＝キックオフ（決定は右の親指の下） */
+    var pbar = [h('button', { class: 'btn pmside', onclick: function () { lineupSlot = null; screen = 'lineup'; render(); } }, ['👥 メンバー編成'])];
+    if (canSkip(mo.match)) pbar.push(h('button', { class: 'btn pmside', onclick: function () { skipMatch(mo.match); } }, ['⏩ 結果のみ表示（スキップ）']));
+    pbar.push(h('button', { class: 'btn primary pmgo', onclick: function () { if (prefFast && canSkip(mo.match)) skipMatch(mo.match); else startMatch(mo.match); } }, ['キックオフ']));
+    var pab = actionBar(pbar); pab.classList.add('pmbar');
+    pkids.push(pab);
     wrap(pkids);
   }
   /* v0.8: 停止点での交代パネル（右カラム・選択肢の下）。
@@ -4444,7 +4520,10 @@ function finishRecruit() {
       box.appendChild(list);
     } else {
       var outP = G.players.filter(function (p) { return p.id === subOutId; })[0];
-      box.appendChild(h('div', { class: 'sub' }, [(outP ? outP.name : '―') + ' を下げる。入れる選手を選ぶ']));
+      /* v0.32: 「交代をやめる」は見出しの行の右に置く（v1.6 までは控えの一覧のいちばん下で、スクロールの先だった） */
+      box.appendChild(h('div', { class: 'subhead' }, [
+        h('div', { class: 'sub' }, [(outP ? outP.name : '―') + ' を下げる。入れる選手を選ぶ']),
+        h('button', { class: 'btn small subcancel', onclick: function () { subOutId = null; render(); } }, ['交代をやめる'])]));
       var list2 = h('div', { class: 'sublist' });
       bench.forEach(function (p) {
         var inKids = ['IN ' + POSITIONS[p.posIdx].p + ' ' + p.name + '（総合 ', rankValEl(Math.round(overall(p)), 'sm'), '・疲労' + p.fatigue + '・', formFace(p), '）'];
@@ -4454,7 +4533,6 @@ function finishRecruit() {
         })(p.id) }, inKids));
       });
       box.appendChild(list2);
-      box.appendChild(h('button', { class: 'btn small', onclick: function () { subOutId = null; render(); } }, ['交代をやめる']));
     }
     return box;
   }
@@ -4471,31 +4549,59 @@ function finishRecruit() {
     FX.score = { my: M.my, op: M.op };
     /* v0.21: 勝利が決まった最初の描画だけ、スコアボードに金のグローをかける */
     if (M.done && M.result === 'win' && fxOnce('mdone:' + G.year + ':' + G.monthIdx + ':' + M.oppIdx + ':' + M.my + ':' + M.op)) sb.classList.add('fx-wingo');
-    var ctrl = h('div', { class: 'card grow scroll' });
-    if (M.phase === 'scene' && M.pending) {
-      ctrl.appendChild(h('div', { class: 'sec' }, [M.pending.title]));
-      /* v0.12: ハーフタイムは形勢サマリーを采配パネルにも出す（同じ内容は実況ログにも残る） */
-      if (M.pending.kind === 'halftime' && M.htLines) {
-        var ht = h('div', { class: 'htbox' });
-        M.htLines.forEach(function (ln) { ht.appendChild(h('div', null, [ln])); });
-        ctrl.appendChild(ht);
-      }
-      if (M.pending.key) ctrl.appendChild(h('div', { class: 'sub' }, ['キーマン：' + M.pending.key.name + '（' + POSITIONS[M.pending.key.posIdx].p + (skillNames(M.pending.key).length ? '・' + skillNames(M.pending.key).join('／') : '') + '）']));
-      var box = h('div', { class: 'choices' });
+    /* v0.32: 操作しやすさの作り直し（表示と操作の配置だけ。判定・乱数・試合のデータは変えない）。
+     * ①進める／次へ は、ほかの画面と同じく下のバーに固定した（v1.6 までは右の欄の上で、場面のたびに位置が変わった）
+     * ②勝負どころの選択肢は「名前＋決め手の1行＋成功率の印」に詰め、3〜4個を1画面に全部出す
+     *   （iPhone 15 Pro では2個半しか見えず、残りと選手交代はスクロールの先だった）
+     * ③選手交代は下のバーのボタンで右の欄を切り替える（選択肢の下に15人分を縦に積まない）。
+     *   両方の中身は DOM に残し、表示だけを切り替える（選手データのタブと同じやり方）
+     * ④ハーフタイムの形勢と「キーマン：◯◯」は右の欄に重ねて出さない（左の実況とカットインに同じものがある） */
+    var inScene = M.phase === 'scene' && !!M.pending;
+    if (!inScene) subOpen = false;
+    var ctrl = h('div', { class: 'card grow scroll matchctrl' + (inScene && subOpen ? ' subopen' : '') });
+    var barKids = [];
+    if (inScene) {
+      if (scShown.p !== M.pending) scShown = { p: M.pending, at: Date.now() };
+      var pane = h('div', { class: 'scpane' });
+      var sti = M.pending.title, stc = sti.indexOf('：');
+      pane.appendChild(h('div', { class: 'sec sctitle' + (M.pending.kind === 'httac' ? ' plain' : '') }, stc > 0 ? [h('span', { class: 'scpre' }, [sti.slice(0, stc + 1)]), h('span', { class: 'scname' }, [sti.slice(stc + 1)])] : [h('span', { class: 'scname' }, [sti])]));
+      /* 後半の戦術変更は成功・失敗のない選択なので、成功率の印は出さない（plain）。文字は DOM に残す */
+      var box = h('div', { class: 'choices scchoices' + (M.pending.kind === 'httac' ? ' plain' : '') });
       M.pending.choices.forEach(function (c, i) {
         /* v0.26: 成功率は段階の目安だけを見せる。data-p は QA／ソークの駆動用（画面には出ない） */
         var sm = sceneMark(Math.round(c.p * 100) / 100); /* 境界は従来の表示（%の四捨五入）と揃える */
-        box.appendChild(h('button', { class: 'btn choice', 'data-p': String(Math.round(c.p * 100)), onclick: function () { chooseScene(i); } }, [
-          h('span', { class: 't' }, [c.n]), h('span', { class: 'd' }, [' — ' + c.d + ' ']),
-          h('span', { class: 'd nowrap' }, ['（成功率の目安 ', h('b', { class: 'smark ' + sm.c }, [sm.m]), '）'])
+        /* 場面が出た直後の実際のタップは受けない（前の画面の連打が、同じ位置に出た選択肢を押してしまうのを防ぐ。
+         * プログラムからの click() は isTrusted が偽なので素通し＝QA・ソークの駆動は変わらない） */
+        box.appendChild(h('button', { class: 'btn choice', 'data-p': String(Math.round(c.p * 100)), onclick: function (ev) { if (tapTooSoon(ev, scShown.at, 400)) return; chooseScene(i); } }, [
+          h('span', { class: 'cmain' }, [h('span', { class: 't' }, [c.n]), h('span', { class: 'd' }, [h('span', { class: 'dsep' }, [' — ']), c.d + ' '])]),
+          h('span', { class: 'd nowrap smwrap' }, [h('span', { class: 'smpre' }, ['（']), h('span', { class: 'smlab' }, ['成功率の目安']), ' ', h('b', { class: 'smark ' + sm.c }, [sm.m]), h('span', { class: 'smpre' }, ['）'])])
         ]));
       });
-      ctrl.appendChild(box);
+      pane.appendChild(box);
+      ctrl.appendChild(pane);
       ctrl.appendChild(subPanelEl());
+      var subLeft = M.subsMax - M.subs;
+      var subCan = (subLeft > 0 || M.knock.length > 0) && G.players.some(function (p) { return M.fieldIds.indexOf(p.id) < 0 && !p.injured; });
+      var subAt = { class: 'btn subtoggle' + (M.knock.length ? ' warn' : '') + (subOpen ? ' on' : ''), onclick: function () { subOpen = !subOpen; if (!subOpen) subOutId = null; render(); } };
+      if (!subCan && !subOpen) subAt.disabled = 'disabled';
+      barKids.push(h('button', subAt, [subOpen ? '◀ 采配に戻る' : (M.knock.length ? '🚑 ' : '🔁 ') + '選手交代（残り' + subLeft + '回）']));
+      barKids.push(h('button', { class: 'btn primary matchgo', disabled: 'disabled' }, ['采配を選ぼう']));
     } else if (!M.done) {
-      ctrl.appendChild(h('div', { class: 'sec' }, ['実況']));
-      /* v0.24: 表示テキスト最小化。試合の進め方はチュートリアルとガイド「④ 試合」が担い、ここはボタンだけにする */
-      ctrl.appendChild(h('button', { class: 'btn primary', onclick: function () { playBlock(); } }, ['試合を進める']));
+      /* 進行中の右の欄は、この試合の采配の控え（対戦確認で決めたこと・交代の残り）。操作は下のバー */
+      ctrl.appendChild(h('div', { class: 'sec' }, ['📋 今日の采配']));
+      var tcNow = TACTICS.filter(function (tc) { return tc.k === G.tactic; })[0];
+      var memo = [['戦術', tcNow ? tcNow.n : '―']];
+      if (M.htOffered) memo.push(['後半の形', M.htPlan ? HT_PLANS[M.htPlan].n : '変更なし']);
+      var kp1 = M.kickerId ? G.players.filter(function (p) { return p.id === M.kickerId; })[0] : null;
+      memo.push(['PGキッカー', kp1 ? kp1.name : 'おまかせ']);
+      if (M.opp.ace) {
+        var mp1 = M.markId ? G.players.filter(function (p) { return p.id === M.markId; })[0] : null;
+        memo.push(['エースのマーク', mp1 ? mp1.name : 'なし']);
+      }
+      memo.push(['選手交代', '残り' + (M.subsMax - M.subs) + '回']);
+      memo.forEach(function (r) { ctrl.appendChild(h('div', { class: 'rowline memorow' }, [h('span', { class: 'sub' }, [r[0]]), h('span', null, [r[1]])])); });
+      barKids.push(h('button', { class: 'btn subtoggle', disabled: 'disabled' }, ['🔁 選手交代']));
+      barKids.push(h('button', { class: 'btn primary matchgo', onclick: function () { playBlock(); } }, ['試合を進める']));
     } else {
       ctrl.appendChild(h('div', { class: 'sec' }, [M.result === 'win' ? '勝利！ 勝因の内訳' : '試合終了：敗因の内訳']));
       if (M.gallant) ctrl.appendChild(h('p', null, ['🌟 格上に善戦！ 評判と経験のボーナスが入った']));
@@ -4513,7 +4619,7 @@ function finishRecruit() {
         });
         /* v0.24: 内訳の読み方（敗因は次への教材）はガイド「格上戦」が担う。ここは数値だけを残す */
       }
-      ctrl.appendChild(h('button', { class: 'btn primary', onclick: function () { afterMatchNext(); } }, [M.result === 'win' ? 'やった！次へ' : '次へ']));
+      barKids.push(h('button', { class: 'btn primary matchgo', onclick: function () { afterMatchNext(); } }, [M.result === 'win' ? 'やった！次へ' : '次へ']));
     }
     var log = h('div', { class: 'log grow' });
     M.log.forEach(function (ln, li) {
@@ -4538,9 +4644,11 @@ function finishRecruit() {
     }
     leftKids.push(log);
     var mkids = []; /* v0.24: チュートリアルバー（試合画面は HUD が無いので、スコアボードの上に置く） */
-    var tbM = tutBar(); if (tbM) mkids.push(tbM);
+    if (M.scenes.att > 0 || M.htOffered || M.done) tutAdvanceFrom('match'); /* v0.32: 最初の采配を選んだら試合の案内は終わり */
+    var tbM = tutBar(); if (tbM) { tbM.classList.add('tutsm'); mkids.push(tbM); } /* v0.32: 細いバー（選択肢の高さを削らない） */
     mkids.push(sb);
-    mkids.push(h('div', { class: 'lay2' }, [col(leftKids), col([ctrl])]));
+    mkids.push(h('div', { class: 'lay2 laymatch' }, [col(leftKids), col([ctrl])]));
+    mkids.push(h('div', { class: 'actionbar matchbar' }, barKids));
     wrap(mkids);
     var lg = document.querySelector('.log'); if (lg) lg.scrollTop = lg.scrollHeight;
     /* v0.21: 直近の描画以降に生まれた得点が1件だけなら、得点バナーを出す */
@@ -4660,16 +4768,16 @@ function finishRecruit() {
     sc.appendChild(h('div', { class: 'sec' }, [sp.title]));
     sc.appendChild(candHead(sp.p));
     sc.appendChild(statMiniRow(sp.p));
-    sc.appendChild(candTags(sp.p));
-    sc.appendChild(h('p', null, [sp.desc]));
-    sc.appendChild(h('div', { class: 'hand' }, [
+    sc.appendChild(h('div', { class: 'hand candact2' }, [ /* v0.32: 操作は説明文より上（スクロールしなくても押せる位置） */
       h('button', { class: 'btn small' + (sp.accepted ? ' primary' : ''), onclick: function () { setSpecial(true); } }, ['迎え入れる']),
       h('button', { class: 'btn small', onclick: function () { setSpecial(false); } }, ['見送る'])
     ]));
+    sc.appendChild(candTags(sp.p));
+    sc.appendChild(h('p', null, [sp.desc]));
     return sc;
   }
   /* v0.20: スカウト候補の比較表（能力ランク・特能・寸評・成功率を横並びで見比べる） */
-  function recruitCmpEl(R) {
+  function recruitCmpEl(R, quotaFull) {
     var box = h('div', { class: 'grow scroll cmpcard flatbox' }); /* v0.22: 表自体の罫線が区切りのため外枠は外す */
     var t = h('table', { class: 'cmp' });
     function rowEl(label, cells) {
@@ -4713,9 +4821,12 @@ function finishRecruit() {
     rowEl('寸評', R.cands.map(function (c) { return tdOf(function (td) { td.className = 'cmpblurb'; td.textContent = c.blurb; }); }));
     rowEl('獲得', R.cands.map(function (c, i) {
       return tdOf(function (td) {
-        td.appendChild(h('button', { class: 'btn small' + (c.picked ? ' primary' : ''), onclick: (function (ix) { return function () { togglePick(ix); }; })(i) }, [c.picked ? '✔ 獲得リストから外す' : '獲得リストに入れる']));
+        var at = { class: 'btn small' + (c.picked ? ' primary' : ''), onclick: (function (ix) { return function () { togglePick(ix); }; })(i) };
+        if (!c.picked && quotaFull) at.disabled = 'disabled';
+        td.appendChild(h('button', at, [c.picked ? '✔ 獲得リストから外す' : '獲得リストに入れる']));
       });
     }));
+    t.lastChild.className = 'cmppick'; /* v0.32: 獲得の行は表の下端に貼り付けておく（能力を見比べながら、スクロールせずに押せる） */
     box.appendChild(t);
     if (R.special) box.appendChild(specialCard(R.special));
     return box;
@@ -4729,13 +4840,18 @@ function finishRecruit() {
       h('button', { class: 'tabbtn' + (recruitView === 'cards' ? ' on' : ''), onclick: function () { recruitView = 'cards'; render(); } }, ['カードで見る']),
       h('button', { class: 'tabbtn' + (recruitView === 'cmp' ? ' on' : ''), onclick: function () { recruitView = 'cmp'; render(); } }, ['比較で見る'])
     ]);
-    var action = actionBar([h('button', { class: 'btn primary', onclick: function () { finishRecruit(); } }, ['新年度を始める'])]);
+    /* v0.32: 獲得枠が残ったまま進めてしまう押し間違いを減らす。枠が余っている間は、決定ボタンに「あと n 名」を添える
+     * （確認のタップは増やさない）。枠がいっぱいのときは、ほかの候補の「入れる」を押せない見た目にする
+     * （v1.6 までは押しても何も起きなかった）。判定・乱数は変えない */
+    var quotaLeft = Math.max(0, Math.min(quota, R.cands.length) - pickedN);
+    var quotaFull = pickedN >= quota;
+    var action = actionBar([h('button', { class: 'btn primary', onclick: function () { finishRecruit(); } }, ['新年度を始める' + (quotaLeft > 0 ? '（獲得枠 あと' + quotaLeft + '名）' : '')])]);
     if (recruitView === 'cmp') {
-      var strip = h('div', { class: 'strip flatstrip' }); /* v0.22: 帯は枠ではなくヘアラインで区切る */
+      var strip = h('div', { class: 'strip flatstrip cmpstrip' }); /* v0.22: 帯は枠ではなくヘアラインで区切る。v0.32: 1段に詰めて表を広く */
       strip.appendChild(h('span', { class: 'sec' }, ['🌸 ' + G.year + '年目 ― スカウト候補の比較']));
-      strip.appendChild(h('span', { class: 'sub' }, ['部の格 ' + gradeOf().n + ' ／ 獲得枠 ' + quota + '名（選択中 ' + pickedN + '名） ／ 成功率の内訳は「カードで見る」で確認できる']));
+      strip.appendChild(h('span', { class: 'sub' }, [h('span', { class: 'sgrade' }, ['部の格 ' + gradeOf().n + ' ／ ']), '獲得枠 ' + quota + '名（選択中 ' + pickedN + '名）'])); /* v0.32: 部の格は HUD にあるので、比較の帯では畳む（文字列は同じ） */
       strip.appendChild(tabs);
-      wrap([hud(), strip, recruitCmpEl(R), action]);
+      wrap([hud(), strip, recruitCmpEl(R, quotaFull), action]);
       return;
     }
     /* v0.22: 左カラムはヒーローパネル（場面背景＋ガラス1枚）に統合し、場面背景の適用範囲を広げる。
@@ -4773,14 +4889,20 @@ function finishRecruit() {
       card.appendChild(candHead(c.p));
       if (c.elite) card.appendChild(h('div', null, [h('span', { class: 'badge' }, ['目玉候補'])]));
       card.appendChild(statMiniRow(c.p));
+      /* v0.32: 「獲得リストに入れる」は能力のすぐ下（成功率と同じ行）に上げた。v1.6 まではカードのいちばん下で、
+       * 寸評と内訳をスクロールで送らないと押せなかった。寸評・タグ・内訳はその下に続く */
+      var pickAt = { class: 'btn small candpick' + (c.picked ? ' primary' : ''), onclick: (function (ix) { return function () { togglePick(ix); }; })(i) };
+      if (!c.picked && quotaFull) pickAt.disabled = 'disabled';
+      card.appendChild(h('div', { class: 'candact' }, [
+        h('div', { class: 'rowline candsp' }, [
+          h('span', { class: 'sub' }, ['獲得成功率の目安']),
+          h('span', null, [Math.round(c.sp * 100) + '%'])
+        ]),
+        h('button', pickAt, [c.picked ? '✔ 獲得リストから外す' : '獲得リストに入れる'])
+      ]));
       card.appendChild(candTags(c.p));
       card.appendChild(h('p', null, [c.blurb]));
-      card.appendChild(h('div', { class: 'rowline' }, [
-        h('span', { class: 'sub' }, ['獲得成功率の目安']),
-        h('span', null, [Math.round(c.sp * 100) + '%'])
-      ]));
       card.appendChild(spBreakEl(c));
-      card.appendChild(h('button', { class: 'btn small' + (c.picked ? ' primary' : ''), onclick: (function (ix) { return function () { togglePick(ix); }; })(i) }, [c.picked ? '✔ 獲得リストから外す' : '獲得リストに入れる']));
       list.appendChild(card);
     });
     wrap([hud(), h('div', { class: 'lay2' }, [

@@ -106,6 +106,7 @@ async function play(html, isNew, seed, maxYear, inst) {
     if (x.btn('確認した')) { x.click('確認した'); await sleep(3); continue; }
     if (x.btn('指示を確定')) { if (inst) setInst(x, isNew, inst); x.click('指示を確定'); await sleep(3); continue; }
     if (x.btn('おまかせ（月末まで自動）')) { x.click('おまかせ（月末まで自動）'); await sleep(1); continue; }
+    if (x.btn('おまかせで月末まで進める')) { x.click('おまかせで月末まで進める'); await sleep(1); continue; } /* v0.32: おまかせは確認を1つ挟む（1回目で「おまかせで月末まで進める」に変わり、2回目で進む）。進め方と乱数は同じ */
     if (x.btn('結果のみ表示（スキップ）')) { x.click('結果のみ表示（スキップ）'); await sleep(2); continue; }
     if (x.btn('キックオフ')) { x.click('キックオフ'); await sleep(2); continue; }
     if (x.btn('変更しない')) { x.click('変更しない'); await sleep(0); continue; }
@@ -129,8 +130,8 @@ function fingerprint(st) {
 
 (async () => {
   /* ---- 1. 静的：バージョン・CSS・文言・アイコン ---- */
-  check('version: <title> is v1.6', HTML.includes('<title>Road to HANAZONO v1.6</title>')); /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
-  check('version: hero text is v1.6', JS.includes("'高校ラグビー育成シミュレーション v1.6'")); /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
+  check('version: <title> is v1.7', HTML.includes('<title>Road to HANAZONO v1.7</title>')); /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */ /* v0.32: バージョン表記を v1.7 に追随 */
+  check('version: hero text is v1.7', JS.includes("'高校ラグビー育成シミュレーション v1.7'")); /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */ /* v0.32: バージョン表記を v1.7 に追随 */
   check('css: selected choice subtext uses the brand ink (not --sub)', /\.btn\.primary\.choice \.d \{ color: var\(--brand-ink\)/.test(CSS));
   check('wording: OB year reads "n年目卒" everywhere (9 strings, no bare n年卒)', !/'年卒/.test(JS) && (JS.match(/'年目卒/g) || []).length === 9);
   const icon = fs.readFileSync(__dirname + '/../v02/icons/icon-180.png');
@@ -200,6 +201,7 @@ function fingerprint(st) {
       if (x.btn('確認した')) { x.click('確認した'); await sleep(3); continue; }
       if (x.btn('指示を確定')) { x.click('指示を確定'); await sleep(3); continue; }
       if (x.btn('おまかせ（月末まで自動）')) { x.click('おまかせ（月末まで自動）'); await sleep(1); continue; }
+      if (x.btn('おまかせで月末まで進める')) { x.click('おまかせで月末まで進める'); await sleep(1); continue; } /* v0.32: おまかせは確認を1つ挟む（1回目で「おまかせで月末まで進める」に変わり、2回目で進む）。進め方と乱数は同じ */
       if (x.btn('次へ')) { x.click('次へ'); await sleep(2); continue; }
       break;
     }

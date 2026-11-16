@@ -103,7 +103,7 @@ function keymanOppOverall(H) {
 
 (async () => {
   /* ---- 0. 静的チェック ---- */
-  check('static: title is v1.6', html.includes('<title>Road to HANAZONO v1.6</title>')) /* v0.25: バージョン表記を追随 */; /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
+  check('static: title is v1.7', html.includes('<title>Road to HANAZONO v1.7</title>')) /* v0.25: バージョン表記を追随 */; /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */ /* v0.32: バージョン表記を v1.7 に追随 */
   check('static: STORE_KEY unchanged', html.includes("STORE_KEY = 'hanazono.v02'"));
   ['oppAceAt', 'genOppAce', 'aceTenure', 'aceStatsOf', 'aceOverallOf', 'acePortraitEl',
    'キーマン対比', 'rivalEvent', 'STREAK_COMM', 'streakOf', 'streakText', 'career.streaks'].forEach(s => {

@@ -126,9 +126,9 @@ async function playToSummary(X) {
 
 (async () => {
   console.log('[1] バージョン表記');
-  check('<title> v1.6', INDEX.includes('<title>Road to HANAZONO v1.6</title>'));
-  check('タイトルの見出し v1.6', JS.includes("'高校ラグビー育成シミュレーション v1.6'"));
-  check('遊び方のバージョン v1.6（Web版）', JS.includes("['バージョン', 'v1.6（Web版）']"));
+  check('<title> v1.7', INDEX.includes('<title>Road to HANAZONO v1.7</title>')); /* v0.32: バージョン表記を v1.7 に追随 */
+  check('タイトルの見出し v1.7', JS.includes("'高校ラグビー育成シミュレーション v1.7'")); /* v0.32: バージョン表記を v1.7 に追随 */
+  check('遊び方のバージョン v1.7（Web版）', JS.includes("['バージョン', 'v1.7（Web版）']")); /* v0.32: バージョン表記を v1.7 に追随 */
   check('play.html は 6MB 以下', HTML.length <= 6 * 1024 * 1024, HTML.length);
 
   console.log('[2] 新しい絵 5 枚（ファイル・CSS・登録）');

@@ -58,7 +58,7 @@ const STATKEYS = ['spd', 'pow', 'pas', 'kik', 'tak', 'sta'];
 (async () => {
   const baseSave = await freshSave(777);
   const base = JSON.parse(baseSave);
-  check('version: title is v1.6 (v0.25 でバージョン表記を追随)', html.includes('<title>Road to HANAZONO v1.6</title>')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
+  check('version: title is v1.7 (v0.25 でバージョン表記を追随)', html.includes('<title>Road to HANAZONO v1.7</title>')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */ /* v0.32: バージョン表記を v1.7 に追随 */
   check('save: fresh roster has >= 3 players', base.players.length >= 3, 'n=' + base.players.length);
 
   /* ---- 1. ランク境界値（一覧テーブルの描画で検証） ---- */
@@ -214,7 +214,14 @@ const STATKEYS = ['spd', 'pow', 'pas', 'kik', 'tak', 'sta'];
 
   /* ---- 6. 初回ヒント：新規の初月だけ出て、月を始めると消え、2か月目・既存セーブでは出ない ---- */
   {
-    const H = await makeDom(null, 21);
+    /* v0.32: 新しい端末では、チュートリアルの案内が月頭指示まで追いついて出るようになり、同じ趣旨のヒントは重ねない。
+     * ヒントが出るのは案内が済んでいる端末（2つ目のスロットで始めた・案内を終了した）なので、その状態で確かめる */
+    const H0 = await makeDom(null, 21);
+    H0.click('監督に就任する（ふつう）'); await sleep(15);
+    if (H0.btn('目標を決めて')) { H0.click('目標を決めて'); await sleep(15); }
+    check('hint: a new device shows the tutorial bar instead of the hint (no duplicate guidance)', !H0.document.querySelector('.hintcard') && !!H0.document.querySelector('.tutbar'));
+    H0.window.close();
+    const H = await makeDom({ 'hanazono.tut': '{"step":9,"done":1}' }, 21);
     H.click('監督に就任する（ふつう）'); await sleep(15);
     if (H.btn('目標を決めて')) { H.click('目標を決めて'); await sleep(15); }
     check('hint: shown on first month of a new game', !!H.document.querySelector('.hintcard'));

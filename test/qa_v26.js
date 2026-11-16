@@ -88,6 +88,7 @@ async function playOmakase(html, seed, maxYear, onWeek) {
     if (x.btn('確認した')) { x.click('確認した'); await sleep(3); continue; }
     if (x.btn('指示を確定')) { x.click('指示を確定'); await sleep(3); continue; }
     if (x.btn('おまかせ（月末まで自動）')) { if (onWeek) onWeek(x); x.click('おまかせ（月末まで自動）'); await sleep(1); continue; }
+    if (x.btn('おまかせで月末まで進める')) { x.click('おまかせで月末まで進める'); await sleep(1); continue; } /* v0.32: おまかせは確認を1つ挟む（1回目で「おまかせで月末まで進める」に変わり、2回目で進む）。進め方と乱数は同じ */
     if (x.btn('結果のみ表示（スキップ）')) { x.click('結果のみ表示（スキップ）'); await sleep(2); continue; }
     if (x.btn('キックオフ')) { x.click('キックオフ'); await sleep(2); continue; }
     if (x.btn('変更しない')) { x.click('変更しない'); await sleep(0); continue; }
@@ -104,9 +105,9 @@ async function playOmakase(html, seed, maxYear, onWeek) {
 (async () => {
   /* ---- 1. バージョン表記 ---- */
   {
-    check('version: document title is v1.6', HTML.includes('<title>Road to HANAZONO v1.6</title>')); /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
+    check('version: document title is v1.7', HTML.includes('<title>Road to HANAZONO v1.7</title>')); /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */ /* v0.32: バージョン表記を v1.7 に追随 */
     const h = await makeDom(HTML, null, 1);
-    check('version: hero shows v1.6', H(h).text().includes('高校ラグビー育成シミュレーション v1.6')); /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
+    check('version: hero shows v1.7', H(h).text().includes('高校ラグビー育成シミュレーション v1.7')); /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */ /* v0.32: バージョン表記を v1.7 に追随 */
     h.window.close();
   }
 
@@ -123,6 +124,7 @@ async function playOmakase(html, seed, maxYear, onWeek) {
       if (x.btn('確認した')) { x.click('確認した'); await sleep(3); continue; }
       if (x.btn('指示を確定')) { x.click('指示を確定'); await sleep(3); continue; }
       if (x.btn('おまかせ（月末まで自動）')) { x.click('おまかせ（月末まで自動）'); await sleep(1); continue; }
+      if (x.btn('おまかせで月末まで進める')) { x.click('おまかせで月末まで進める'); await sleep(1); continue; } /* v0.32: おまかせは確認を1つ挟む（1回目で「おまかせで月末まで進める」に変わり、2回目で進む）。進め方と乱数は同じ */
       if (x.btn('キックオフ')) { x.click('キックオフ'); await sleep(2); continue; }
       if (x.btn('変更しない')) { x.click('変更しない'); await sleep(0); continue; }
       const opts = [...x.document.querySelectorAll('.choices .btn.choice')];
@@ -266,6 +268,7 @@ async function playOmakase(html, seed, maxYear, onWeek) {
     check('photos: April instruction uses the cherry-blossom ground art', !!x.document.querySelector('.photobanner.photo-spring') && !x.document.querySelector('.banner svg')); /* v0.31 追随: 4月の季節の SVG を、桜の校庭を描き込んだ絵（photo-spring）に置き換えた */
     x.click('指示を確定'); await sleep(5);
     x.click('おまかせ（月末まで自動）'); await sleep(5);
+    x.click('おまかせで月末まで進める'); await sleep(5); /* v0.32: おまかせは確認を1つ挟む（1回目で「おまかせで月末まで進める」に変わり、2回目で進む）。進め方と乱数は同じ */
     if (x.btn('確認した')) { x.click('確認した'); await sleep(5); }
     check('photos: May instruction uses the practice-field art', !!x.document.querySelector('.photo-practice'));
     x.click('指示を確定'); await sleep(5);

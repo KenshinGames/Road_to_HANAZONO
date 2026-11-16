@@ -78,15 +78,16 @@ async function makeLcgDom(html, seed) {
 (async () => {
   /* ---- 1. バージョン表記 v1.0 とクレジット ---- */
   {
-    check('version: document title is v1.6', HTML.includes('<title>Road to HANAZONO v1.6</title>')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
+    check('version: document title is v1.7', HTML.includes('<title>Road to HANAZONO v1.7</title>')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */ /* v0.32: バージョン表記を v1.7 に追随 */
     check('version: no stale v0.24 in document title/hero source', !HTML.includes('Road to HANAZONO v0.24') && !HTML.includes('育成シミュレーション v0.24'));
     const h = await makeDom(HTML, null, 1);
     const x = H(h);
-    check('version: hero shows v1.6', x.text().includes('高校ラグビー育成シミュレーション v1.6')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
-    check('credits: title carries the credit line', x.text().includes('制作：Kenshin Takada') && x.text().includes('Muse との共同開発'));
+    check('version: hero shows v1.7', x.text().includes('高校ラグビー育成シミュレーション v1.7')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */ /* v0.32: バージョン表記を v1.7 に追随 */
+    /* v0.32: タイトルの制作表記の1行は、遊び方のクレジット節に任せた（作者の決定。空いた高さでタイトルのボタンを 44px にした）。下の credits: guide で確かめる */
+    check('credits: title no longer carries the credit line (left to the guide credits)', !x.text().includes('制作：Kenshin Takada'));
     x.click('📖'); await sleep(20);
     check('credits: guide has a credits section', x.text().includes('クレジット') && x.text().includes('Kenshin Takada') && x.text().includes('Muse（AI）との共同開発'));
-    check('credits: guide credits name the series and version', x.text().includes('100アプリチャレンジ #47') && x.text().includes('v1.6（Web版）')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */
+    check('credits: guide credits name the series and version', x.text().includes('100アプリチャレンジ #47') && x.text().includes('v1.7（Web版）')); /* v0.26: バージョン表記を v1.1 に追随 */ /* v0.27: バージョン表記を v1.2 に追随 */ /* v0.28: バージョン表記を v1.6 に追随 */ /* v0.29: バージョン表記を v1.6 に追随 */ /* v0.30: バージョン表記を v1.6 に追随 */ /* v0.31: バージョン表記を v1.6 に追随 */ /* v0.32: バージョン表記を v1.7 に追随 */
     h.window.close();
   }
 
@@ -210,6 +211,7 @@ async function makeLcgDom(html, seed) {
       /* v0.26 追随: 週次は本命ソーク（soak_v19_ab）と同じゲーム内蔵「おまかせ」で進める。先頭カード固定は偏った参照方針で、
        * 名前生成の乱数経路が変わると同じシードでも花園到達が9年目にずれた（v1.0 でも10年かかるシードがある）。導線の検証が目的のため最適寄りに揃える */
       if (btn('おまかせ（月末まで自動）')) { click('おまかせ（月末まで自動）'); await sleep(0); continue; }
+      if (btn('おまかせで月末まで進める')) { click('おまかせで月末まで進める'); await sleep(0); continue; } /* v0.32: おまかせは確認を1つ挟む（1回目で「おまかせで月末まで進める」に変わり、2回目で進む）。進め方と乱数は同じ */
       const pc = document.querySelector('.pcard');
       if (pc) { pc.click(); await sleep(0); continue; }
       const wc = document.querySelector('.wcard');
